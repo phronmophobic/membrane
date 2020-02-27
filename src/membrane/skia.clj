@@ -38,24 +38,13 @@
                      mouse-move
                      mouse-move-global
                      IScroll
-                     -scroll
-                     ]]
-            ;; membrane.opengl
-            [membrane.analyze :as analyze]
-            clojure.tools.reader.reader-types
-            [clojure.tools.reader.edn :as edn]
-            
-            )
+                     -scroll]])
   (:import com.sun.jna.Pointer
            com.sun.jna.Memory
            com.sun.jna.ptr.FloatByReference
            com.sun.jna.ptr.IntByReference
            com.sun.jna.IntegerType
-           java.awt.image.BufferedImage
-           (java.time
-            YearMonth
-            LocalDate)
-           java.time.format.DateTimeFormatter)
+           java.awt.image.BufferedImage)
   (:import java.nio.ByteBuffer
            javax.imageio.ImageIO)
   (:gen-class))
@@ -392,16 +381,7 @@
     (save-canvas
      (doseq [line lines]
        (skia_next_line *skia-resource* font)
-       (skia_render_line *skia-resource* font line (count line) (float 0) (float 0)))))
-  #_(let [font-color (:font-color options)]
-      (try
-        (when font-color
-          (glPushAttrib GL_CURRENT_BIT)
-          (glColor font-color))
-        (render-text (get-font (get options :font main-font-filepath) (get options :font-size 14)) text [0 0])
-        (finally
-          (when font-color
-            (glPopAttrib))))))
+       (skia_render_line *skia-resource* font line (count line) (float 0) (float 0))))))
 
 
 
@@ -580,11 +560,7 @@
              (skia_render_selection *skia-resource* font line-bytes (alength line-bytes) (int (max 0 selection-start)) (int (min selection-end
                                                                                                                                  line-count))))
            (skia_next_line *skia-resource* font)
-           (recur (next lines) (- selection-start line-count 1) (- selection-end line-count 1)))))))
-  #_(with-color [0.6980392156862745
-                 0.8431372549019608
-                 1]
-      (render_selection (get-font (get options :font main-font) (get options :font-size 14)) text selection-start selection-end)))
+           (recur (next lines) (- selection-start line-count 1) (- selection-end line-count 1))))))))
 
 (extend-type membrane.ui.TextSelection
   IBounds
@@ -964,31 +940,6 @@
   )
 
 (declare main-font)
-
-
-
-
-(defn transpose [m]
-  (apply concat (apply map vector m)))
-(defn ortho-matrix [left right bottom top near far]
-  (let [[left right bottom top near far]
-        (map double [left right bottom top near far])
-        a (/ 2.0 (- right left))
-        b (/ 2.0 (- top bottom))
-        c (/ -2.0 (- far near))
-        tx (- (/ (+ right left)
-                 (- right left)))
-        ty (- (/ (+ top bottom)
-                 (- top bottom)))
-        tz (- (/ (+ far near)
-                 (- far near)))
-        mtx (transpose
-             [[a 0 0 tx]
-              [0 b 0 ty]
-              [0 0 c tz]
-              [0 0 0 1]])]
-    (into-array Double/TYPE
-                (map double mtx))))
 
 (defn get-framebuffer-size [window-handle]
   (let [pix-width (IntByReference.)
@@ -1499,12 +1450,6 @@
 
           (loop []
             (wait)
-
-            #_(binding [*window* (first (var-get windows))]
-              (loop [work (async/poll! main-thread-chan)]
-                (when work
-                  (work)
-                  (recur (async/poll! main-thread-chan)))))
 
             ;; clear gl errors. :-/
             (glGetError)

@@ -391,19 +391,6 @@
 (set! membrane.ui/run run)
 
 
-(defn on-js-reload []
-  (println "Reload@")
-  ;; optionally touch your app-state to force rerendering depending on
-  ;; your application
-  ;; (swap! app-state update-in [:__figwheel_counter] inc)
-  ;; (swap! canvas-app-state update-in [:__figwheel_counter] inc)
-  
-  ;; (async/put! global-refresh-chan :js-reload)
-
-  (redraw)
-  )
-
-
 (defn get-client-pos [e]
   (if-let [touches (.-targetTouches e)]
     (let [touch (-> touches
