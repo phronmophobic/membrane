@@ -1,0 +1,45 @@
+/* some style */
+
+.CodeMirror {
+    border: 1px solid #eee;
+    height: auto;
+}
+.CodeMirror {
+    border-bottom: none;
+}
+
+.widget-row:last-child  .CodeMirror{
+    border-bottom: 1px solid #eee;
+}
+
+.widget-row  input.name-field{
+    border: solid 1px #eee;
+}
+.widget-row  input.name-field{
+    border-bottom: none;
+    border-right: none;
+}
+
+.widget-row:last-child input.name-field{
+    border-bottom: 1px solid #eee;;
+}
+
+
+.CodeMirror-scroll {
+    height: auto;
+    overflow-y: hidden;
+    overflow-x: auto;
+}
+
+.CodeMirror-hint {
+    max-width: 700px;
+}
+
+.clearfix:after {
+    content: "";
+    display: table;
+    clear: both;
+}
+.CodeMirror-lines {
+  padding: 0 0; /* Vertical padding around content */
+}

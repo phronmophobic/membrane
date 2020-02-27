@@ -1,0 +1,11 @@
+Archive.zip
+libfreetype.a
+libglfw.3.dylib
+libglfw.dylib
+libmysoil.dylib
+libwebsheet.dylib
+libmembrane.dylib
+*.dylib
+*.so
+testglfw
+testtext
