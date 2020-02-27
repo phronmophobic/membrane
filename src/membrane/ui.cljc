@@ -613,7 +613,7 @@
 (defn polygon [color & points]
   (Polygon. color points))
 
-(defcomponent UseColor [color drawables]
+(defcomponent WithColor [color drawables]
     IOrigin
     (-origin [_]
         [0 0])
@@ -631,10 +631,10 @@
   (-children [this]
     drawables))
 
-(defn use-color [color & drawables]
-  (UseColor. color drawables))
+(defn with-color [color & drawables]
+  (WithColor. color drawables))
 
-(defcomponent UseStyle [style drawables]
+(defcomponent WithStyle [style drawables]
     IOrigin
     (-origin [_]
         [0 0])
@@ -646,7 +646,7 @@
     (-children [this]
         drawables))
 
-(defn use-style [style & drawables]
+(defn with-style [style & drawables]
   "Style for drawing paths and polygons
 
 one of:
@@ -654,9 +654,9 @@ one of:
 :membrane.ui/style-stroke
 :membrane.ui/style-stroke-and-fill
 "
-  (UseStyle. style (vec drawables)))
+  (WithStyle. style (vec drawables)))
 
-(defcomponent UseStrokeWidth [stroke-width drawables]
+(defcomponent WithStrokeWidth [stroke-width drawables]
     IOrigin
     (-origin [_]
         [0 0])
@@ -668,11 +668,11 @@ one of:
     IChildren
     (-children [this]
         drawables))
-(defn use-stroke-width [stroke-width & drawables]
-  (UseStrokeWidth. stroke-width (vec drawables)))
+(defn with-stroke-width [stroke-width & drawables]
+  (WithStrokeWidth. stroke-width (vec drawables)))
 
 
-(defcomponent UseScale [scalars drawables]
+(defcomponent WithScale [scalars drawables]
     IOrigin
     (-origin [_]
         [0 0])
@@ -683,8 +683,8 @@ one of:
     (-children [this]
         drawables)
     )
-(defn use-scale [scalars & drawables]
-  (UseScale. scalars (vec drawables)))
+(defn with-scale [scalars & drawables]
+  (WithScale. scalars (vec drawables)))
 
 
 (defcomponent Arc [radius rad-start rad-end steps]
@@ -723,7 +723,7 @@ one of:
         [width height] (bounds drawable)]
     (draw
      [(let [gray  0.65]
-        (use-color [gray gray gray]
+        (with-color [gray gray gray]
                    (rectangle (+ width (* 2 padding-x))
                               (+ height (* 2 padding-y)))))
       (translate padding-x
@@ -795,27 +795,27 @@ one of:
   (if checked?
     (let [border [0.14901960784313725 0.5254901960784314 0.9882352941176471]
           fill [0.2 0.5607843137254902 0.9882352941176471]]
-      [(use-color fill
+      [(with-color fill
                      (rounded-rectangle 12 12 2))
 
-       (use-style ::style-stroke
-                  (use-color border
+       (with-style ::style-stroke
+                  (with-color border
                              (rounded-rectangle 12 12 2)))
 
        (translate 0 1
-                  (use-stroke-width
+                  (with-stroke-width
                    1.5
-                   (use-color [0 0 0 0.3]
+                   (with-color [0 0 0 0.3]
                               (path [2 6] [5 9] [10 2]))))
 
-       (use-stroke-width
+       (with-stroke-width
         1.5
-        (use-color [1 1 1]
+        (with-color [1 1 1]
                       (path [2 6] [5 9] [10 2])))
        ])
     (let [gray 0.6862745098039216]
-      (use-style ::style-stroke
-                 (use-color [gray gray gray ]
+      (with-style ::style-stroke
+                 (with-color [gray gray gray ]
                                (rounded-rectangle 12 12 2))))))
 
 

@@ -5,29 +5,7 @@
    [com.rpl.specter :as spec
     :refer [ATOM ALL FIRST LAST MAP-VALS META]]
    cljs.analyzer.api
-   [membrane.ui :as ui
-    :refer [vertical-layout
-            translate
-            horizontal-layout
-            button
-            label
-            use-color
-            image
-            on-click
-            on-mouse-up
-            bounds
-            spacer
-            filled-rectangle
-            rectangle
-            defcomponent
-            IBounds
-            IKeyPress
-            IDraw
-            origin
-            draw
-            on-keypress
-            bordered
-            children]]))
+   [membrane.ui :as ui :refer [defcomponent draw children bounds]]))
 
 (def ^:dynamic *root* nil)
 
@@ -827,7 +805,7 @@
                 (run! #(apply handler %) steps)
                 (when mouse-down?
                   (handler :set [:context :focus] nil)))))
-          (on-keypress
+          (ui/on-keypress
            (fn [s]
              (let [steps (membrane.ui/key-press main-view s)]
                (run! #(apply handler %) steps))

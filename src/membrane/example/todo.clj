@@ -6,7 +6,7 @@
                      horizontal-layout
                      button
                      label
-                     use-color
+                     with-color
                      bounds
                      spacer
                      on]]
@@ -21,9 +21,9 @@
 
 
 (defn delete-X []
-  (ui/use-color
+  (ui/with-color
    [1 0 0]
-   (ui/use-stroke-width
+   (ui/with-stroke-width
     3
     [(ui/path [0 0]
               [10 10])
@@ -89,7 +89,7 @@
          :mouse-down
          (fn [[mx my]]
            [[:set $selected option]])
-         (ui/use-color [0.8 0.8 0.8]
+         (ui/with-color [0.8 0.8 0.8]
                        (ui/label (name option)))))))))
 
 (comment

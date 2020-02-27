@@ -306,7 +306,7 @@
 (defn skia-set-stroke-width [skia-resource width]
   (skia_set_stroke_width skia-resource (float width)))
 
-(extend-type membrane.ui.UseStrokeWidth
+(extend-type membrane.ui.WithStrokeWidth
     IDraw
     (draw [this]
       (let [stroke-width (:stroke-width this)]
@@ -317,7 +317,7 @@
              (draw drawable)))))))
 
 
-(extend-type membrane.ui.UseStyle
+(extend-type membrane.ui.WithStyle
   IDraw
   (draw [this]
     (let [style (:style this)]
@@ -394,11 +394,11 @@
     (translate 0 0.5
                [(when hover?
                   (let [gray 0.94]
-                    (ui/use-color [gray gray gray]
+                    (ui/with-color [gray gray gray]
                                   (ui/rounded-rectangle (+ (* 2 padding-x) tw) (+ (* 2 padding-y) th) 3))))
-                (ui/use-style ::ui/style-stroke
+                (ui/with-style ::ui/style-stroke
                               (let [gray 0.75]
-                                (ui/use-color [gray gray gray]
+                                (ui/with-color [gray gray gray]
                                               [(ui/rounded-rectangle (+ (* 2 padding-x) tw) (+ (* 2 padding-y) th 1) 3 )
                                                (ui/rounded-rectangle (+ (* 2 padding-x) tw) (+ (* 2 padding-y) th) 3)])))
                 (translate (- padding-x 1) (- padding-y 0)
@@ -641,7 +641,7 @@
        (skia-set-color *skia-resource* (:color this))
        (skia_draw_polygon *skia-resource* points (alength points))))))
 
-(extend-type membrane.ui.UseColor
+(extend-type membrane.ui.WithColor
   IDraw
   (draw [this]
     (let [color (:color this)]
@@ -653,7 +653,7 @@
 
 
 (defc skia_set_scale membraneskialib Void/TYPE [skia-resource sx sy])
-(extend-type membrane.ui.UseScale
+(extend-type membrane.ui.WithScale
   IDraw
   (draw [this]
     (let [[sx sy] (:scalars this)]

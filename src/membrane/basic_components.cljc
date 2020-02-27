@@ -10,7 +10,7 @@
                      horizontal-layout
                      button
                      label
-                     use-color
+                     with-color
                      image
                      on-click
                      on-mouse-up
@@ -437,7 +437,7 @@
           [[::insert-text $cursor $select-cursor $text s]]))
       (let [body [(spacer 100 10)
                   (when focus?
-                    (ui/use-color
+                    (ui/with-color
                      [0.5725490196078431
                       0.5725490196078431
                       0.5725490196078431
@@ -446,7 +446,7 @@
                                      :font (:name ui/main-font)
                                      :font-size font-size)))
                   (when select-cursor
-                    (ui/use-color
+                    (ui/with-color
                      [0.6980392156862745
                       0.8431372549019608
                       1]
@@ -475,7 +475,7 @@
                 padding-x 5
                 padding-y 2
                 [w h] (ui/bounds body)]
-            [(use-color [gray gray gray]
+            [(with-color [gray gray gray]
                          (rectangle (+ w (* 2 padding-x))
                                     (+ (max h (+ padding-y font-size)) (* 2 padding-y))))
              (translate padding-x
@@ -602,12 +602,12 @@
                                       total-height)]
 
                         (translate 0 (* height top)
-                                   (use-color
+                                   (with-color
                                     [0.73 0.73 0.73]
                                     (ui/rounded-rectangle scroll-button-width (* height (- bottom top)) (/ scroll-button-width 2)))
                                    ))
 
-                      (use-color [0.89 0.89 0.89]
+                      (with-color [0.89 0.89 0.89]
                                  (rectangle scroll-button-width height))]))
         (when (> total-width width)
           (translate 0 height
@@ -617,12 +617,12 @@
                             right (/ (+ offset-x width)
                                      total-width)]
                         (translate (* width left) 0
-                                   (use-color
+                                   (with-color
                                     [0.73 0.73 0.73]
                                     (ui/rounded-rectangle (* width (- right left)) scroll-button-width  (/ scroll-button-width 2)))
                                    )
                         )
-                      (use-color [0.89 0.89 0.89]
+                      (with-color [0.89 0.89 0.89]
                                  (rectangle width scroll-button-width ))]))
 
         ])))))
@@ -665,7 +665,7 @@
                  selected? (= selected option)
 
                  label (if selected?
-                         (ui/use-color [1 1 1]
+                         (ui/with-color [1 1 1]
                                        (ui/label option))
                          (ui/label option))
 
@@ -695,9 +695,9 @@
                            label)])))))
         [rows-width rows-height] (bounds rows)
         ]
-    [(ui/use-style
+    [(ui/with-style
       ::ui/style-stroke
-      (ui/use-color [0.831
+      (ui/with-color [0.831
                      0.831
                      0.831]
        (ui/rounded-rectangle rows-width

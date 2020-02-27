@@ -335,7 +335,7 @@
 
 
 
-(extend-type membrane.ui.UseColor
+(extend-type membrane.ui.WithColor
   IDraw
   (draw [this]
     (push-state ctx
@@ -344,7 +344,7 @@
                 (doseq [drawable (:drawables this)]
                   (draw drawable)))))
 
-(extend-type membrane.ui.UseScale
+(extend-type membrane.ui.WithScale
   IDraw
   (draw [this]
     (push-state ctx
