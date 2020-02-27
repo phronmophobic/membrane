@@ -16,28 +16,6 @@
       ;;   cid#)
       ~@opts+specs)))
 
-;; #?
-;; (:clj
-;;  (defmacro event-interfaces [& types]
-;;    (let [decls
-;;          (for [event-type types]
-;;            (let [stype (name event-type)
-;;                  fname (str "-" stype)
-;;                  pname (-> stype
-;;                            (clojure.string/split #"-")
-;;                            (->> (map clojure.string/capitalize))
-;;                            (->> (apply str "I"))
-;;                            symbol)]
-;;              `(~'defprotocol ~pname
-;;                (~(symbol fname) [~'this ~'info]))
-             
-;;              ))]
-
-;;      `(do
-;;         (~'defn ~'foo [] (bar []))
-;;         #_(defmulti ~'event-interface-key (fn [k#]
-;;                                             k#))
-;;         ~@decls))))
 
 (defrecord Font [name size weight])
 
@@ -314,53 +292,12 @@
 (defprotocol IBubble
   (-bubble [_ events]))
 
-#_(defn make-mouse-fn [protocol protocol-fn]
-  (fn handler
-    ([elem global-pos]
-     (handler elem global-pos [0 0]))
-    ([elem global-pos offset]
-     #_(when-not (or (satisfies? protocol elem) (satisfies? IComponent elem))
-       (let [protocol-name (last (clojure.string/split (name (:on protocol)) #"\.")) ]
-         (throw (Exception. (str "Expecting "protocol-name " or IComponent, got " (type elem) " " elem)))))
-     (cond
-       (satisfies? protocol elem)
-       (let [[x y] global-pos
-             [sx sy] offset
-             [ox oy] (origin elem)
-             [width height] (bounds elem)
-             local-x (- x (+ sx ox))
-             local-y (- y (+ sy oy))]
-         (when (and
-                (< local-x
-                   width)
-                (>= local-x 0)
-                (< local-y
-                   height)
-                (>= local-y 0))
-           (let [ret (protocol-fn elem [local-x local-y])]
-             ret)))
-       (satisfies? IChildren elem)
-       (let [[ox oy] (origin elem)
-             [sx sy] offset
-             child-offset [(+ ox sx)
-                           (+ oy sy)]]
 
-         (let [steps 
-               (apply concat
-                      (for [child (children elem)]
-                        (handler child global-pos child-offset)))]
-           (let [bubble-steps 
-                 (if (satisfies? IBubble elem)
-                   (-bubble elem steps)
-                   steps)]
-             bubble-steps)))))))
 
-;; (def mouse-move-count (atom 0))
 (defn mouse-move
   ([elem global-pos]
    (mouse-move elem global-pos [0 0]))
   ([elem global-pos offset]
-   #_(swap! mouse-move-count inc)
    #_(when-not (or (satisfies? IMouseMove elem) (satisfies? IComponent elem))
        (throw (Exception. (str "Expecting " IMouseMove " or IComponent, got " (type elem) " " elem))))
    (let [[x y] global-pos
@@ -402,9 +339,7 @@
              local-y (- y (+ sy oy))]
         (-mouse-move-global elem [local-x local-y]))
        ;; else
-       (let [;; [ox oy] (origin elem)
-             ;; [sx sy] offset
-             child-offset [(+ ox sx)
+       (let [child-offset [(+ ox sx)
                            (+ oy sy)]]
          (let [steps
                (reduce into
@@ -463,9 +398,6 @@
              child-offset [(+ ox sx)
                            (+ oy sy)]]
          (let [steps 
-               #_(apply concat
-                        (for [child (children elem)]
-                          (mouse-event child global-pos button mouse-down? mods child-offset)))
                (some #(seq
                        (mouse-event % global-pos button mouse-down? mods child-offset))
                      (reverse (children elem)))]
@@ -1409,30 +1341,7 @@ one of:
         [drawable])
     IBounds
     (-bounds [this]
-        bounds)
-    ;; IMouseWheel
-    ;; (-mouse-wheel [this [[mx my] dwheel]]
-    ;;   ;; (let [[gx gy] (find-offset this)
-    ;;   ;;       [width height] bounds]
-    ;;   ;;   (when (and mx my
-    ;;   ;;              (>= mx gx)
-    ;;   ;;              (>= my gy)
-    ;;   ;;              (< mx (+ gx width))
-    ;;   ;;              (< my (+ gy height)))
-    ;;   ;;     (swap! scroll-offset-y - (/ (float dwheel) 50))
-    ;;   ;;     ))
-
-    ;;   (when on-scroll
-    ;;     (let [[gx gy] (find-offset this)
-    ;;           [width height] bounds]
-    ;;       (when (and mx my
-    ;;                  (>= mx gx)
-    ;;                  (>= my gy)
-    ;;                  (< mx (+ gx width))
-    ;;                  (< my (+ gy height)))
-    ;;         (on-scroll dwheel))))
-    ;;   )
-    )
+        bounds))
 
 (defn scissor-view [offset bounds drawable]
   (ScissorView.  offset bounds drawable))
