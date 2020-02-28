@@ -814,9 +814,6 @@
 (defn glfw-post-empty-event []
   (glfw-call void glfwPostEmptyEvent))
 
-(def width (int 787))
-(def height (int 1000))
-
 (defmacro gl
   ([fn-name]
    `(gl ~fn-name []))
@@ -1214,13 +1211,17 @@
 (defc skia_clear membraneskialib Void/TYPE [skia-resource])
 (defc skia_flush membraneskialib Void/TYPE [skia-resource])
 
-(defrecord GlfwSkiaWindow [render window handlers callbacks ui mouse-position skia-resource image-cache font-cache draw-cache window-content-scale]
+(defrecord GlfwSkiaWindow [render window handlers callbacks ui mouse-position skia-resource image-cache font-cache draw-cache window-content-scale window-start-width window-start-height window-start-x window-start-y]
   IWindow
   (init! [this]
-    (let [window (glfw-call Pointer
+    (let [window-width (int (or window-start-width 787))
+          window-height (int (or window-start-height 1000))
+          window-x (int (or window-start-x 0))
+          window-y (int (or window-start-y 0))
+          window (glfw-call Pointer
                             glfwCreateWindow
-                            width
-                            height
+                            window-width
+                            window-height
                             window-title
                             com.sun.jna.Pointer/NULL
                             com.sun.jna.Pointer/NULL)
@@ -1260,11 +1261,11 @@
       (glfw-call Pointer glfwSetScrollCallback window scroll-callback)
       (glfw-call Pointer glfwSetWindowRefreshCallback window window-refresh-callback)
 
-      (glfw-call void glfwSetWindowPos window (int 0) (int 0))
+      (glfw-call void glfwSetWindowPos window window-x window-y)
 
       ;; reshape must be called before glfw show window
       ;; so that we have the right size buffers set up
-      (reshape! this width height)
+      (reshape! this window-width window-height)
       (glfw-call void glfwShowWindow window)
 
       (doto (assoc this
@@ -1350,16 +1351,22 @@
 (defn run
   ([make-ui]
    (run make-ui {}))
-  ([make-ui handlers]
-   (async/>!! window-chan (map->GlfwSkiaWindow {:render make-ui
-                                                :handlers handlers}))
+  ([make-ui {:keys [window-start-width
+                    window-start-height
+                    window-start-x
+                    window-start-y
+                    handlers] :as options}]
+   (async/>!! window-chan (map->GlfwSkiaWindow (merge
+                                                {:render make-ui}
+                                                options)))
    (if-class com.apple.concurrent.Dispatch
-     (.execute (.getNonBlockingMainQueueExecutor (com.apple.concurrent.Dispatch/getInstance))
-               (fn []
-                 (try
-                   (run-helper window-chan)
-                   (catch Exception e
-                     (println e)))))
+     (async/thread
+       (.execute (.getBlockingMainQueueExecutor (com.apple.concurrent.Dispatch/getInstance))
+                 (fn []
+                   (try
+                     (run-helper window-chan)
+                     (catch Exception e
+                       (println e))))))
      (async/thread
        (try
          (run-helper window-chan)
@@ -1373,10 +1380,15 @@
 (defn run-sync
   ([make-ui]
    (run-sync make-ui {}))
-  ([make-ui handlers]
+  ([make-ui {:keys [window-start-width
+                    window-start-height
+                    window-start-x
+                    window-start-y
+                    handlers] :as options}]
 
-   (async/>!! window-chan (map->GlfwSkiaWindow {:render make-ui
-                                                :handlers handlers}))
+   (async/>!! window-chan (map->GlfwSkiaWindow (merge
+                                                {:render make-ui}
+                                                options)))
 
    (if-class com.apple.concurrent.Dispatch
      (do
