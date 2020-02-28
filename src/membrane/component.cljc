@@ -720,15 +720,20 @@
        effect#)))
 
 
-(defeffect :clipboard-copy [_ s]
-  (-> (java.awt.Toolkit/getDefaultToolkit )
-      (.getSystemClipboard)
-      (.setContents (java.awt.datatransfer.StringSelection. s) nil)))
+#?(:clj
+   (do
+     (defeffect :clipboard-copy [_ s]
+       (-> (java.awt.Toolkit/getDefaultToolkit )
+           (.getSystemClipboard)
+           (.setContents (java.awt.datatransfer.StringSelection. s) nil)))
+     (defeffect :clipboard-cut [s]
+       (-> (java.awt.Toolkit/getDefaultToolkit )
+           (.getSystemClipboard)
+           (.setContents (java.awt.datatransfer.StringSelection. s) nil))))
+   )
 
-(defeffect :clipboard-cut [s]
-  (-> (java.awt.Toolkit/getDefaultToolkit )
-      (.getSystemClipboard)
-      (.setContents (java.awt.datatransfer.StringSelection. s) nil)))
+
+
 
 
 (defn db-handler [atm]

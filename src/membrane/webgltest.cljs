@@ -1,7 +1,6 @@
 (ns membrane.webgltest
   ;; (:require [cljsjs.opentype])
-  (:require-macros [membrane.webgl-macros
-                    :refer [run-webgl-project]])
+  (:require-macros [membrane.webgl-macros])
   (:require
    [membrane.component :refer [defui]]
    membrane.audio
@@ -14,9 +13,10 @@
             label
             width
             height
-            move
+            translate
             origin-x
             origin-y]]
+   [membrane.example.todo :as todo]
    
    )
   )
@@ -36,7 +36,7 @@
 
 (defui test-ui [& {:keys [a b]}]
   (let [l (label a)
-        [w h] (ui/text-bounds ui/main-font a)
+        [w h] (ui/text-bounds ui/default-font a)
         border (ui/rectangle w h)]
     [(translate 20 20
                 (membrane.basic-components/textarea-focusable :text a))]
@@ -47,7 +47,7 @@
         :mouse-move
         (fn [[x y]]
           [[:set $b (str [x y]
-                         (ui/index-for-position ui/main-font a x y))]]
+                         (ui/index-for-position ui/default-font a x y))]]
           )
         (label a))
        (label b)]
@@ -57,6 +57,7 @@
   )
 
 (defonce start-app (membrane.component/run-ui #'test-ui (atom {:a "there"})))
+;; (defonce start-todo-app (membrane.component/run-ui #'todo/todo-app todo/todo-state))
 #_(js/setTimeout (fn []
 )
                3000)

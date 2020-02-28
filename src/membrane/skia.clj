@@ -242,7 +242,6 @@
 (def ^:dynamic *window* nil)
 
 (def DEFAULT-COLOR [0.13 0.15 0.16 1])
-(declare main-font)
 (declare render-text)
 (declare text-bounds)
 (declare load-font)
@@ -264,11 +263,12 @@
               (ui/label "whoo "))
 
    (translate 100 100
-              (let [s "wassup\no."
-                    [x y w h] (text-bounds main-font s)]
-                [(translate x y
-                            (ui/rectangle w h))
-                 (ui/label s)]))
+              (let [s "wassup\nyo."
+                    lbl (ui/label s)
+                    [w h] (bounds lbl)]
+                [(ui/rectangle w h)
+                 lbl]
+                 ))
 
 
    (translate 200.5 200.5
@@ -340,34 +340,32 @@
 
 
 (def font-dir "/System/Library/Fonts/")
-(defn get-font [font-name font-size]
-  (let [font
-        (if (instance? Pointer font-name)
-          font-name
-          (if-let [font (get @*font-cache* [font-name font-size])]
-            font
-            (let [font-path (if (.startsWith ^String font-name "/")
-                              font-name
-                              (str font-dir font-name))]
-              (if (.exists (clojure.java.io/file font-path))
-                (let [font (load-font font-path font-size)]
-                  (swap! *font-cache* assoc [font-name font-size] font)
-                  font)
-                (do
-                  (println font-name " does not exist!")
-                  main-font)))))]
-    ;; (set-font-size font font-size)
-    font))
-(def main-font-filepath
-  (if (.exists (clojure.java.io/file "/System/Library/Fonts/HelveticaNeueDeskInterface.ttc"))
-    "/System/Library/Fonts/HelveticaNeueDeskInterface.ttc"
-    "/usr/share/fonts/truetype/ubuntu/Ubuntu-R.ttf"))
+(defn get-font [font]
+  (let [font-ptr
+        (if-let [font-ptr (get @*font-cache* font)]
+          font-ptr
+          (let [font-name (or (:name font)
+                              (:name ui/default-font))
+                font-path (if (.startsWith ^String font-name "/")
+                            font-name
+                            (str font-dir font-name))
+                font-path (if (.exists (clojure.java.io/file font-path))
+                            font-path
+                            (do
+                              (println font-path " does not exist!")
+                              (:name ui/default-font)))]
+            (let [font-size (or (:size font)
+                                (:size ui/default-font))
+                  font-ptr (load-font font-path font-size)]
+              (swap! *font-cache* assoc font font-ptr)
+              font-ptr)))]
+    font-ptr))
 
 (defc glGetError opengl Integer/TYPE)
-(defc skia_render_line membraneskialib Void/TYPE [resource font line text-length x y])
-(defc skia_next_line membraneskialib Void/TYPE [resource font])
+(defc skia_render_line membraneskialib Void/TYPE [resource font-ptr line text-length x y])
+(defc skia_next_line membraneskialib Void/TYPE [resource font-ptr])
 (def byte-array-class (type (byte-array 0)))
-(defn label-draw [{:keys [text options] :as label}]
+(defn label-draw [{:keys [text font] :as label}]
   (let [lines (clojure.string/split-lines text)
         lines-arr (into-array byte-array-class
                               (for [line lines]
@@ -375,19 +373,19 @@
         cnts-arr (into-array Integer
                              (for [arr lines-arr]
                                (alength arr)))
-        font (get-font (get options :font main-font-filepath) (get options :font-size 14))
+        font-ptr (get-font font)
         ;; text-bytes (.getBytes text "utf-8")
         ]
     (save-canvas
      (doseq [line lines]
-       (skia_next_line *skia-resource* font)
-       (skia_render_line *skia-resource* font line (count line) (float 0) (float 0))))))
+       (skia_next_line *skia-resource* font-ptr)
+       (skia_render_line *skia-resource* font-ptr line (count line) (float 0) (float 0))))))
 
 
 
 
 (defn draw-button [text hover?]
-  (let [btn-text (ui/label text :font-size 13)
+  (let [btn-text (ui/label text)
         [tw th] (bounds btn-text)
         padding-x 13
         padding-y 2]
@@ -422,11 +420,10 @@
   (Button. text hover?))
 
 
-(defcomponent LabelRaw [text options]
+(defcomponent LabelRaw [text font]
     IBounds
     (-bounds [_]
-        (let [[minx miny maxx maxy] (text-bounds (get-font (get options :font main-font-filepath)
-                                                           (get options :font-size 14))
+        (let [[minx miny maxx maxy] (text-bounds (get-font font)
                                                  text)
               maxx (max 0 maxx)
               maxy (max 0 maxy)]
@@ -440,8 +437,7 @@
 (extend-type membrane.ui.Label
   IBounds
   (-bounds [this]
-    (let [[minx miny maxx maxy] (text-bounds (get-font (get (:options this) :font main-font-filepath)
-                                                       (get (:options this) :font-size 14))
+    (let [[minx miny maxx maxy] (text-bounds (get-font (:font this))
                                              (:text this))
           maxx (max 0 maxx)
           maxy (max 0 maxy)]
@@ -539,13 +535,13 @@
 
 (defgl glPixelStorei void [pname param])
 
-(defc skia_render_selection membraneskialib Void/TYPE [skia-resource font text text-length selection-start selection-end])
-(defc skia_line_height membraneskialib Float/TYPE [font])
+(defc skia_render_selection membraneskialib Void/TYPE [skia-resource font-ptr text text-length selection-start selection-end])
+(defc skia_line_height membraneskialib Float/TYPE [font-ptr])
 
-(defn text-selection-draw [{:keys [text options]
+(defn text-selection-draw [{:keys [text font]
                             [selection-start selection-end] :selection
                             :as text-selection}]
-  (let [font (get-font (get options :font main-font) (get options :font-size 14))
+  (let [font-ptr (get-font font)
         lines (clojure.string/split-lines text)]
 
     (save-canvas
@@ -557,16 +553,15 @@
                line-bytes (.getBytes line "utf-8")
                line-count (count line)]
            (when (< selection-start line-count)
-             (skia_render_selection *skia-resource* font line-bytes (alength line-bytes) (int (max 0 selection-start)) (int (min selection-end
+             (skia_render_selection *skia-resource* font-ptr line-bytes (alength line-bytes) (int (max 0 selection-start)) (int (min selection-end
                                                                                                                                  line-count))))
-           (skia_next_line *skia-resource* font)
+           (skia_next_line *skia-resource* font-ptr)
            (recur (next lines) (- selection-start line-count 1) (- selection-end line-count 1))))))))
 
 (extend-type membrane.ui.TextSelection
   IBounds
   (-bounds [this]
-    (let [[minx miny maxx maxy] (text-bounds (get-font (get (:options this) :font main-font)
-                                                       (get (:options this) :font-size 14))
+    (let [[minx miny maxx maxy] (text-bounds (get-font (:font this))
                                              (:text this))
           maxx (max 0 maxx)
           maxy (max 0 maxy)]
@@ -576,12 +571,12 @@
   (draw [this]
     (text-selection-draw this)))
 
-(defc skia_render_cursor membraneskialib Void/TYPE [skia-resource font text text-length cursor])
-(defn text-cursor-draw [{:keys [text options cursor]
+(defc skia_render_cursor membraneskialib Void/TYPE [skia-resource font-ptr text text-length cursor])
+(defn text-cursor-draw [{:keys [text font cursor]
                          :as text-cursor}]
   (let [cursor (min (count text)
                     cursor)
-        font (get-font (get options :font main-font) (get options :font-size 14))
+        font-ptr (get-font font)
         lines (clojure.string/split-lines (str text " "))]
     (save-canvas
      (loop [lines (seq lines)
@@ -591,16 +586,15 @@
                line-bytes (.getBytes line "utf-8")
                line-count (count line)]
            (when (< cursor (inc line-count))
-             (skia_render_cursor *skia-resource* font line-bytes (alength line-bytes) (int (max 0 cursor))))
-           (skia_next_line *skia-resource* font)
+             (skia_render_cursor *skia-resource* font-ptr line-bytes (alength line-bytes) (int (max 0 cursor))))
+           (skia_next_line *skia-resource* font-ptr)
 
            (recur (next lines) (- cursor line-count 1))))))))
 
 (extend-type membrane.ui.TextCursor
   IBounds
   (-bounds [this]
-    (let [[minx miny maxx maxy] (text-bounds (get-font (get (:options this) :font main-font)
-                                                       (get (:options this) :font-size 14))
+    (let [[minx miny maxx maxy] (text-bounds (get-font (:font this))
                                              (:text this))
           maxx (max 0 maxx)
           maxy (max 0 maxy)]
@@ -832,9 +826,9 @@
 
 (declare sx sy)
 
-(defc skia_text_bounds membraneskialib void [font text length minx miny maxx maxy])
-(defn text-bounds [font text]
-  (assert font "Can't get font size of nil font")
+(defc skia_text_bounds membraneskialib void [font-ptr text length minx miny maxx maxy])
+(defn text-bounds [font-ptr text]
+  (assert (instance? Pointer font-ptr))
   (assert text "Can't get font size of nil text")
   
   (let [text-bytes (.getBytes text "utf-8")
@@ -842,22 +836,19 @@
         y (FloatByReference.)
         width (FloatByReference.)
         height (FloatByReference.)]
-    (skia_text_bounds font text-bytes (alength text-bytes) x y width height)
+    (skia_text_bounds font-ptr text-bytes (alength text-bytes) x y width height)
     [(.getValue x)
      (.getValue y)
      (.getValue width)
      (.getValue height)
      ]))
 
-(defc skia_index_for_position membraneskialib Integer/TYPE [font text text-length px])
+(defc skia_index_for_position membraneskialib Integer/TYPE [font-ptr text text-length px])
 
 (defn index-for-position [font text px py]
   (assert (some? text) "can't find index for nil text")
-  (let [font (if (instance? Pointer font)
-               font
-               (get-font (:name font) (:size font)))
-        _ (assert font)
-        line-height (skia_line_height font)
+  (let [font-ptr (get-font font)
+        line-height (skia_line_height font-ptr)
         line-no (loop [py py
                        line-no 0]
                (if (> py line-height)
@@ -870,7 +861,7 @@
       (let [line (.getBytes (nth lines line-no) "utf-8")]
         (apply +
                line-no
-               (skia_index_for_position font line (int (alength line)) (float px))
+               (skia_index_for_position font-ptr line (int (alength line)) (float px))
                (map count (take line-no lines)))))))
 
 
@@ -879,7 +870,10 @@
 
 (defc skia_load_font membraneskialib Pointer [font-path font-size])
 (defn load-font [font-path font-size]
-  (skia_load_font font-path (float font-size)))
+  (assert (string? font-path))
+  (let [font-ptr (skia_load_font font-path (float font-size))]
+    (assert font-ptr (str "unable to load font: " font-path " " font-size))
+    font-ptr))
 
 (def ^:dynamic *already-drawing* nil)
 
@@ -938,8 +932,6 @@
 
     )
   )
-
-(declare main-font)
 
 (defn get-framebuffer-size [window-handle]
   (let [pix-width (IntByReference.)
@@ -1259,11 +1251,6 @@
       (glfw-call Void/TYPE glfwMakeContextCurrent window)
 
       (glPixelStorei GL_UNPACK_ALIGNMENT, (int 1)) ;
-
-      (defonce main-font (load-font (if (.exists (clojure.java.io/file "/System/Library/Fonts/HelveticaNeueDeskInterface.ttc"))
-                                      "/System/Library/Fonts/HelveticaNeueDeskInterface.ttc"
-                                      "/usr/share/fonts/truetype/ubuntu/Ubuntu-R.ttf")
-                                    14))
 
       (glfw-call Pointer glfwSetCursorPosCallback window, cursor-pos-callback)
       (glfw-call Pointer glfwSetKeyCallback window key-callback)

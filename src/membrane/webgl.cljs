@@ -15,7 +15,7 @@
                      label
                      image]]
             [membrane.audio :as audio]
-            [membrane.component :refer [defui run-ui handle-step]]
+            [membrane.component :refer [defui run-ui]]
             [com.rpl.specter :as spec
              :refer [ATOM ALL FIRST LAST MAP-VALS META]]))
 
@@ -24,26 +24,30 @@
 (def ctx (.getContext canvas "2d"))
 
 (def freetype-font)
-(js/opentype.load "fonts/Helvetica-Regular.ttf"
-                  (fn [err font]
-                    (if err
-                      (do (println "Error: " err)
-                          (js/console.log err))
-                      (do
-                        (set! freetype-font font)
-                        (reset! membrane.component/component-cache {})))))
+(js/opentype.load
+ "https://fonts.gstatic.com/s/ubuntu/v10/4iCs6KVjbNBYlgo6eA.ttf"
+ (fn [err font]
+   (if err
+     (do (println "Error: " err)
+         (js/console.log err))
+     (do
+       (set! freetype-font font)
+       (reset! membrane.component/component-cache {})))))
 
 (defn font-scale [freetype-font font-size]
   (* (/ 1 (aget freetype-font "unitsPerEm"))
      font-size))
 
+(defn get-font [font]
+  freetype-font)
+
 (defn font-units->pixels [font font-units]
-  (let [font-size (get font :size (:size ui/main-font))
-        fscale (font-scale freetype-font font-size)]
+  (let [font-size (get font :size (:size ui/default-font))
+        fscale (font-scale (get-font font) font-size)]
     (* font-units fscale)))
 
 (defn font-line-height [font]
-  (let [os2 (-> freetype-font
+  (let [os2 (-> (get-font font)
                 (aget "tables")
                 (aget "os2"))
         sTypoAscender (font-units->pixels font (aget os2  "sTypoAscender"))
@@ -54,10 +58,11 @@
 
 (defn line-bounds [font text]
   (let [maxy (volatile! 0)
-        maxx (.forEachGlyph freetype-font
+        maxx (.forEachGlyph (get-font freetype-font)
                             text
                             0 0
-                            (:size font)
+                            (or (:size font)
+                                (:size ui/default-font))
                             (js-obj {:kerning false})
                             (fn [glyph gx gy gFontSize]
                               (vswap! maxy max (or (aget glyph "yMax") 0))))]
@@ -67,18 +72,18 @@
   (let [lines (clojure.string/split text #"\n" -1)
         bounds (map #(line-bounds font %) lines)
         maxx (reduce max 0 (map first bounds))
-        maxy (* (font-line-height font)
+        maxy (* (dec (font-line-height font))
                 (count lines))]
     [maxx maxy]))
 
 (set! membrane.ui/text-bounds text-bounds)
 
 (set! (.-font ctx)
-      (str (when-let [weight (:weight ui/main-font)]
+      (str (when-let [weight (:weight ui/default-font)]
              (str weight " "))
-           (:size ui/main-font) "px"
+           (:size ui/default-font) "px"
            " "
-           (:name ui/main-font)
+           (:name ui/default-font)
            ))
 
 (defn draw-rect []
@@ -95,7 +100,7 @@
     (if (>= line-index (count lines))
       (count text)
       (let [line (nth lines line-index)
-            font-size (get font :size (:size ui/main-font))
+            font-size (get font :size (:size ui/default-font))
             options (js-obj {:kerning true})
             glyphs (.stringToGlyphs freetype-font line options)
             position  (aget freetype-font "position")
@@ -132,31 +137,24 @@
 (extend-type membrane.ui/Label
   IBounds
   (-bounds [this]
-    (let [options (:options this)
-          font-size (get options :font-size (:size ui/main-font))
-          font-name (get options :font (:name ui/main-font))
-          font-weight (get options :weight (:weight ui/main-font))
-          font (ui/->Font font-name font-size font-weight)]
+    (let [font (:font this)]
      (text-bounds font
                   (:text this))))
   IDraw
   (draw [this]
-    (let [options (:options this)
-          font-size (get options :font-size (:size ui/main-font))
-          font-name (get options :font (:name ui/main-font))
-          font-weight (get options :font-weight (:weight ui/main-font))
-          lines (clojure.string/split (:text this) #"\n" -1)
-          font (ui/->Font font-name font-size font-weight)
+    (let [lines (clojure.string/split (:text this) #"\n" -1)
+          font (:font this)
           line-height (font-line-height font)]
      (push-state ctx
-                 (when (or (:font-size options)
-                           (:font options))
+                 (when font
                    (set! (.-font ctx)
-                         (str (when font-weight
-                                (str font-weight " "))
-                              font-size
+                         (str (when (:weight font)
+                                (str (:weight font) " "))
+                              (or (:size font)
+                                  (:size ui/default-font))
                               "px "
-                              font-name)))
+                              (or (:name font)
+                                  (:name ui/default-font)))))
                  (doseq [line lines]
                    (.translate ctx 0 (dec line-height))
                    (.fillText ctx line 0 0))))
@@ -196,8 +194,8 @@
      (draw (:drawable this)))))
 
 
-(defn render-selection [font text selection-start selection-end options color]
-  (let [font-size (get font :size (:size ui/main-font))
+(defn render-selection [font text selection-start selection-end color]
+  (let [font-size (get font :size (:size ui/default-font))
         options (js-obj {:kerning true})
         text (str text "8")
         glyphs (.stringToGlyphs freetype-font text options)
@@ -251,23 +249,13 @@
 (extend-type membrane.ui.TextSelection
   IBounds
   (-bounds [this]
-    (let [options (:options this)
-          font-size (get options :font-size (:size ui/main-font))
-          font-name (get options :font (:name ui/main-font))
-          font-weight (get options :weight (:weight ui/main-font))
-          font (ui/->Font font-name font-size font-weight)]
-      (text-bounds font (:text this))))
+    (text-bounds (:font this) (:text this)))
 
   IDraw
   (draw [this]
-    (let [{:keys [text options]
-           [selection-start selection-end] :selection} this
-          options (:options this)
-          font-size (get options :font-size (:size ui/main-font))
-          font-name (get options :font (:name ui/main-font))
-          font-weight (get options :weight (:weight ui/main-font))
-          font (ui/->Font font-name font-size font-weight)]
-      (render-selection font text selection-start selection-end options
+    (let [{:keys [text font]
+           [selection-start selection-end] :selection} this]
+      (render-selection (:font this) text selection-start selection-end
                         [0.6980392156862745
                          0.8431372549019608
                          1]))))
@@ -275,23 +263,12 @@
 (extend-type membrane.ui.TextCursor
   IBounds
   (-bounds [this]
-    (let [options (:options this)
-          font-size (get options :font-size (:size ui/main-font))
-          font-name (get options :font (:name ui/main-font))
-          font-weight (get options :weight (:weight ui/main-font)) 
-          font (ui/->Font font-name font-size font-weight)]
-      (text-bounds font (:text this)))
-)
+    (text-bounds (:font this) (:text this)))
 
   IDraw
   (draw [this]
-    (let [cursor (:cursor this)
-          options (:options this)
-          font-size (get options :font-size (:size ui/main-font))
-          font-name (get options :font (:name ui/main-font))
-          font-weight (get options :weight (:weight ui/main-font)) 
-          font (ui/->Font font-name font-size font-weight)]
-      (render-selection font (str (:text this) "8") cursor (inc cursor) options
+    (let [cursor (:cursor this)]
+      (render-selection (:font this) (str (:text this) "8") cursor (inc cursor)
                         [0.9 0.9 0.9]))
     ))
 

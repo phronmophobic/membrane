@@ -19,11 +19,10 @@
 
 (defrecord Font [name size weight])
 
-(def main-font (Font. #? (:clj (if (.exists (clojure.java.io/file "/System/Library/Fonts/HelveticaNeueDeskInterface.ttc"))
+(def default-font (Font. #? (:clj (if (.exists (clojure.java.io/file "/System/Library/Fonts/HelveticaNeueDeskInterface.ttc"))
                                  "/System/Library/Fonts/HelveticaNeueDeskInterface.ttc"
                                  "/usr/share/fonts/truetype/ubuntu/Ubuntu-R.ttf")
-                          :cljs ;;"IM Fell English"
-                          "Helvetica"
+                          :cljs "Ubuntu"
                           )
                          14
                          #?(:clj nil
@@ -431,36 +430,39 @@
 
 
 
-(defcomponent Label [text options]
+(defcomponent Label [text font]
     IOrigin
     (-origin [_]
         [0 0]))
 
-(defn label [text & options]
+(defn label
+  ([text]
+   (label (str text) default-font))
+  ([text font]
+   (Label. (str text) font)))
 
-
-  (let [options (apply hash-map options)]
-    (when-let [font-size (:font-size options)]
-      (assert (number? font-size) "Font size must be numeric")
-      (assert (pos? font-size) "Font size must be positive"))
-    (Label. (str text) options)))
-
-(defcomponent TextSelection [text selection options]
+(defcomponent TextSelection [text selection font]
     IOrigin
     (-origin [_]
         [0 0]))
 
-(defn text-selection [text [selection-start selection-end :as selection] & options]
-  (TextSelection. (str text) selection (apply hash-map options)))
+(defn text-selection
+  ([text [selection-start selection-end :as selection]]
+   (TextSelection. (str text) selection default-font))
+  ([text [selection-start selection-end :as selection] font]
+   (TextSelection. (str text) selection font)))
 
 
-(defcomponent TextCursor [text cursor options]
+(defcomponent TextCursor [text cursor font]
     IOrigin
     (-origin [_]
         [0 0]))
 
-(defn text-cursor [text cursor & options]
-  (TextCursor. (str text) cursor (apply hash-map options)))
+(defn text-cursor
+  ([text cursor]
+   (TextCursor. (str text) cursor default-font))
+  ([text cursor font]
+   (TextCursor. (str text) cursor font)))
 
 
 

@@ -1,5 +1,4 @@
 (ns membrane.webgl-macros
-  (:require [membrane.uibuilder :as uib])
   (:import javax.imageio.ImageIO))
 
 (defmacro push-state [ctx & body]
@@ -36,9 +35,3 @@
 
 
 
-(defmacro run-webgl-project [project-name]
-  (let [project-path (clojure.java.io/file uib/save-folder project-name)
-        project (read-string (slurp project-path))
-        media-dirs [(clojure.java.io/file "media" project-name)]
-        code (membrane.uibuilder/webgl-code media-dirs (:elems project) (:active-elem-id project))]
-    code))

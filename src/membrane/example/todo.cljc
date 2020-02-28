@@ -1,5 +1,5 @@
 (ns membrane.example.todo
-  (:require [membrane.skia :as skia]
+  (:require #?(:clj [membrane.skia :as skia])
             [membrane.ui :as ui
              :refer [vertical-layout
                      translate

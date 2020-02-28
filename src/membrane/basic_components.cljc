@@ -229,11 +229,11 @@
          ]))
 
 
-(defeffect ::move-cursor-to-pos [$cursor text font-size pos]
+(defeffect ::move-cursor-to-pos [$cursor text font pos]
   (run! #(apply dispatch! %)
         [[:update $cursor (fn [cursor]
                             (let [[mx my] pos
-                                  new-cursor (index-for-position (assoc ui/main-font :size font-size )
+                                  new-cursor (index-for-position font
                                                                  text mx my)]
                               new-cursor))]]))
 
@@ -248,9 +248,9 @@
   (run! #(apply dispatch! %)
         [[:set $mpos pos]]))
 
-(defeffect ::finish-drag [$select-cursor $cursor $down-pos pos text font-size]
+(defeffect ::finish-drag [$select-cursor $cursor $down-pos pos text font]
   (let [[mx my] pos
-        end-index (index-for-position (assoc ui/main-font :size font-size )
+        end-index (index-for-position font
                                       text mx my)]
     (run! #(apply dispatch! %)
           [
@@ -258,7 +258,7 @@
                      $select-cursor]
             (fn [down-pos select-cursor]
               (when-let [[dx dy] down-pos]
-                (let [idx (index-for-position (assoc ui/main-font :size font-size )
+                (let [idx (index-for-position font
                                               text dx dy)]
                   (when (not= idx end-index)
                     (if (> idx end-index)
@@ -278,7 +278,7 @@
 (def double-click-threshold 500)
 #?
 (:clj
- (defeffect ::text-double-click [$last-click $select-cursor $cursor pos text font-size]
+ (defeffect ::text-double-click [$last-click $select-cursor $cursor pos text font]
    (let [now (java.util.Date.)
          [mx my] pos]
      (run! #(apply dispatch! %)
@@ -292,7 +292,7 @@
                             (< (+ (Math/pow (- mx dx) 2)
                                   (Math/pow (- my dy) 2))
                                100))
-                     (let [index (index-for-position (assoc ui/main-font :size font-size )
+                     (let [index (index-for-position font
                                                      text mx my)
                            matcher (doto (re-matcher  #"\s" text)
                                      (.region index (count text)))]
@@ -310,7 +310,7 @@
                             (< (+ (Math/pow (- mx dx) 2)
                                   (Math/pow (- my dy) 2))
                                100))
-                     (let [index (index-for-position (assoc ui/main-font :size font-size )
+                     (let [index (index-for-position font
                                                      text mx my)
                            text-backwards (clojure.string/reverse text)
                            matcher (doto (re-matcher  #"\s" text-backwards)
@@ -360,131 +360,124 @@
                                 mpos
                                 select-cursor
                                 last-click
-                                font-size
+                                font
                                 border?]
                          :or {cursor 0
                               text ""
-                              border? true
-                              font-size 14}}]
-  (let [font-size (or font-size 14)]
-    (maybe-key-event
-     focus?
-     (on
-      :keypress
-      (fn [s]
-        (when focus?
-          (case s
+                              border? true}}]
+  (maybe-key-event
+   focus?
+   (on
+    :keypress
+    (fn [s]
+      (when focus?
+        (case s
 
-            :up
-            [[::previous-line $cursor $select-cursor  text]]
+          :up
+          [[::previous-line $cursor $select-cursor  text]]
 
-            :enter
-            [[::insert-newline $cursor $select-cursor $text]]
+          :enter
+          [[::insert-newline $cursor $select-cursor $text]]
 
-            :down
-            [[::next-line $cursor $select-cursor text]]
+          :down
+          [[::next-line $cursor $select-cursor text]]
 
-            :left
-            [[::backward-char $cursor $select-cursor text]]
+          :left
+          [[::backward-char $cursor $select-cursor text]]
 
-            :right
-            [[::forward-char $cursor $select-cursor text]]
-            
-            :backspace
-            [[::delete-backward $cursor $select-cursor $text]]
-            
-            ;; else
-            (when (string? s)
-              [[::insert-text  $cursor $select-cursor $text s]]))))
-      :mouse-up
-      (fn [[mx my :as pos]]
-        [[::finish-drag $select-cursor $cursor $down-pos pos text font-size]
-         [::text-double-click $last-click $select-cursor $cursor pos text font-size]])
-      :mouse-down
-      (fn [[mx my :as pos]]
-        [[::request-focus]
-         [::move-cursor-to-pos $cursor text font-size pos]
-         [::start-drag $mpos $down-pos pos]
-         [:set $select-cursor nil]])
-      :mouse-move
-      (fn [[mx my :as pos]]
-        (when down-pos
-          [[::drag $mpos pos]]))
-      :clipboard-copy
-      (fn []
-        (when (and focus? select-cursor)
-          [[:clipboard-copy (subs text
-                                  (min cursor select-cursor)
-                                  (max cursor select-cursor))]]))
-      :clipboard-cut
-      (fn []
-        (when (and focus? select-cursor)
-          (let [new-text (when text
-                           (str (subs text 0 (min cursor select-cursor))
-                                (subs text (max cursor select-cursor))))]
-            [[:set $cursor (min cursor select-cursor)]
-             [:set $select-cursor nil]
-             [:set $text new-text]
-             [:clipboard-cut (subs text
-                                   (min cursor select-cursor)
-                                   (max cursor select-cursor))]
-             [::new-text new-text]])
-          )
+          :right
+          [[::forward-char $cursor $select-cursor text]]
+          
+          :backspace
+          [[::delete-backward $cursor $select-cursor $text]]
+          
+          ;; else
+          (when (string? s)
+            [[::insert-text  $cursor $select-cursor $text s]]))))
+    :mouse-up
+    (fn [[mx my :as pos]]
+      [[::finish-drag $select-cursor $cursor $down-pos pos text font]
+       [::text-double-click $last-click $select-cursor $cursor pos text font]])
+    :mouse-down
+    (fn [[mx my :as pos]]
+      [[::request-focus]
+       [::move-cursor-to-pos $cursor text font pos]
+       [::start-drag $mpos $down-pos pos]
+       [:set $select-cursor nil]])
+    :mouse-move
+    (fn [[mx my :as pos]]
+      (when down-pos
+        [[::drag $mpos pos]]))
+    :clipboard-copy
+    (fn []
+      (when (and focus? select-cursor)
+        [[:clipboard-copy (subs text
+                                (min cursor select-cursor)
+                                (max cursor select-cursor))]]))
+    :clipboard-cut
+    (fn []
+      (when (and focus? select-cursor)
+        (let [new-text (when text
+                         (str (subs text 0 (min cursor select-cursor))
+                              (subs text (max cursor select-cursor))))]
+          [[:set $cursor (min cursor select-cursor)]
+           [:set $select-cursor nil]
+           [:set $text new-text]
+           [:clipboard-cut (subs text
+                                 (min cursor select-cursor)
+                                 (max cursor select-cursor))]
+           [::new-text new-text]])
         )
-      :clipboard-paste
-      (fn [s]
-        (when focus?
-          [[::insert-text $cursor $select-cursor $text s]]))
-      (let [body [(spacer 100 10)
-                  (when focus?
-                    (ui/with-color
-                     [0.5725490196078431
-                      0.5725490196078431
-                      0.5725490196078431
-                      0.4]
-                     (ui/text-cursor text cursor
-                                     :font (:name ui/main-font)
-                                     :font-size font-size)))
-                  (when select-cursor
-                    (ui/with-color
-                     [0.6980392156862745
-                      0.8431372549019608
-                      1]
-                     (ui/text-selection text
-                                        [(min select-cursor cursor)
-                                         (max select-cursor cursor)]
-                                        :font (:name ui/main-font)
-                                        :font-size font-size)))
+      )
+    :clipboard-paste
+    (fn [s]
+      (when focus?
+        [[::insert-text $cursor $select-cursor $text s]]))
+    (let [body [(spacer 100 10)
+                (when focus?
+                  (ui/with-color
+                    [0.5725490196078431
+                     0.5725490196078431
+                     0.5725490196078431
+                     0.4]
+                    (ui/text-cursor text cursor font)))
+                (when select-cursor
+                  (ui/with-color
+                    [0.6980392156862745
+                     0.8431372549019608
+                     1]
+                    (ui/text-selection text
+                                       [(min select-cursor cursor)
+                                        (max select-cursor cursor)]
+                                       font)))
 
-                  (when-let [[dx dy] down-pos]
-                    (when-let [[mx my] mpos]
-                      (translate (min mx dx)
-                                 (min my dy)
-                                 (filled-rectangle
-                                  [0.9 0.9 0.9]
-                                  (Math/abs
-                                   (double (- mx dx)))
-                                  (Math/abs
-                                   (double (- my dy)))))))
-                  (label text
-                         ;; :font "/System/Library/Fonts/Menlo.ttc"
-                         :font (:name ui/main-font)
-                         :font-size font-size)]]
-        (if border?
-          (let [gray  0.65
-                padding-x 5
-                padding-y 2
-                [w h] (ui/bounds body)]
-            [(with-color [gray gray gray]
-                         (rectangle (+ w (* 2 padding-x))
-                                    (+ (max h (+ padding-y font-size)) (* 2 padding-y))))
-             (translate padding-x
-                        padding-y
-                        body)])
-          body))))))
+                (when-let [[dx dy] down-pos]
+                  (when-let [[mx my] mpos]
+                    (translate (min mx dx)
+                               (min my dy)
+                               (filled-rectangle
+                                [0.9 0.9 0.9]
+                                (Math/abs
+                                 (double (- mx dx)))
+                                (Math/abs
+                                 (double (- my dy)))))))
+                (label text font)]]
+      (if border?
+        (let [gray  0.65
+              padding-x 5
+              padding-y 2
+              [w h] (ui/bounds body)]
+          [(with-color [gray gray gray]
+             (rectangle (+ w (* 2 padding-x))
+                        (+ (max h (+ padding-y (or (:size font)
+                                                   (:size ui/default-font)))) (* 2 padding-y))))
+           (translate padding-x
+                      padding-y
+                      body)])
+        body)))))
 
 (defui textarea-focusable [& {:keys [text
-                                     font-size
+                                     font
                                      ^:membrane.component/contextual focus
                                      textarea-state]}]
   (on
@@ -494,7 +487,7 @@
    (textarea-view :text text
                   :cursor (get textarea-state :cursor 0)
                   :focus? (= focus $text)
-                  :font-size font-size
+                  :font font
                   :down-pos (:down-pos textarea-state)
                   :mpos (:mpos textarea-state)
                   :border? true
@@ -502,7 +495,7 @@
   )
 
 (defui textarea-focusable-light [& {:keys [text
-                                     font-size
+                                           font
                                      ^:membrane.component/contextual focus
                                      textarea-state]}]
   (on
@@ -514,7 +507,7 @@
            (textarea-view :text text
                           :cursor (get textarea-state :cursor 0)
                           :focus? focus?
-                          :font-size font-size
+                          :font font
                           :down-pos (:down-pos textarea-state)
                           :mpos (:mpos textarea-state)
                           :select-cursor (:select-cursor textarea-state)
