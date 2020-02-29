@@ -12,7 +12,8 @@
                      on]]
             [membrane.component :as component
              :refer [defui run-ui run-ui-sync defeffect]]
-            [membrane.basic-components :as basic]))
+            [membrane.basic-components :as basic])
+  (:gen-class))
 
 
 
