@@ -734,6 +734,59 @@
   (when objlib
     (.getFunction ^com.sun.jna.NativeLibrary objlib "_NSGetArgc")))
 
+
+(try
+  (defc skia_osx_run_on_main_thread_sync membraneskialib void [callback])
+  (catch java.lang.UnsatisfiedLinkError e
+    nil))
+
+(deftype DispatchCallback [f]
+  com.sun.jna.CallbackProxy
+  (getParameterTypes [_]
+    (into-array Class  []))
+  (getReturnType [_]
+    void)
+  (callback ^void [_ args]
+    (.setContextClassLoader (Thread/currentThread) main-class-loader)
+
+    (import 'com.sun.jna.Native)
+    ;; https://java-native-access.github.io/jna/4.2.1/com/sun/jna/Native.html#detach-boolean-
+    ;; for some other info search https://java-native-access.github.io/jna/4.2.1/ for CallbackThreadInitializer
+
+    ;; turning off detach here might give a performance benefit,
+    ;; but more importantly, it prevents jna from spamming stdout
+    ;; with "JNA: could not detach thread"
+    (com.sun.jna.Native/detach false)
+    (f)
+    ;; need turn detach back on so that
+    ;; we don't prevent the jvm exiting
+    ;; now that we're done
+    (com.sun.jna.Native/detach true)))
+
+(defmacro if-class
+  ([class-name then]
+   `(if-class ~class-name
+      ~then
+      nil))
+  ([class-name then else?]
+   `(try
+      (Class/forName ~(name class-name))
+      ~then
+      (catch ClassNotFoundException e#
+        ~else?))))
+
+(defn dispatch-sync! [f]
+  (if-class com.apple.concurrent.Dispatch
+    (.execute (.getBlockingMainQueueExecutor (eval '(com.apple.concurrent.Dispatch/getInstance)))
+              f)
+    (if skia_osx_run_on_main_thread_sync
+      (let [callback (DispatchCallback. f)]
+        (skia_osx_run_on_main_thread_sync callback)
+        ;; please don't garbage collect me while i'm running
+        (identity callback))
+      (f)))
+  nil)
+
 ;; (.invoke getClass Pointer   (to-array ["NSAutoreleasePool"]))
 
 ;; https://developer.apple.com/reference/objectivec/1657527-objective_c_runtime?language=objc
@@ -1336,45 +1389,6 @@
 (defonce window-chan (chan 1))
 (defonce main-thread-chan (chan (dropping-buffer 100)))
 
-(defmacro if-class
-  ([class-name then]
-   `(if-class ~class-name
-      ~then
-      nil))
-  ([class-name then else?]
-   (try
-     (Class/forName (name class-name))
-     then
-     (catch ClassNotFoundException e
-       else?))))
-
-(defn run
-  ([make-ui]
-   (run make-ui {}))
-  ([make-ui {:keys [window-start-width
-                    window-start-height
-                    window-start-x
-                    window-start-y
-                    handlers] :as options}]
-   (async/>!! window-chan (map->GlfwSkiaWindow (merge
-                                                {:render make-ui}
-                                                options)))
-   (if-class com.apple.concurrent.Dispatch
-     (async/thread
-       (.execute (.getBlockingMainQueueExecutor (com.apple.concurrent.Dispatch/getInstance))
-                 (fn []
-                   (try
-                     (run-helper window-chan)
-                     (catch Exception e
-                       (println e))))))
-     (async/thread
-       (try
-         (run-helper window-chan)
-         (catch Exception e
-           (println e)))))))
-
-(intern (the-ns 'membrane.ui) 'run run)
-
 
 
 (defn run-sync
@@ -1390,26 +1404,27 @@
                                                 {:render make-ui}
                                                 options)))
 
-   (if-class com.apple.concurrent.Dispatch
-     (do
-       ;; need to initialize swing/awt stuff on maxosx for some reason
-       ;; crashes on linux
-       (java.awt.Toolkit/getDefaultToolkit)
-       (.execute (.getBlockingMainQueueExecutor (com.apple.concurrent.Dispatch/getInstance))
-                 (fn []
-                   (try
-                     (run-helper window-chan)
-                     (catch Exception e
-                       (println e))))))
-     (async/<!!
-      (async/thread
-        (try
-          (run-helper window-chan)
-          (catch Exception e
-            (println e))))))))
+   (dispatch-sync!
+       (fn []
+         (try
+           (run-helper window-chan)
+           (catch Exception e
+             (println e)))))))
 
+(defn run
+  ([make-ui]
+   (run make-ui {}))
+  ([make-ui {:keys [window-start-width
+                    window-start-height
+                    window-start-x
+                    window-start-y
+                    handlers] :as options}]
+
+   (async/thread
+     (run-sync make-ui options))))
+
+(intern (the-ns 'membrane.ui) 'run run)
 (intern (the-ns 'membrane.ui) 'run-sync run-sync)
-
 
 (defn run-helper [window-chan]
   (with-local-vars [windows #{}]

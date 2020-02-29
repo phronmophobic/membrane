@@ -97,4 +97,9 @@ extern "C"{
     // offscreen buffer stuff
     SkiaResource* skia_offscreen_buffer(SkiaResource* resource, int width, int height);
     SkImage* skia_offscreen_image(SkiaResource* resource);
+
+
+#if defined(__APPLE__)
+    void skia_osx_run_on_main_thread_sync(void(*callback)(void));
+#endif
 }

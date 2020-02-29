@@ -10,6 +10,10 @@
 #include "src/core/SkStrikeSpec.h"
 #include "src/utils/SkUTF.h"
 
+#if defined(__APPLE__)
+#import <CoreFoundation/CoreFoundation.h>
+#endif
+
 class SimpleFontCollection : public skia::textlayout::FontCollection {
 public:
     SimpleFontCollection(sk_sp<SkTypeface> typeface)
@@ -516,4 +520,12 @@ extern "C" {
         return img;
 
     }
+
+#if defined(__APPLE__)
+    void skia_osx_run_on_main_thread_sync(void(*callback)(void)){
+        dispatch_sync(dispatch_get_main_queue(), ^{
+                callback();
+            });
+    }
+#endif
 }
