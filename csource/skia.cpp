@@ -93,6 +93,12 @@ extern "C" {
 
     }
 
+    SkiaResource* skia_init_cpu(int width, int height){
+        sk_sp<SkSurface> rasterSurface =
+            SkSurface::MakeRasterN32Premul(width, height);
+        return new SkiaResource(nullptr, rasterSurface);
+    }
+
     void skia_reshape(SkiaResource* resource, int frameBufferWidth, int frameBufferHeight, float xscale, float yscale){
         auto interface = GrGLMakeNativeInterface();
 
@@ -518,6 +524,35 @@ extern "C" {
 
         delete resource;
         return img;
+
+    }
+
+    int skia_save_image(SkiaResource* resource, int format, int quality, const char* path){
+
+        sk_sp<SkImage> img(resource->surface->makeImageSnapshot());
+        if (!img) { return 0; }
+
+        SkEncodedImageFormat fmt = SkEncodedImageFormat::kPNG;
+        switch (format){
+        case 1  : fmt = SkEncodedImageFormat::kBMP  ; break;
+        case 2  : fmt = SkEncodedImageFormat::kGIF  ; break;
+        case 3  : fmt = SkEncodedImageFormat::kICO  ; break;
+        case 4  : fmt = SkEncodedImageFormat::kJPEG ; break;
+        case 5  : fmt = SkEncodedImageFormat::kPNG  ; break;
+        case 6  : fmt = SkEncodedImageFormat::kWBMP ; break;
+        case 7  : fmt = SkEncodedImageFormat::kWEBP ; break;
+        case 8  : fmt = SkEncodedImageFormat::kPKM  ; break;
+        case 9  : fmt = SkEncodedImageFormat::kKTX  ; break;
+        case 10 : fmt = SkEncodedImageFormat::kASTC ; break;
+        case 11 : fmt = SkEncodedImageFormat::kDNG  ; break;
+        case 12 : fmt = SkEncodedImageFormat::kHEIF ; break;
+        }
+
+        sk_sp<SkData> img_data(img->encodeToData(fmt, quality));
+
+        if (!img_data) { return 0; }
+        SkFILEWStream out(path);
+        return out.write(img_data->data(), img_data->size());
 
     }
 

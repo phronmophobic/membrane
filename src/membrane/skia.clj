@@ -1259,10 +1259,73 @@
 (def quit? (atom false))
 (def window-title "Membrane")
 (defc skia_init membraneskialib com.sun.jna.Pointer [])
+(defc skia_init_cpu membraneskialib Pointer [width height])
 (defc skia_reshape membraneskialib Void/TYPE [skia-resource fb-width fb-height xscale yscale])
 (defc skia_cleanup membraneskialib Void/TYPE [skia-resource])
 (defc skia_clear membraneskialib Void/TYPE [skia-resource])
 (defc skia_flush membraneskialib Void/TYPE [skia-resource])
+
+(defmacro with-cpu-skia-resource [resource-sym size & body]
+  `(let [size# ~size
+         ~resource-sym (skia_init_cpu (int (first size#)) (int (second size#)))]
+     (try
+       ~@body
+       (finally
+         (skia_cleanup ~resource-sym)))))
+
+(def image-formats
+  ;; need to recompile skia to include other formats
+  { ;; ::image-format-bmp  (int 1)
+   ;; ::image-format-gif  (int 2)
+   ;; ::image-format-ico  (int 3)
+   ::image-format-jpeg (int 4)
+   ::image-format-png  (int 5)
+   ;; ::image-format-wbmp (int 6)
+   ::image-format-webp (int 7)
+   ;; ::image-format-pkm  (int 8)
+   ;; ::image-format-ktx  (int 9)
+   ;; ::image-format-astc (int 10)
+   ;; ::image-format-dng  (int 11)
+   ;; ::image-format-heif (int 12)
+   })
+(defn guess-image-format [path]
+  (let [period-index (.lastIndexOf path ".")]
+    (if (= -1 period-index)
+      (get image-formats ::image-format-png)
+      (let [suffix (clojure.string/lower-case (subs path (inc period-index)))]
+        (case suffix
+          "bmp"  ::image-format-bmp
+          "gif"  ::image-format-gif
+          "ico"  ::image-format-ico
+          "jpeg" ::image-format-jpeg
+          "jpg"  ::image-format-jpeg
+          "png"  ::image-format-png
+          "wbmp" ::image-format-wbmp
+          "webp" ::image-format-webp
+          "pkm"  ::image-format-pkm
+          "ktx"  ::image-format-ktx
+          "astc" ::image-format-astc
+          "dng"  ::image-format-dng
+          "heif" ::image-format-heif
+          ::image-format-png)))))
+
+(defc skia_save_image membraneskialib Integer/TYPE [skia-resource format quality path])
+
+(defn draw-to-image!
+  ([path elem]
+   (draw-to-image! path elem (bounds elem)))
+  ([path elem [w h :as size]]
+   (draw-to-image! path elem size (guess-image-format path) 100))
+  ([path elem [w h :as size] image-format quality]
+
+   (with-cpu-skia-resource skia-resource size
+     (binding [*skia-resource* skia-resource
+               *already-drawing* true]
+       (draw elem))
+     (skia_save_image skia-resource
+                      (get image-formats image-format (::image-format-png image-formats))
+                      quality
+                      path))))
 
 (defrecord GlfwSkiaWindow [render window handlers callbacks ui mouse-position skia-resource image-cache font-cache draw-cache window-content-scale window-start-width window-start-height window-start-x window-start-y]
   IWindow

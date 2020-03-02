@@ -54,6 +54,8 @@ public:
 
 extern "C"{
     SkiaResource* skia_init();
+    SkiaResource* skia_init_cpu(int width, int height);
+
     void skia_reshape(SkiaResource* resource, int frameBufferWidth, int frameBufferHeight, float xscale, float yscale);
     void skia_clear(SkiaResource* resources);
     void skia_flush(SkiaResource* resources);
@@ -98,6 +100,7 @@ extern "C"{
     SkiaResource* skia_offscreen_buffer(SkiaResource* resource, int width, int height);
     SkImage* skia_offscreen_image(SkiaResource* resource);
 
+    int skia_save_image(SkiaResource* image, int format, int quality, const char* path);
 
 #if defined(__APPLE__)
     void skia_osx_run_on_main_thread_sync(void(*callback)(void));
