@@ -955,6 +955,7 @@
                               (skia_set_scale *skia-resource* (float xscale) (float yscale)))
                             (skia_translate *skia-resource* padding padding)
                             (draw drawable)
+                            ;; todo: fix memory leak!
                             (skia_offscreen_image *skia-resource*))
                       img-info [img img-width img-height]]
                   (swap! *draw-cache* assoc [drawable content-scale *paint*] img-info)
@@ -1009,7 +1010,6 @@
   ([window window-handle width height]
    (reshape! window width height)))
 
-(declare main-thread-chan sleep)
 (deftype ReshapeCallback [window handler]
   com.sun.jna.CallbackProxy
   (getParameterTypes [_]
@@ -1450,9 +1450,6 @@
 
 (declare run-helper)
 (defonce window-chan (chan 1))
-(defonce main-thread-chan (chan (dropping-buffer 100)))
-
-
 
 (defn run-sync
   ([make-ui]
@@ -1560,9 +1557,9 @@
   )
 
 
-(defn sleep [secs]
-  (java.lang.Thread/sleep (long (* secs 1000))))
+
 
 (defn -main [& args]
   (run-sync #(test-skia)))
+
 
