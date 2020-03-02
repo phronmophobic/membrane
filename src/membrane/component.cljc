@@ -546,13 +546,13 @@
                               (let [$arg-key (keyword (str "$" (name arg-sym)))]
                                 [path-sym
                                  ;; should be same as below with one less vector wrap
-                                 (let [fn-arg-path `(get ~args-map-sym ~$arg-key [(quote barf)])]
+                                 (let [fn-arg-path `(get ~args-map-sym ~$arg-key [::unknown])]
                                    (if-let [default (get defaults arg-sym)]
                                      [fn-arg-path [`((quote ~'nil->val) ~default)]]
                                      fn-arg-path))
                                  #_(vec
                                     (concat
-                                     [`(get ~args-map-sym ~$arg-key [(quote barf)])]
+                                     [`(get ~args-map-sym ~$arg-key [::unknown])]
                                      (when-let [default (get defaults arg-sym)]
                                        [`((quote ~'nil->val) ~default)])))
                                  ]))
