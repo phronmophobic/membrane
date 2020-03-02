@@ -404,6 +404,10 @@
              (-bubble elem steps)
              steps)))))))
 
+(defn mouse-down [elem [mx my :as pos]]
+  (mouse-event elem pos 0 true 0))
+
+
 (defn make-event-handler [protocol-name protocol protocol-fn]
   (fn handler [elem & args]
     #_(when-not (or (satisfies? protocol elem) (satisfies? IComponent elem))
