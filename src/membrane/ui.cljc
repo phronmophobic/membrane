@@ -680,7 +680,9 @@ one of:
         [0 0])
     IBounds
     (-bounds [this]
-        (bounds drawables))
+        (let [[w h] (bounds drawables)]
+          [(* 2 w)
+           (* 2 h)]))
     IChildren
     (-children [this]
         drawables)
