@@ -63,12 +63,14 @@
        "Specifies the top left corner of a component's bounds\n\n  The origin is vector or 2 numbers [x, y]"}
   origin -origin)
 
-(defn origin-x [elem]
+(defn origin-x
   "Convience function for returning the x coordinate of elem's origin"
+  [elem]
   (first (origin elem)))
 
-(defn origin-y [elem]
+(defn origin-y
   "Convience function for returning the y coordinate of elem's origin"
+  [elem]
   (second (origin elem)))
 
 (defprotocol IKeyEvent
@@ -473,6 +475,7 @@
         [0 0]))
 
 (defn text-selection
+  "Graphical elem for drawing a selection of text."
   ([text [selection-start selection-end :as selection]]
    (TextSelection. (str text) selection default-font))
   ([text [selection-start selection-end :as selection] font]
@@ -646,10 +649,11 @@
       [maxx maxy])))
 
 
-(defn path [& points]
+(defn path
   "A graphical element that will draw lines connecting points.
 
   See with-style, with-stroke-width, and with-color for more options."
+  [& points]
   (Path. points))
 
 
@@ -757,8 +761,9 @@
   [width height]
   (path [0 0] [0 height] [width height] [width 0] [0 0]))
 
-(defn filled-rectangle [color width height]
+(defn filled-rectangle
   "Graphical elem that draws a filled rectangle with color, [r g b] or [r g b a]."
+  [color width height]
   (with-color color
     (with-style :membrane.ui/style-fill
       (path [0 0] [0 height] [width height] [width 0] [0 0]))))
@@ -1466,7 +1471,11 @@
     (-bounds [this]
         bounds))
 
-(defn scissor-view [offset bounds drawable]
+(defn scissor-view
+  "Graphical elem to only draw drawable within bounds with an offset.
+
+  All other drawing will be clipped."
+  [offset bounds drawable]
   (ScissorView.  offset bounds drawable))
 
 (defcomponent ScrollView [bounds offset drawable]

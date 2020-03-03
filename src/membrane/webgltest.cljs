@@ -39,7 +39,7 @@
         [w h] (ui/text-bounds ui/default-font a)
         border (ui/rectangle w h)]
     [(translate 20 20
-                (membrane.basic-components/textarea-focusable :text a))]
+                (membrane.basic-components/textarea :text a))]
     #_(translate 20 20
                  )
     #_[(label "hi there")
