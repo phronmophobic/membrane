@@ -506,7 +506,11 @@
       [0 0])))
 
 (def image-size (memoize image-size-raw))
-(intern (the-ns 'membrane.ui) 'image-size image-size)
+(intern (the-ns 'membrane.ui)
+        (with-meta 'image-size
+          {:arglists '([image-path])
+           :doc "Returns the [width, height] of the file at image-path."})
+        image-size)
 
 (defn image-draw [{:keys [image-path size opacity] :as image}]
   (when-let [image-texture (get-image-texture image-path)]
@@ -610,7 +614,6 @@
   (draw [this]
     (let [points (into-array Float/TYPE (apply concat (:points this)))]
       (push-paint
-       (skia-set-style *skia-resource* ::ui/style-stroke)
        (skia_draw_path *skia-resource* points (alength points))))))
 
 (defc skia_draw_rounded_rect membraneskialib Void/TYPE [skia-resource w h radius])
@@ -622,18 +625,6 @@
                             (float (:height this))
                             (float (:border-radius this)))))
 
-
-
-
-(defc skia_draw_polygon membraneskialib Void/TYPE [skia-resource points points-length])
-(extend-type membrane.ui.Polygon
-  IDraw
-  (draw [this]
-    (let [points (into-array Float/TYPE (apply concat (:points this)))]
-      (push-paint
-       (skia-set-style *skia-resource* ::ui/style-fill)
-       (skia-set-color *skia-resource* (:color this))
-       (skia_draw_polygon *skia-resource* points (alength points))))))
 
 (extend-type membrane.ui.WithColor
   IDraw

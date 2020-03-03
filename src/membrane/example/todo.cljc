@@ -22,14 +22,15 @@
 
 
 (defn delete-X []
-  (ui/with-color
-   [1 0 0]
-   (ui/with-stroke-width
-    3
-    [(ui/path [0 0]
-              [10 10])
-     (ui/path [10 0]
-              [0 10])])))
+  (ui/with-style :membrane.ui/style-stroke
+    (ui/with-color
+      [1 0 0]
+      (ui/with-stroke-width
+        3
+        [(ui/path [0 0]
+                  [10 10])
+         (ui/path [10 0]
+                  [0 10])]))))
 
 (comment
   (skia/run #(delete-X)))

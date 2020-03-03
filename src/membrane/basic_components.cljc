@@ -11,6 +11,7 @@
                      button
                      label
                      with-color
+                     with-style
                      image
                      on-click
                      on-mouse-up
@@ -469,9 +470,10 @@
                 padding-y 2
                 [w h] (ui/bounds body)]
             [(with-color [gray gray gray]
-               (rectangle (+ w (* 2 padding-x))
-                          (+ (max h (+ padding-y (or (:size font)
-                                                     (:size ui/default-font)))) (* 2 padding-y))))
+               (with-style :membrane.ui/style-stroke
+                 (rectangle (+ w (* 2 padding-x))
+                            (+ (max h (+ padding-y (or (:size font)
+                                                       (:size ui/default-font)))) (* 2 padding-y)))))
              (translate padding-x
                         padding-y
                         body)])
@@ -602,7 +604,8 @@
                                    ))
 
                       (with-color [0.89 0.89 0.89]
-                                 (rectangle scroll-button-width height))]))
+                        (with-style :membrane.ui/style-stroke
+                          (rectangle scroll-button-width height)))]))
         (when (> total-width width)
           (translate 0 height
                      [(filled-rectangle [0.941 0.941 0.941]
@@ -617,7 +620,8 @@
                                    )
                         )
                       (with-color [0.89 0.89 0.89]
-                                 (rectangle width scroll-button-width ))]))
+                        (with-style :membrane.ui/style-stroke
+                          (rectangle width scroll-button-width )))]))
 
         ])))))
 

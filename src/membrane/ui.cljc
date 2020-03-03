@@ -39,12 +39,14 @@
 (defprotocol IKeyPress (-key-press [this info]))
 (defprotocol IKeyType (-key-type [this info]))
 (defprotocol IClipboardPaste (-clipboard-paste [this info]))
-(defprotocol IHover (-hover [this info]))
 
 (declare children)
 
 (defprotocol IOrigin
-  (-origin [this]))
+  (-origin [elem]
+    "Specifies the top left corner of a component's bounds
+
+  The origin is vector or 2 numbers [x, y]"))
 
 (extend-protocol IOrigin
   #?(:cljs cljs.core/PersistentVector
@@ -56,20 +58,18 @@
   (-origin [this]
     [0 0]))
 
-(def origin #'-origin )
-#_(defn origin [x]
-  #_(when-not (or (satisfies? IOrigin x) (satisfies? IComponent x))
-      (throw (Exception. (str "Expecting IOrigin or IComponent, got " x))))
-  (origin x)
-  #_(if (satisfies? IOrigin x)
-    (-origin x)
-    [0 0]))
+(def ^{:arglists '([elem])
+       :doc
+       "Specifies the top left corner of a component's bounds\n\n  The origin is vector or 2 numbers [x, y]"}
+  origin -origin)
 
-(defn origin-x [x]
-  (first (origin x)))
+(defn origin-x [elem]
+  "Convience function for returning the x coordinate of elem's origin"
+  (first (origin elem)))
 
-(defn origin-y [x]
-  (second (origin x)))
+(defn origin-y [elem]
+  "Convience function for returning the y coordinate of elem's origin"
+  (second (origin elem)))
 
 (defprotocol IKeyEvent
   (-key-event [this key scancode action mods]))
@@ -157,8 +157,6 @@
 (defprotocol IClipboardCut
   (-clipboard-cut [_]))
 
-;; (defprotocol IFocus)
-
 (defprotocol IDraw
   (draw [this]))
 
@@ -172,8 +170,7 @@
     (doseq [drawable this]
       (draw drawable))))
 
-(defprotocol IComponent
-  #_(cid [this]))
+(defprotocol IComponent)
 
 (extend-protocol IComponent
   nil
@@ -183,9 +180,15 @@
 
 
 (defprotocol IBounds
-  (-bounds [this]))
+  (-bounds [elem]
+    "Returns a 2 element vector with the [width, height] of an element's bounds with respect to its origin"))
 
-(declare origin bounds)
+(def
+  ^{:arglists '([elem])
+    :doc
+    "Returns a 2 element vector with the [width, height] of an element's bounds with respect to its origin"}
+  bounds (memoize #(-bounds %)))
+
 (extend-protocol IBounds
   #?(:cljs cljs.core/PersistentVector
      :clj clojure.lang.PersistentVector)
@@ -197,7 +200,11 @@
          [(max max-width (+ ox w))
           (max max-height (+ oy h))]))
      [0 0]
-     this)))
+     this))
+
+  nil
+  (-bounds [this]
+    [0 0]))
 
 
 #?
@@ -212,20 +219,6 @@
        (hashCode [_] (System/identityHashCode o))
        PWrapped
        (-unwrap [_] o)))))
-
-
-
-
-
-
-
-(defn -bounds-raw [x]
-  #_(when-not (or (satisfies? IBounds x) (satisfies? IComponent x))
-      (throw (Exception. (str "Expecting IBounds or IComponent, got " (type x) " " x))))
-  (if (satisfies? IBounds x)
-    (-bounds x)
-    [0 0]))
-
 
 
 (defn memoize-var
@@ -245,11 +238,9 @@
           ret)))))
 
 
-(def bounds (memoize -bounds-raw) #__bounds #_(memoize2 _bounds))
-
-
 (defprotocol IChildren
-  (-children [this]))
+  (-children [elem]
+    "Returns sub elements of elem. Useful for traversal."))
 
 
 (extend-protocol IChildren
@@ -269,31 +260,30 @@
   (-children [this]
     nil))
 
-(def children -children )
-#_(defn children [x]
-  (-children x)
-  #_(if (satisfies? IChildren x)
-      (-children x)
-      []))
+(def ^{:arglists '([elem])
+       :doc "Returns sub elements of elem. Useful for traversal."}
+  children -children)
 
-
-
-
-(defn width [ibounds]
-  (let [[width height] (bounds ibounds)]
+(defn width
+  "Returns the width of elem."
+  [elem]
+  (let [[width height] (bounds elem)]
     width))
-(defn height [ibounds]
-  (let [[width height] (bounds ibounds)]
+(defn height
+  "Returns the height of elem."
+  [elem]
+  (let [[width height] (bounds elem)]
     height))
 
 
-
 (defprotocol IBubble
-  (-bubble [_ events]))
-
+  "Allows an element add, remove, modify effects emitted from its children."
+  (-bubble [_ effects]
+    "Called when an effect is being emitted by a child element. The parent element can either return the same effects or allow them to continue to bubble."))
 
 
 (defn mouse-move
+  "Returns the effects of a mouse move event on elem. Will only call -mouse-move on mouse events within an elements bounds."
   ([elem global-pos]
    (mouse-move elem global-pos [0 0]))
   ([elem global-pos offset]
@@ -327,6 +317,7 @@
               steps))))))))
 
 (defn mouse-move-global
+  "Returns the effects of a mouse move event on elem. Will -mouse-move-global for all elements and their children."
   ([elem global-pos]
    (mouse-move-global elem global-pos [0 0]))
   ([elem global-pos offset]
@@ -349,7 +340,10 @@
              (-bubble elem steps)
              steps)))))))
 
-(defn mouse-event 
+(defn mouse-event
+  "Returns the effects of a mouse move event on elem. Will only call -mouse-move on mouse events within an elements bounds.
+
+  mouse-event is used for both mouse up and mouse down events."
   ([elem global-pos button mouse-down? mods]
    (mouse-event elem global-pos button mouse-down? mods [0 0]))
   ([elem global-pos button mouse-down? mods offset]
@@ -404,14 +398,21 @@
              (-bubble elem steps)
              steps)))))))
 
-(defn mouse-down [elem [mx my :as pos]]
+(defn mouse-down
+  "Returns the effects of a mouse down event on elem. Will only call -mouse-event or -mouse-down if the position is in the element's bounds."
+  [elem [mx my :as pos]]
   (mouse-event elem pos 0 true 0))
+
+(defn mouse-up
+  "Returns the effects of a mouse up event on elem. Will only call -mouse-event or -mouse-down if the position is in the element's bounds."
+  [elem [mx my :as pos]]
+  (mouse-event elem pos 0 false 0))
 
 
 (defn make-event-handler [protocol-name protocol protocol-fn]
   (fn handler [elem & args]
     #_(when-not (or (satisfies? protocol elem) (satisfies? IComponent elem))
-      (throw (Exception. (str "Expecting " protocol-name " or IComponent, got " (type elem) " " elem))))
+        (throw (Exception. (str "Expecting " protocol-name " or IComponent, got " (type elem) " " elem))))
     (cond
       (satisfies? protocol elem)
       (apply protocol-fn elem args)
@@ -425,13 +426,30 @@
           (-bubble elem steps)
           steps)))))
 
-(def key-press (make-event-handler "IKeyPress" IKeyPress -key-press))
-(def key-event (make-event-handler "IKeyEvent" IKeyEvent -key-event))
-(def clipboard-cut (make-event-handler "IClipboardCut" IClipboardCut -clipboard-cut))
-(def clipboard-copy (make-event-handler "IClipboardCopy" IClipboardCopy -clipboard-copy))
-(def clipboard-paste (make-event-handler "IClipboardPaste" IClipboardPaste -clipboard-paste))
-(def scroll (make-event-handler "IScroll" IScroll -scroll))
-
+(def
+  ^{:arglists '([elem key]),
+    :doc "Returns the effects of a key press event on elem."}
+  key-press (make-event-handler "IKeyPress" IKeyPress -key-press))
+(def
+  ^{:arglists '([elem key scancode action mods]),
+    :doc "Returns the effects of a key event on elem."}
+  key-event (make-event-handler "IKeyEvent" IKeyEvent -key-event))
+(def
+  ^{:arglists '([elem]),
+    :doc "Returns the effects of a clipboard cut event on elem."}
+  clipboard-cut (make-event-handler "IClipboardCut" IClipboardCut -clipboard-cut))
+(def
+  ^{:arglists '([elem]),
+    :doc "Returns the effects of a clipboard copy event on elem."}
+  clipboard-copy (make-event-handler "IClipboardCopy" IClipboardCopy -clipboard-copy))
+(def
+  ^{:arglists '([elem s]),
+    :doc "Returns the effects of a clipboard paste event on elem."}
+  clipboard-paste (make-event-handler "IClipboardPaste" IClipboardPaste -clipboard-paste))
+(def
+  ^{:arglists '([elem [offset-x offset-y :as offset]]),
+    :doc "Returns the effects of a scroll event on elem."}
+  scroll (make-event-handler "IScroll" IScroll -scroll))
 
 
 (defcomponent Label [text font]
@@ -440,6 +458,10 @@
         [0 0]))
 
 (defn label
+  "Graphical elem that can draw text.
+
+  label will use the default line spacing for newline.
+  font should be a membrane.ui.Font"
   ([text]
    (label (str text) default-font))
   ([text font]
@@ -463,6 +485,9 @@
         [0 0]))
 
 (defn text-cursor
+  "Graphical elem that can draw a text cursor
+
+   font should be a membrane.ui.Font"
   ([text cursor]
    (TextCursor. (str text) cursor default-font))
   ([text cursor font]
@@ -481,11 +506,23 @@
 )
 
 
-(declare image-size)
 (defn image-size [image-path]
   (assert false "image size should be replaced by implementation"))
 
 (defn image
+  "Graphical element that draw an image.
+
+  The image can be drawn at a different size by supplying a size.
+  Supply a nil size will use the the original image size.
+
+  The image can be aspect scaled by supply a size with one of the dimensions as nil.
+
+  For example, to draw an image with width 30 with aspect scaling, (image \"path.png\" [30 nil])
+
+  opacity is a float between 0 and 1.
+
+  Allowable image formats may vary by platform.
+  "
   ([image-path]
    (image image-path nil nil))
   ([image-path [width height :as size]]
@@ -541,7 +578,9 @@
   (-children [this]
     drawables))
 
-(defn group [& drawables]
+(defn group
+  "Creates a graphical elem that will draw drawables in order"
+  [& drawables]
   (Group. drawables))
 
 
@@ -557,8 +596,10 @@
   (-bounds [this]
       (bounds drawable)))
 
-(defn translate [x y drawable]
-  (Translate. (int x) (int y) drawable))
+(defn translate
+  "A graphical elem that will shift drawable's origin by x and y and draw it at its new origin."
+  [x y drawable]
+  (Translate. x y drawable))
 
 
 (defcomponent Rotate [degrees drawable]
@@ -573,7 +614,7 @@
   (-bounds [this]
       (bounds drawable)))
 
-(defn rotate [degrees drawable]
+(defn- rotate [degrees drawable]
   (Rotate. degrees drawable))
 
 (defcomponent Spacer [x y]
@@ -586,8 +627,12 @@
     (-bounds [this]
         [x y]))
 
-(defn spacer [x y]
-  (Spacer. (int x) (int y)))
+(defn spacer
+  "An empty graphical element with width x and height y.
+
+  Useful for layout."
+  [x y]
+  (Spacer. x y))
 
 
 (defcomponent Path [points]
@@ -602,22 +647,11 @@
 
 
 (defn path [& points]
+  "A graphical element that will draw lines connecting points.
+
+  See with-style, with-stroke-width, and with-color for more options."
   (Path. points))
 
-
-(defcomponent Polygon [color points]
-    IOrigin
-    (-origin [_]
-        [0 0])
-
-    IBounds
-  (-bounds [this]
-    (let [maxx (apply max (map first points))
-          maxy (apply max (map second points))]
-      [maxx maxy])))
-
-(defn polygon [color & points]
-  (Polygon. color points))
 
 (defcomponent WithColor [color drawables]
     IOrigin
@@ -637,7 +671,9 @@
   (-children [this]
     drawables))
 
-(defn with-color [color & drawables]
+(defn with-color
+  "Use color for all children. Color is a vector of [r g b] or [r g b a]. All values should be between 0 and 1 inclusive."
+  [color & drawables]
   (WithColor. color drawables))
 
 (defcomponent WithStyle [style drawables]
@@ -652,14 +688,15 @@
     (-children [this]
         drawables))
 
-(defn with-style [style & drawables]
+(defn with-style
   "Style for drawing paths and polygons
 
-one of:
+  style is one of:
 :membrane.ui/style-fill
 :membrane.ui/style-stroke
 :membrane.ui/style-stroke-and-fill
 "
+  [style & drawables]
   (WithStyle. style (vec drawables)))
 
 (defcomponent WithStrokeWidth [stroke-width drawables]
@@ -674,7 +711,9 @@ one of:
     IChildren
     (-children [this]
         drawables))
-(defn with-stroke-width [stroke-width & drawables]
+(defn with-stroke-width
+  "Set the stroke width for drawables."
+  [stroke-width & drawables]
   (WithStrokeWidth. stroke-width (vec drawables)))
 
 
@@ -691,7 +730,9 @@ one of:
     (-children [this]
         drawables)
     )
-(defn with-scale [scalars & drawables]
+(defn with-scale
+  "Draw drawables using scalars which is a vector of [scale-x scale-y]"
+  [scalars & drawables]
   (WithScale. scalars (vec drawables)))
 
 
@@ -704,16 +745,23 @@ one of:
   (-bounds [this]
       [0 0]))
 
-(defn arc [radius rad-start rad-end]
+(defn- arc [radius rad-start rad-end]
   (Arc. radius rad-start rad-end 10))
 
 
 
-(defn rectangle [width height]
+(defn rectangle
+  "Graphical elem that draws a rectangle.
+
+  See with-style, with-stroke-width, and with-color for more options."
+  [width height]
   (path [0 0] [0 height] [width height] [width 0] [0 0]))
 
 (defn filled-rectangle [color width height]
-  (polygon color [0 0] [0 height]  [width height] [width 0]  [0 0]))
+  "Graphical elem that draws a filled rectangle with color, [r g b] or [r g b a]."
+  (with-color color
+    (with-style :membrane.ui/style-fill
+      (path [0 0] [0 height] [width height] [width 0] [0 0]))))
 
 (defcomponent RoundedRectangle [width height border-radius]
     IOrigin
@@ -723,7 +771,9 @@ one of:
   (-bounds [this]
       [width height]))
 
-(defn rounded-rectangle [width height border-radius]
+(defn rounded-rectangle
+  "Graphical elem that draws a rounded rectangle."
+  [width height border-radius]
   (RoundedRectangle. width height border-radius))
 
 (defn bordered-draw [this]
@@ -732,8 +782,9 @@ one of:
     (draw
      [(let [gray  0.65]
         (with-color [gray gray gray]
-                   (rectangle (+ width (* 2 padding-x))
-                              (+ height (* 2 padding-y)))))
+          (with-style ::style-stroke
+            (rectangle (+ width (* 2 padding-x))
+                       (+ height (* 2 padding-y))))))
       (translate padding-x
                  padding-y
                  drawable)])))
@@ -756,7 +807,9 @@ one of:
   (draw [this]
       (bordered-draw this)))
 
-(defn bordered [padding drawable]
+(defn bordered
+  "Graphical elem that will draw drawable with a gray border."
+  [padding drawable]
   (if (vector? padding)
     (let [[px py] padding]
       (Bordered. px py drawable))
@@ -793,7 +846,9 @@ one of:
   (draw [this]
       (fill-bordered-draw this)))
 
-(defn fill-bordered [color padding drawable]
+(defn fill-bordered
+  "Graphical elem that will draw elem with filled border."
+  [color padding drawable]
   (if (vector? padding)
     (let [[px py] padding]
       (FillBordered. color px py drawable))
@@ -803,24 +858,25 @@ one of:
   (if checked?
     (let [border [0.14901960784313725 0.5254901960784314 0.9882352941176471]
           fill [0.2 0.5607843137254902 0.9882352941176471]]
-      [(with-color fill
-                     (rounded-rectangle 12 12 2))
+      (with-style ::style-stroke
+        [(with-style ::style-fill
+           (with-color fill
+             (rounded-rectangle 12 12 2)))
 
-       (with-style ::style-stroke
-                  (with-color border
-                             (rounded-rectangle 12 12 2)))
+         (with-color border
+           (rounded-rectangle 12 12 2))
 
-       (translate 0 1
-                  (with-stroke-width
-                   1.5
-                   (with-color [0 0 0 0.3]
-                              (path [2 6] [5 9] [10 2]))))
+         (translate 0 1
+                    (with-stroke-width
+                      1.5
+                      (with-color [0 0 0 0.3]
+                        (path [2 6] [5 9] [10 2]))))
 
-       (with-stroke-width
-        1.5
-        (with-color [1 1 1]
-                      (path [2 6] [5 9] [10 2])))
-       ])
+         (with-stroke-width
+           1.5
+           (with-color [1 1 1]
+             (path [2 6] [5 9] [10 2])))
+         ]))
     (let [gray 0.6862745098039216]
       (with-style ::style-stroke
                  (with-color [gray gray gray ]
@@ -843,11 +899,15 @@ one of:
     IChildren
     (-children [this]
         [(draw-checkbox checked?)]))
-(defn checkbox [checked?]
+(defn checkbox
+  "Graphical elem that will draw a checkbox."
+  [checked?]
   (Checkbox. checked?))
 
 
-(defn box-contains? [[x y width height] [px py]]
+(defn box-contains?
+  "Tests whether [px py] is within  [x y width height]."
+  [[x y width height] [px py]]
   (and (<= px (+ x width))
        (>= px x)
        (<= py (+ y height))
@@ -860,7 +920,8 @@ one of:
         padding 20]
     (draw
      [
-      (rectangle (+ text-width padding) (+ text-height padding))
+      (with-style ::style-stroke
+        (rectangle (+ text-width padding) (+ text-height padding)))
       
       (translate (/ padding 2)
                  (/ padding 2)
@@ -884,7 +945,9 @@ one of:
   IDraw
   (draw [this]
     (button-draw this)))
-(defn button [text & [on-click on-hover hover?]]
+(defn button
+  "Graphical elem that draws a button. Optional on-click function may be provided that is called with no arguments when button has a mouse-down event."
+  [text & [on-click]]
   (Button. text on-click))
 
 
@@ -916,7 +979,11 @@ one of:
   (-mouse-down [this [mx my]]
       (when on-click
         (on-click))))
-(defn on-click [on-click & drawables]
+(defn on-click
+  "Wrap an element with a mouse down event handler, on-click. 
+
+  on-click must accept 0 arguments and should return a sequence of effects."
+  [on-click & drawables]
   (OnClick. on-click drawables))
 
 
@@ -949,7 +1016,11 @@ one of:
   (-mouse-down [this [mx my :as pos]]
       (when on-mouse-down
         (on-mouse-down pos))))
-(defn on-mouse-down [on-mouse-down & drawables]
+(defn on-mouse-down
+  "Wraps drawables and adds an event handler for mouse-down events.
+
+  on-mouse-down should take 1 argument [mx my] of the mouse position in local coordinates and return a sequence of effects."
+  [on-mouse-down & drawables]
   (OnMouseDown. on-mouse-down drawables))
 
 (defcomponent OnMouseUp [on-mouse-up drawables]
@@ -980,7 +1051,11 @@ one of:
   (-mouse-up [this [mx my :as pos]]
       (when on-mouse-up
         (on-mouse-up pos))))
-(defn on-mouse-up [on-mouse-up & drawables]
+(defn on-mouse-up
+  "Wraps drawables and adds an event handler for mouse-up events.
+
+  on-mouse-up should take 1 argument [mx my] of the mouse position in local coordinates and return a sequence of effects."
+  [on-mouse-up & drawables]
   (OnMouseUp. on-mouse-up drawables))
 
 (defcomponent OnMouseMove [on-mouse-move drawables]
@@ -1011,7 +1086,11 @@ one of:
   (-mouse-move [this [mx my :as pos]]
       (when on-mouse-move
         (on-mouse-move pos))))
-(defn on-mouse-move [on-mouse-move & drawables]
+(defn on-mouse-move
+  "Wraps drawables and adds an event handler for mouse-move events.
+
+  on-mouse-move down should take 1 argument [mx my] of the mouse position in local coordinates and return a sequence of effects."
+  [on-mouse-move & drawables]
   (OnMouseMove. on-mouse-move drawables))
 
 (defcomponent OnMouseMoveGlobal [on-mouse-move-global drawables]
@@ -1046,7 +1125,11 @@ one of:
   (-mouse-move-global [this pos]
       (when on-mouse-move-global
         (on-mouse-move-global pos))))
-(defn on-mouse-move-global [on-mouse-move-global & drawables]
+(defn on-mouse-move-global
+  "Wraps drawables and adds an event handler for mouse-move-global events.
+
+  on-mouse-move-global down should take 1 argument [mx my] of the mouse position in global coordinates and return a sequence of effects."
+  [on-mouse-move-global & drawables]
   (OnMouseMoveGlobal. on-mouse-move-global drawables))
 
 (defcomponent OnMouseEvent [on-mouse-event drawables]
@@ -1077,7 +1160,11 @@ one of:
     (-mouse-event [this pos button mouse-down? mods]
         (when on-mouse-event
           (on-mouse-event pos button mouse-down? mods))))
-(defn on-mouse-event [on-mouse-event & drawables]
+(defn on-mouse-event
+  "Wraps drawables and adds an event handler for mouse events.
+
+  on-mouse-event should take 4 arguments [pos button mouse-down? mods] and return a sequence of effects."
+  [on-mouse-event & drawables]
   (OnMouseEvent. on-mouse-event drawables))
 
 
@@ -1115,7 +1202,11 @@ one of:
   (-children [this]
     drawables)
 )
-(defn on-keypress [on-keypress & drawables]
+(defn on-keypress
+  "Wraps drawables and adds an event handler for key-press events.
+
+  on-keypress should take 1 argument key and return a sequence of effects."
+  [on-keypress & drawables]
   (OnKeyPress. on-keypress drawables))
 
 (defcomponent OnKeyEvent [on-key-event drawables]
@@ -1152,7 +1243,11 @@ one of:
   (-children [this]
     drawables)
 )
-(defn on-key-event [on-key-event & drawables]
+(defn on-key-event
+  "Wraps drawables and adds a handler for key events.
+
+  on-key-eveent should take 4 arguments key, scancode, action, mods and return a sequence of effects."
+  [on-key-event & drawables]
   (OnKeyEvent. on-key-event drawables))
 
 
@@ -1184,7 +1279,11 @@ one of:
     (-clipboard-paste [this s]
         (when on-clipboard-paste
           (on-clipboard-paste s))))
-(defn on-clipboard-paste [on-clipboard-paste & drawables]
+(defn on-clipboard-paste
+  "Wraps drawables and adds a handler for clipboard paste events.
+
+  on-clipboard-paste should take 1 arguments s and return a sequence of effects."
+  [on-clipboard-paste & drawables]
   (OnClipboardPaste. on-clipboard-paste drawables))
 
 
@@ -1215,7 +1314,11 @@ one of:
   (-clipboard-copy [this]
       (when on-clipboard-copy
         (on-clipboard-copy))))
-(defn on-clipboard-copy [on-clipboard-copy & drawables]
+(defn on-clipboard-copy
+  "Wraps drawables and adds a handler for clipboard copy events.
+
+  on-clipboard-copy should take 0 arguments and return a sequence of effects."
+  [on-clipboard-copy & drawables]
   (OnClipboardCopy. on-clipboard-copy drawables))
 
 
@@ -1248,12 +1351,18 @@ one of:
   (-clipboard-cut [this]
       (when on-clipboard-cut
         (on-clipboard-cut))))
-(defn on-clipboard-cut [on-clipboard-cut & drawables]
+(defn on-clipboard-cut
+  "Wraps drawables and adds a handler for clipboard cut events.
+
+  on-clipboard-copy should take 0 arguments and return a sequence of effects."
+  [on-clipboard-cut & drawables]
   (OnClipboardCut. on-clipboard-cut drawables))
 
 
 
-(defn vertical-layout [& elems]
+(defn vertical-layout
+  "Returns a graphical elem of elems stacked on top of each other"
+  [& elems]
   (let [elems (seq elems)
         first-elem (first elems)
         offset-y (+ (height first-elem)
@@ -1274,7 +1383,9 @@ one of:
                               elem))))
           group-elems)))))
 
-(defn horizontal-layout [& elems]
+(defn horizontal-layout
+  "Returns a graphical elem of elems layed out next to eachother."
+  [& elems]
   (let [elems (seq elems)
         first-elem (first elems)
         offset-x (+ (width first-elem)
@@ -1336,7 +1447,11 @@ one of:
   (-children [this]
     drawables))
 
-(defn on-scroll [on-scroll & drawables]
+(defn on-scroll
+  "Wraps drawables and adds an event handler for scroll events.
+
+  on-scroll should take 1 argument [offset-x offset-y] of the scroll offset and return a sequence of effects."
+  [on-scroll & drawables]
   (OnScroll. on-scroll drawables))
 
 
@@ -1376,7 +1491,9 @@ one of:
   (-children [this]
       [drawable]))
 
-(defn scrollview [bounds offset drawable]
+(defn scrollview
+  "Graphical elem that will draw drawable offset by offset and clip its drawings to bounds. "
+  [bounds offset drawable]
   (ScrollView. bounds offset drawable))
 
 
@@ -1420,7 +1537,19 @@ one of:
 
 
 
-(defn on [& events]
+(defn on
+  "Wraps an elem with event handlers.
+
+  events are pairs of events and event handlers and the last argument should be an elem.
+
+  example:
+
+  Adds do nothing event handlers for mouse-down and mouse-up events on a label that says \"Hello!\"
+  (on :mouse-down (fn [[mx my]] nil)
+      :mouse-up (fn [[mx my]] nil)
+     (label \"Hello!\"))
+  "
+  [& events]
   (loop [evs (seq (reverse (partition 2 events)))
          body (last events)]
     (if evs
@@ -1465,7 +1594,23 @@ one of:
       body)))
 
 
-(defn wrap-on [& events]
+(defn wrap-on
+  "Wraps an elem with event handlers.
+
+  events are pairs of events and event handlers and the last argument should be an elem.
+  The event handlers should accept an extra first argument to the event which is the original event handler.
+
+  example:
+
+  Wraps a button with a mouse-down handler that only returns an effect when the x coordinate is even.
+  (on :mouse-down (fn [handler [mx my]]
+                     (when (even? mx)
+                       (handler [mx my])))
+     (button \"Hello!\"
+            (fn []
+               [[:hello!]])))
+  "
+  [& events]
   (loop [evs (seq (reverse (partition 2 events)))
          body (last events)]
     (if evs
