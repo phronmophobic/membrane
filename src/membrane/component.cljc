@@ -519,11 +519,27 @@
 (def component-cache (atom {}))
 #?
 (:clj
- (defmacro defui [ui-name args & body]
-   (let [
-         
+ (defmacro defui [ui-name & fdecl]
+   (let [def-meta (if (string? (first fdecl))
+                    {:doc (first fdecl)}
+                    {})
+         fdecl (if (string? (first fdecl))
+                 (next fdecl)
+                 fdecl)
+         def-meta (if (map? (first fdecl))
+                    (conj def-meta (first fdecl))
+                    def-meta)
+         fdecl (if (map? (first fdecl))
+                      (next fdecl)
+                      fdecl)
+         _ (assert (vector? (first fdecl)) "only one arglist allowed for defui.")
+         [args & body] fdecl
          
          [ampersand arg-map] args
+         _ (assert (and (= '& ampersand)
+                        (map? arg-map)
+                        (vector? (:keys arg-map)))
+                   "defui arglist must be in the form [& {:keys [arg1 arg2 ...]}]")
          ;; arg-syms (get arg-map :keys)
 
          args-map-sym (get arg-map :as (gensym "m-"))
@@ -569,7 +585,9 @@
                  :as args-map-sym}
                 (when defaults
                   {:or defaults}))
-         ui-name-meta {:special? true :arglists `([ ~'& ~ui-arg-map])}
+         ui-name-meta (merge
+                       {:special? true :arglists `([ ~'& ~(dissoc ui-arg-map :as)])}
+                       def-meta)
 ]
 
      (let [component-name (symbol (clojure.string/capitalize (name ui-name)))

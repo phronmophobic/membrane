@@ -4,7 +4,6 @@
              :refer [vertical-layout
                      translate
                      horizontal-layout
-                     button
                      label
                      with-color
                      bounds
@@ -46,7 +45,7 @@
    (translate 10 4
               (basic/checkbox :checked? (:complete? todo)))
    (spacer 10 0)
-   (basic/textarea-focusable :text (:description todo))))
+   (basic/textarea :text (:description todo))))
 
 (comment
   (run-ui #'todo-item {:todo
@@ -103,10 +102,10 @@
                      :or {selected-filter :all}}]
   (vertical-layout
    (horizontal-layout
-    (ui/button "Add Todo"
-               (fn []
-                 [[::add-todo $todos next-todo-text]
-                  [:set $next-todo-text ""]]))
+    (basic/button :text "Add Todo"
+                  :on-click (fn []
+                              [[::add-todo $todos next-todo-text]
+                               [:set $next-todo-text ""]]))
     (translate 10 10
                (ui/wrap-on
                 :keypress
@@ -117,7 +116,7 @@
                       [[::add-todo $todos next-todo-text]
                        [:set $next-todo-text ""]]
                       effects)))
-                (basic/textarea-focusable :text next-todo-text))))
+                (basic/textarea :text next-todo-text))))
    (spacer 0 10)
    (toggle :selected selected-filter :options [:all :active :complete?])
    (spacer 0 10)

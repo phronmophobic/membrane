@@ -8,7 +8,6 @@
              :refer [vertical-layout
                      translate
                      horizontal-layout
-                     button
                      label
                      with-color
                      with-style
@@ -124,10 +123,9 @@
      ~body
      (NoKeyEvent. ~body)))
 
-
-
-
-(defui on-hover [ & {:keys [hover? body]}]
+(defui on-hover
+  "Component for adding a hover? state."
+  [ & {:keys [hover? body]}]
   (if hover?
     (ui/on-mouse-move-global
      (fn [[x y]]
@@ -143,16 +141,16 @@
        [[:set $hover? true]])
      body)))
 
-(defui hover-button [& {:keys [hover? text on-click]}]
+(defui button
+  "Button component with hover state."
+  [& {:keys [hover? text on-click]}]
   (on-hover :hover? hover?
             :body
-            (let [btn (button text on-click)]
+            (let [btn (ui/button text on-click)]
               [(when hover?
                  (let [[bwidth bheight] (bounds btn)]
                    (filled-rectangle [0.9 0.9 0.9] bwidth bheight)))
-               (button text on-click)])))
-
-
+               (ui/button text on-click)])))
 
 
 
@@ -354,18 +352,20 @@
     ]))
 
 
-(defui textarea-view [& {:keys [cursor
-                                focus?
-                                text
-                                down-pos
-                                mpos
-                                select-cursor
-                                last-click
-                                font
-                                border?]
-                         :or {cursor 0
-                              text ""
-                              border? true}}]
+(defui textarea-view
+  "Raw component for a basic textarea. textarea should be preferred."
+  [& {:keys [cursor
+             focus?
+             text
+             down-pos
+             mpos
+             select-cursor
+             last-click
+             font
+             border?]
+      :or {cursor 0
+           text ""
+           border? true}}]
   (let [text (or text "")]
     (maybe-key-event
      focus?
@@ -479,10 +479,12 @@
                         body)])
           body))))))
 
-(defui textarea-focusable [& {:keys [text
-                                     font
-                                     ^:membrane.component/contextual focus
-                                     textarea-state]}]
+(defui textarea
+  "Textarea component."
+  [& {:keys [text
+             font
+             ^:membrane.component/contextual focus
+             textarea-state]}]
   (on
    ::request-focus
    (fn []
@@ -497,10 +499,12 @@
                   :select-cursor (:select-cursor textarea-state)))
   )
 
-(defui textarea-focusable-light [& {:keys [text
-                                           font
-                                     ^:membrane.component/contextual focus
-                                     textarea-state]}]
+(defui textarea-light
+  "Alternate look for textarea component."
+  [& {:keys [text
+             font
+             ^:membrane.component/contextual focus
+             textarea-state]}]
   (on
    ::request-focus
    (fn []
@@ -520,8 +524,14 @@
 
 
 
-(defui scrollview [& {:keys [offset mdownx? mdowny? scroll-bounds body]
-                      :or {offset [0 0]}}]
+(defui scrollview
+  "Basic scrollview.
+
+  scroll-bounds should be a two element vector of [width height] of the scrollview
+  body should be an element.
+"
+  [& {:keys [offset mdownx? mdowny? scroll-bounds body]
+      :or {offset [0 0]}}]
   (let [offset-x (nth offset 0)
         offset-y (nth offset 1)
         [width height] scroll-bounds
@@ -636,7 +646,9 @@
                              ))))))
 
 
-(defui checkbox [& {:keys [checked?]}]
+(defui checkbox
+  "Checkbox component."
+  [& {:keys [checked?]}]
   (on
    :mouse-down
    (fn [_]
@@ -645,7 +657,8 @@
 
 
 
-(defui dropdown [& {:keys [options selected]}]
+(defui dropdown
+  [& {:keys [options selected]}]
   (let [
         labels (for [option options]
                  (ui/label option))
