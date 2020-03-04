@@ -69,7 +69,9 @@
     :else
     elem))
 
-(defn parse-path [form]
+(defn- parse-path
+  "create a lens that path-replace can use. "
+  [form]
   (delay
 
    (cond
@@ -180,7 +182,8 @@
 #?
 (:clj
 
- (defn path-replace
+ (defn- path-replace
+   "Given a form, walk and replace all $syms with the lens (or path) for the sym with the same name."
    ([form]
     (path-replace form {}))
    ([form deps]
@@ -519,7 +522,13 @@
 (def component-cache (atom {}))
 #?
 (:clj
- (defmacro defui [ui-name & fdecl]
+ (defmacro defui
+   "Define a component.
+
+  The arguments for a component must take the form (defui my-component [ & {:keys [arg1 arg2 ...]}])
+
+  "
+   [ui-name & fdecl]
    (let [def-meta (if (string? (first fdecl))
                     {:doc (first fdecl)}
                     {})
@@ -730,10 +739,23 @@
 
 
 (defonce effects (atom {}))
-(defmacro defeffect [type args & body]
+(defmacro defeffect
+  "Define an effect.
+
+
+
+  example:
+
+  (defeffect ::increment-number [$num]
+      (dispatch! :update $num inc))
+
+  Effects defined using deffect are added to a global list so namespaced keywords are encouraged.
+
+  "
+  [type args & body]
   `(def ~(symbol (str "effect-" (name type)))
      (let [effect# (fn [~'dispatch! ~@args]
-                          ~@body)]
+                     ~@body)]
        (swap! effects assoc ~type effect#)
        effect#)))
 
@@ -754,7 +776,19 @@
 
 
 
-(defn db-handler [atm]
+(defn db-effects
+  "Effects for updating state in an atom.
+
+  The effects are:
+
+  `:update` similar to `update` except instead of a keypath, takes a more generic path.
+  example: `[:update path inc]`
+  `:set` sets the value given a path
+  example: `[:set path value]`
+  `:delete` deletes value at path
+  example: `[:delete path]`
+  "
+  [atm]
   {:update
    (fn [_ path f & args ]
      (swap! atm
@@ -871,15 +905,36 @@
                                    :handler handler))]
      top-level)))
 
-(defn default-handler [type & args]
-  (println "No handler for " type))
 
-(defn make-handler [effects]
+(defn- default-handler [atm]
   (fn dispatch! [type & args]
-    (let [handler (get effects type)]
-      (if handler
-        (apply handler dispatch! args)
-        (println "no handler for " type)))))
+    (case type
+      :update
+      (let [[path f & args ] args]
+        (swap! atm
+               (fn [old-state]
+                 (spec/transform (path->spec path)
+                                 (fn [& spec-args]
+                                   (apply f (concat spec-args
+                                                    args)))
+                                 old-state))))
+      :set
+      (let [[path v] args]
+        (swap! atm
+                   (fn [old-state]
+                     old-state
+                     (spec/transform (path->spec path) (constantly v) old-state))))
+      :delete
+      (let [[path] args]
+        (swap! atm
+                   (fn [old-state]
+                     (spec/transform (path->spec path) (constantly spec/NONE) old-state))))
+
+      (let [effects @effects]
+        (let [handler (get effects type)]
+          (if handler
+            (apply handler dispatch! args)
+            (println "no handler for " type)))))))
 
 (defn run-ui
   ([ui-var]
@@ -894,8 +949,7 @@
                       (atom initial-state))
          handler (if handler
                    handler
-                   (let [app-effects (merge (db-handler state-atom) @effects)]
-                     (make-handler app-effects)))
+                   (default-handler state-atom))
          top-level (make-top-level-ui ui-var state-atom handler)
          ]
      (membrane.ui/run top-level)
@@ -915,12 +969,11 @@
                        initial-state
                        (atom initial-state))
           handler (if handler
-                   handler
-                   (let [app-effects (merge (db-handler state-atom) @effects)]
-                     (make-handler app-effects)))
+                    handler
+                    (default-handler state-atom))
           top-level (make-top-level-ui ui-var state-atom handler)]
       (membrane.ui/run-sync top-level)
       state-atom))))
 
-(defn test-args [a & some-args])
+
 
