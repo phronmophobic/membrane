@@ -1443,6 +1443,38 @@
 (defonce window-chan (chan 1))
 
 (defn run-sync
+  "Open a window and call `make-ui` to draw. Returns when the window is closed.
+
+  `make-ui` should be a 0 argument function that returns an object satisfying `IDraw`.
+  `make-ui` will be called for every repaint. Repaints occur on every event. You can also trigger a repaint by calling `glfw-post-empty-event`.
+
+  `options` is a map that can contain the following keys
+  Optional parameters
+
+  `window-start-width`: the starting width of the window
+  `window-start-height`: the starting height of the window
+  note: The window may be resized.
+
+  `window-start-x`: the starting x coordinate of the top left corner of the window
+  `window-start-y`: the starting y coordinate of the top left corner of the window
+  note: The window may be moved.
+
+  `handlers`: A map of callback backs for glfw events
+  The events correspond to the available glfw events. If no `handlers` map is provided, then the defaults are used.
+  If a handlers key is provided, it does not replace the defaults, but get merged into the defaults.
+
+  available handler events
+  :key args are [window window-handle key scancode action mods]. default is -key-callback.
+  :char args are [window window-handle codepoint]. default is -character-callback.
+  :mouse-button args are [window window-handle button action mods]. default is -mouse-button-callback.
+  :reshape args are [window window-handle width height]. default is -reshape.
+  :scroll args are [window window-handle offset-x offset-y]. default is -scroll-callback.
+  :refresh args are [window window-handle]. default is -window-refresh-callback.
+  :cursor args are [window window-handle x y]. default is -cursor-pos-callback.
+
+  For each handler, `window` is the GlfwSkiaWindow and window-handle is a jna pointer to the glfw pointer.
+  
+  "
   ([make-ui]
    (run-sync make-ui {}))
   ([make-ui {:keys [window-start-width
@@ -1463,6 +1495,38 @@
              (println e)))))))
 
 (defn run
+  "Open a window and call `make-ui` to draw. Returns a channel that is closed when the window is closed.
+
+  `make-ui` should be a 0 argument function that returns an object satisfying `IDraw`.
+  `make-ui` will be called for every repaint. Repaints occur on every event. You can also trigger a repaint by calling `glfw-post-empty-event`.
+
+  `options` is a map that can contain the following keys
+  Optional parameters
+
+  `window-start-width`: the starting width of the window
+  `window-start-height`: the starting height of the window
+  note: The window may be resized.
+
+  `window-start-x`: the starting x coordinate of the top left corner of the window
+  `window-start-y`: the starting y coordinate of the top left corner of the window
+  note: The window may be moved.
+
+  `handlers`: A map of callback backs for glfw events
+  The events correspond to the available glfw events. If no `handlers` map is provided, then the defaults are used.
+  If a handlers key is provided, it does not replace the defaults, but get merged into the defaults.
+
+  available handler events
+  :key args are [window window-handle key scancode action mods]. default is -key-callback.
+  :char args are [window window-handle codepoint]. default is -character-callback.
+  :mouse-button args are [window window-handle button action mods]. default is -mouse-button-callback.
+  :reshape args are [window window-handle width height]. default is -reshape.
+  :scroll args are [window window-handle offset-x offset-y]. default is -scroll-callback.
+  :refresh args are [window window-handle]. default is -window-refresh-callback.
+  :cursor args are [window window-handle x y]. default is -cursor-pos-callback.
+
+  For each handler, `window` is the GlfwSkiaWindow and window-handle is a jna pointer to the glfw pointer.
+  
+  "
   ([make-ui]
    (run make-ui {}))
   ([make-ui {:keys [window-start-width
