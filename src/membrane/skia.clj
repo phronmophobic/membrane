@@ -445,7 +445,7 @@
   IDraw
   (draw [this]
     (ui/draw (->Cached (LabelRaw. (:text this)
-                                  (:options this))))))
+                                  (:font this))))))
 
 
 
