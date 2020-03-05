@@ -733,9 +733,10 @@
         [0 0])
     IBounds
     (-bounds [this]
-        (let [[w h] (bounds drawables)]
-          [(* 2 w)
-           (* 2 h)]))
+        (let [[w h] (bounds drawables)
+              [sx sy] scalars]
+          [(* w sx)
+           (* h sy)]))
     IChildren
     (-children [this]
         drawables)
