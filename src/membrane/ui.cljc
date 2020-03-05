@@ -513,18 +513,24 @@
   (assert false "image size should be replaced by implementation"))
 
 (defn image
-  "Graphical element that draw an image.
+  "Graphical element that draws an image.
+
+  `image-path`: using the skia backend, `image-path` can be one of
+  - a string filename
+  - a java.net.URL
+  This is useful for drawing images included in a jar. Simply put your image in your resources folder, typically resources.
+  Draw the images in the jar with `(ui/image (clojure.java.io/resource \"filename.png\"))`
 
   The image can be drawn at a different size by supplying a size.
   Supply a nil size will use the the original image size.
 
   The image can be aspect scaled by supply a size with one of the dimensions as nil.
 
-  For example, to draw an image with width 30 with aspect scaling, (image \"path.png\" [30 nil])
+  For example, to draw an image with width 30 with aspect scaling, `(image \"path.png\" [30 nil])`
 
   opacity is a float between 0 and 1.
 
-  Allowable image formats may vary by platform.
+  Allowable image formats may vary by platform, but will typically include png and jpeg.
   "
   ([image-path]
    (image image-path nil nil))
