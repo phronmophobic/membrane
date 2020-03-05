@@ -48,6 +48,7 @@
          [
           [cider/piggieback "0.4.0"]
           [re-frame "0.11.0"]
+          [org.clojure/test.check "0.9.0"]
           ]
          :repl-options {:nrepl-middleware [cider.piggieback/wrap-cljs-repl]}
          ;;:source-paths ["cljs_src"]
