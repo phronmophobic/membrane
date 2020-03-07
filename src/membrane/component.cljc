@@ -193,6 +193,8 @@
     (cond
       (= '() form) form
 
+      (nil? form) form
+
       (seq? form)
       (let [first-form (first form)]
         (case (first form)
@@ -484,8 +486,12 @@
                (path-replace v deps)]))
       
       
-      (seqable? form) (into (empty form)
-                            (map #(path-replace % deps) form))
+      (seqable? form) (let [empty-form (empty form)
+                            empty-form (if (instance? clojure.lang.IObj empty-form)
+                                         (with-meta empty-form (meta form))
+                                         empty-form)]
+                        (into empty-form
+                              (map #(path-replace % deps) form)))
 
       :default form)))
 
