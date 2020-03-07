@@ -342,13 +342,14 @@
                                                  bindings
                                                  (map #(path-replace % deps) body))))))]
             
-            (apply list
-                   (concat
-                    [fnsym]
-                    (when fn-name
-                      [fn-name])
-                    
-                    replaced-sigs)))
+            (with-meta
+              (apply list
+                     (concat
+                      [fnsym]
+                      (when fn-name
+                        [fn-name])
+                      replaced-sigs))
+              (meta form)))
           
 
           . form
