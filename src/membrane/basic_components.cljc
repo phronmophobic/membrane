@@ -59,12 +59,7 @@
   "Button component with hover state."
   [& {:keys [hover? text on-click]}]
   (on-hover :hover? hover?
-            :body
-            (let [btn (ui/button text on-click)]
-              [(when hover?
-                 (let [[bwidth bheight] (bounds btn)]
-                   (filled-rectangle [0.9 0.9 0.9] bwidth bheight)))
-               (ui/button text on-click)])))
+            :body (ui/button text on-click hover?)))
 
 
 

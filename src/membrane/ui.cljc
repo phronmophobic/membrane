@@ -929,17 +929,28 @@
 (defn button-draw [this]
   (let [text (:text this)
         [text-width text-height] (bounds (label text))
-        padding 20]
+        padding 12
+        rect-width (+ text-width padding)
+        rect-height (+ text-height padding)
+        border-radius 3
+        ]
     (draw
      [
+      (when (:hover? this)
+        (with-color [0.9 0.9 0.9]
+           (rounded-rectangle rect-width rect-height border-radius)))
       (with-style ::style-stroke
-        (rectangle (+ text-width padding) (+ text-height padding)))
+        [
+         (with-color [0.76 0.76 0.76 1]
+           (rounded-rectangle (+ 0.5 rect-width) (+ 0.5 rect-height) border-radius))
+         (with-color [0.85 0.85 0.85]
+           (rounded-rectangle rect-width rect-height border-radius))])
       
       (translate (/ padding 2)
-                 (/ padding 2)
+                 (- (/ padding 2) 2)
                  (label text))])))
 
-(defcomponent Button [text on-click]
+(defcomponent Button [text on-click hover?]
     IOrigin
     (-origin [_]
         [0 0])
@@ -959,8 +970,12 @@
     (button-draw this)))
 (defn button
   "Graphical elem that draws a button. Optional on-click function may be provided that is called with no arguments when button has a mouse-down event."
-  [text & [on-click]]
-  (Button. text on-click))
+  ([text]
+   (Button. text nil false))
+  ([text on-click]
+   (Button. text on-click false))
+  ([text on-click hover?]
+   (Button. text on-click hover?)))
 
 
 (defcomponent OnClick [on-click drawables]
