@@ -1180,7 +1180,7 @@
   (OnMouseEvent. on-mouse-event drawables))
 
 
-(defcomponent OnKeyPress [on-keypress drawables]
+(defcomponent OnKeyPress [on-key-press drawables]
     IOrigin
     (-origin [_]
         [0 0])
@@ -1198,12 +1198,12 @@
 
   IHasKeyPress
   (has-key-press [this]
-      (boolean on-keypress))
+      (boolean on-key-press))
 
   IKeyPress
   (-key-press [this key]
-    (when on-keypress
-      (on-keypress key)))
+    (when on-key-press
+      (on-key-press key)))
 
 
   IDraw
@@ -1214,12 +1214,12 @@
   (-children [this]
     drawables)
 )
-(defn on-keypress
+(defn on-key-press
   "Wraps drawables and adds an event handler for key-press events.
 
-  on-keypress should take 1 argument key and return a sequence of effects."
-  [on-keypress & drawables]
-  (OnKeyPress. on-keypress drawables))
+  on-key-press should take 1 argument key and return a sequence of effects."
+  [on-key-press & drawables]
+  (OnKeyPress. on-key-press drawables))
 
 (defcomponent OnKeyEvent [on-key-event drawables]
     IOrigin
@@ -1582,8 +1582,8 @@
                  :key-event
                  (on-key-event handler
                                body )
-                 :keypress
-                 (on-keypress handler
+                 :key-press
+                 (on-key-press handler
                                      body)
                  :mouse-up
                  (on-mouse-up handler
@@ -1659,8 +1659,8 @@
                              key scancode action mods))
                   body)
 
-                 :keypress
-                 (on-keypress
+                 :key-press
+                 (on-key-press
                   (fn [key]
                     (handler (fn [key]
                                (key-press body key))
@@ -1688,6 +1688,93 @@
                  ;; (EventHandler. event-type handler body)
                  )))
       body)))
+
+(defcomponent NoEvents [drawable]
+    IBounds
+    (-bounds [this]
+        (bounds drawable))
+
+  IOrigin
+  (-origin [_]
+      [0 0])
+
+  IChildren
+    (-children [this]
+        [drawable])
+
+    IDraw
+    (draw [this]
+        (draw drawable))
+
+    IBubble
+    (-bubble [this events]
+        nil)
+
+    IHandleEvent
+    (-can-handle? [this other-event-type]
+        false)
+
+    (-handle-event [this event-type event-args]
+        nil)
+
+    IClipboardCopy
+    (-clipboard-copy [_] nil)
+    IClipboardCut
+    (-clipboard-cut [_] nil)
+    IClipboardPaste
+    (-clipboard-paste [_ s] nil)
+    IKeyPress
+    (-key-press [this key] nil)
+    IKeyType
+    (-key-type [this key] nil)
+    IMouseDown
+    (-mouse-down [this pos] nil)
+    IMouseMove
+    (-mouse-move [this pos] nil)
+    IMouseMoveGlobal
+    (-mouse-move-global [this pos] nil)
+    IMouseUp
+    (-mouse-up [this pos] nil)
+    IMouseWheel
+    (-mouse-wheel [this pos] nil)
+    IScroll
+    (-scroll [this pos] nil))
+
+#_(defn no-events [body]
+  (NoEvents. body))
+
+(defn no-events [body]
+  (let [do-nothing (constantly nil)]
+    (on :mouse-down do-nothing
+        :key-press do-nothing
+        :mouse-up do-nothing
+        :mouse-move do-nothing
+        body)))
+
+(defcomponent NoKeyEvent [drawable]
+    IOrigin
+    (-origin [_]
+        [0 0])
+
+    IBounds
+    (-bounds [this]
+        (bounds drawable))
+
+    IChildren
+    (-children [this]
+        [drawable])
+
+    IDraw
+    (draw [this]
+        (draw drawable))
+    IHasKeyEvent
+    (has-key-event [this]
+        false))
+
+(defmacro maybe-key-event [test body]
+  `(if ~test
+     ~body
+     (NoKeyEvent. ~body)))
 
 (def ^:dynamic run)
 

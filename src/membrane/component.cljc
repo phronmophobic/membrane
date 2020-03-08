@@ -869,7 +869,7 @@
                 (run! #(apply handler %) steps)
                 (when mouse-down?
                   (handler :set [:context :focus] nil)))))
-          (ui/on-keypress
+          (ui/on-key-press
            (fn [s]
              (let [steps (membrane.ui/key-press main-view s)]
                (run! #(apply handler %) steps))

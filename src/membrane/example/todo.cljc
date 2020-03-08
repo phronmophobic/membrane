@@ -108,7 +108,7 @@
                                [:set $next-todo-text ""]]))
     (translate 10 10
                (ui/wrap-on
-                :keypress
+                :key-press
                 (fn [default-handler s]
                   (let [effects (default-handler s)]
                     (if (and (seq effects)

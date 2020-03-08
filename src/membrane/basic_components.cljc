@@ -1,6 +1,6 @@
 (ns membrane.basic-components
   #?(:cljs
-     (:require-macros [membrane.basic-components :refer [maybe-key-event]]))
+     (:require-macros [membrane.ui :refer [maybe-key-event]]))
   (:require [membrane.component :refer [defui run-ui path->spec defeffect] :as component]
             [com.rpl.specter :as spec
              :refer [ATOM ALL FIRST LAST MAP-VALS META]]
@@ -26,102 +26,16 @@
                      origin-x
                      origin-y
                      draw
-                     on-keypress
+                     on-key-press
                      bordered
                      children
+                     maybe-key-event
                      on
                      IHandleEvent
                      index-for-position]]))
 
 
-(defcomponent NoEvents [drawable]
-    ui/IBounds
-    (-bounds [this]
-        (bounds drawable))
 
-  ui/IOrigin
-  (-origin [_]
-      [0 0])
-
-  ui/IChildren
-    (-children [this]
-        [drawable])
-
-    IDraw
-    (draw [this]
-        (draw drawable))
-
-    ui/IBubble
-    (-bubble [this events]
-        nil)
-
-    IHandleEvent
-    (-can-handle? [this other-event-type]
-        false)
-
-    (-handle-event [this event-type event-args]
-        nil)
-
-    ui/IClipboardCopy
-    (-clipboard-copy [_] nil)
-    ui/IClipboardCut
-    (-clipboard-cut [_] nil)
-    ui/IClipboardPaste
-    (-clipboard-paste [_ s] nil)
-    ui/IKeyPress
-    (-key-press [this key] nil)
-    ui/IKeyType
-    (-key-type [this key] nil)
-    ui/IMouseDown
-    (-mouse-down [this pos] nil)
-    ui/IMouseDrag
-    (-mouse-drag [this pos] nil)
-    ui/IMouseMove
-    (-mouse-move [this pos] nil)
-    ui/IMouseMoveGlobal
-    (-mouse-move-global [this pos] nil)
-    ui/IMouseUp
-    (-mouse-up [this pos] nil)
-    ui/IMouseWheel
-    (-mouse-wheel [this pos] nil)
-    ui/IScroll
-    (-scroll [this pos] nil))
-
-#_(defn no-events [body]
-  (NoEvents. body))
-
-(defn no-events [body]
-  (let [do-nothing (constantly nil)]
-    (on :mouse-down do-nothing
-        :keypress do-nothing
-        :mouse-up do-nothing
-        :mouse-move do-nothing
-        body)))
-
-(defcomponent NoKeyEvent [drawable]
-    ui/IOrigin
-    (-origin [_]
-        [0 0])
-
-    ui/IBounds
-    (-bounds [this]
-        (ui/bounds drawable))
-
-    ui/IChildren
-    (-children [this]
-        [drawable])
-
-    IDraw
-    (draw [this]
-        (draw drawable))
-    ui/IHasKeyEvent
-    (has-key-event [this]
-        false))
-
-(defmacro maybe-key-event [test body]
-  `(if ~test
-     ~body
-     (NoKeyEvent. ~body)))
 
 (defui on-hover
   "Component for adding a hover? state."
@@ -370,7 +284,7 @@
     (maybe-key-event
      focus?
      (on
-      :keypress
+      :key-press
       (fn [s]
         (when focus?
           (case s
