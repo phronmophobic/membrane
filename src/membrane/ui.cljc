@@ -957,9 +957,11 @@
 
     IBounds
     (-bounds [_]
-        (let [padding 20
-              [text-width text-height] (bounds (label text))]
-          [(+ text-width padding) (+ text-height padding)]))
+        (let [[text-width text-height] (bounds (label text))
+              padding 12
+              btn-width (+ text-width padding)
+              btn-height (+ text-height padding)]
+          [btn-width btn-height]))
   IMouseDown
   (-mouse-down [this [mx my]]
       (when on-click
