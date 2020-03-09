@@ -566,10 +566,10 @@
 
 
 
-(defui dropdown
+(defui dropdown-list
   [& {:keys [options selected]}]
   (let [
-        labels (for [option options]
+        labels (for [option (map second options)]
                  (ui/label option))
         max-width (reduce max 0 (map ui/width labels))
         padding-y 8
@@ -578,28 +578,27 @@
         rows
         (apply
          vertical-layout
-         (for [option options]
-           (let [hover? (get extra [:hover? $option])
+         (for [[value option] options]
+           (let [hover? (get extra [:hover? value])
 
 
-                 selected? (= selected option)
+                 selected? (= selected value)
 
                  label (if selected?
                          (ui/with-color [1 1 1]
-                                       (ui/label option))
+                           (ui/label option))
                          (ui/label option))
 
                  [_ h] (bounds label)
                  row-height (+ h 4)
                  row-width (+ max-width (* 2 padding-x))]
-             (println selected?)
              (on-hover
               :hover? hover?
               :body
               (on
                :mouse-down
                (fn [_]
-                 [[::select $selected option]])
+                 [[::select $selected value]])
 
                [(spacer row-width row-height)
                 (cond
@@ -627,9 +626,31 @@
                 rows)])
   )
 
-(defeffect ::select [$selected option]
-  (dispatch! [:set $selected option])
-  )
+(defui dropdown [ & {:keys [options selected open?]}]
+  (vertical-layout
+   (on
+    :mouse-down
+    (fn [_]
+      [[:update $open? not]])
+    (ui/bordered [10 10]
+                 (if selected
+                   (ui/label (first (keep (fn [[value option]]
+                                            (when (= value selected)
+                                              option))
+                                          options)))
+                   (with-color [0.7 0.7 0.7]
+                     (ui/label "no selection")))))
+   (when open?
+     (on
+      ::select
+      (fn [$selected value]
+        [[::select $selected value]
+         [:set $open? false]])
+      (dropdown-list :options options :selected selected)))
+   ))
+
+(defeffect ::select [$selected value]
+  (dispatch! :set $selected value))
 
 (comment
   (run-ui #'dropdown {:options ["This" "That " "The Other"]}))
