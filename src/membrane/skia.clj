@@ -638,7 +638,7 @@
 
 
 (defc skia_set_scale membraneskialib Void/TYPE [skia-resource sx sy])
-(extend-type membrane.ui.WithScale
+(extend-type membrane.ui.Scale
   IDraw
   (draw [this]
     (let [[sx sy] (:scalars this)]

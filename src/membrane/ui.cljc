@@ -727,7 +727,7 @@
   (WithStrokeWidth. stroke-width (vec drawables)))
 
 
-(defcomponent WithScale [scalars drawables]
+(defcomponent Scale [scalars drawables]
     IOrigin
     (-origin [_]
         [0 0])
@@ -741,10 +741,10 @@
     (-children [this]
         drawables)
     )
-(defn with-scale
+(defn scale
   "Draw drawables using scalars which is a vector of [scale-x scale-y]"
-  [scalars & drawables]
-  (WithScale. scalars (vec drawables)))
+  [sx sy & drawables]
+  (Scale. [sx sy] (vec drawables)))
 
 
 (defcomponent Arc [radius rad-start rad-end steps]
