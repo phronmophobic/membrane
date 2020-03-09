@@ -1407,6 +1407,10 @@
 
       (glPixelStorei GL_UNPACK_ALIGNMENT, (int 1)) ;
 
+      ;; Setting swap interval to 1 is probably the right thing, but currently, the way it blocks
+      ;; the event thread messes everything up.
+      ;; (glfw-call void glfwSwapInterval 1)
+
       (glfw-call Pointer glfwSetCursorPosCallback window, cursor-pos-callback)
       (glfw-call Pointer glfwSetKeyCallback window key-callback)
       (glfw-call Pointer glfwSetCharCallback window character-callback)
