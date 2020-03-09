@@ -29,16 +29,18 @@
                             :cljs nil)))
 
 
-(defprotocol IMouseDrag (-mouse-drag [this info]))
 (defprotocol IMouseMove (-mouse-move [this info]))
 (defprotocol IMouseDown (-mouse-down [this info]))
 (defprotocol IMouseMoveGlobal (-mouse-move-global [this info]))
+(defprotocol IMouseEvent (-mouse-event [this pos button mouse-down? mods]))
 (defprotocol IScroll (-scroll [this info]))
 (defprotocol IMouseUp (-mouse-up [this info]))
 (defprotocol IMouseWheel (-mouse-wheel [this info]))
 (defprotocol IKeyPress (-key-press [this info]))
 (defprotocol IKeyType (-key-type [this info]))
 (defprotocol IClipboardPaste (-clipboard-paste [this info]))
+(defprotocol IClipboardCopy (-clipboard-copy [_]))
+(defprotocol IClipboardCut (-clipboard-cut [_]))
 
 (declare children)
 
@@ -149,15 +151,7 @@
 
 
 
-(defprotocol IMouseEvent
-  (-mouse-event [this pos button mouse-down? mods]))
 
-
-(defprotocol IClipboardCopy
-  (-clipboard-copy [_]))
-
-(defprotocol IClipboardCut
-  (-clipboard-cut [_]))
 
 (defprotocol IDraw
   (draw [this]))
@@ -1804,3 +1798,6 @@
 
 (defn index-for-position [font text x y]
   (assert false "image size should be replaced by implementation"))
+
+(defn copy-to-clipboard [s])
+
