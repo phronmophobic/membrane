@@ -1259,7 +1259,6 @@
   (CharacterCallback. window handler))
 
 (def quit? (atom false))
-(def window-title "Membrane")
 (defc skia_init membraneskialib com.sun.jna.Pointer [])
 (defc skia_init_cpu membraneskialib Pointer [width height])
 (defc skia_reshape membraneskialib Void/TYPE [skia-resource fb-width fb-height xscale yscale])
@@ -1360,13 +1359,19 @@
                        quality
                        path)))))
 
-(defrecord GlfwSkiaWindow [render window handlers callbacks ui mouse-position skia-resource image-cache font-cache draw-cache window-content-scale window-start-width window-start-height window-start-x window-start-y]
+(defrecord GlfwSkiaWindow [render window handlers callbacks ui mouse-position skia-resource image-cache font-cache draw-cache window-content-scale window-start-width window-start-height window-start-x window-start-y window-title]
   IWindow
   (init! [this]
     (let [window-width (int (or window-start-width 787))
           window-height (int (or window-start-height 1000))
           window-x (int (or window-start-x 0))
           window-y (int (or window-start-y 0))
+
+          window-title (if window-title
+                         (do
+                           (assert (string? window-title) "If window title is provided, it must be a string")
+                           window-title)
+                         "Membrane")
           window (glfw-call Pointer
                             glfwCreateWindow
                             window-width
