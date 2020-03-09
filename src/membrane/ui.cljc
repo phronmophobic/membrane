@@ -668,8 +668,8 @@
   IBounds
   (-bounds [this]
       (let [[w h] (bounds drawable)]
-        [(+ w (* 2 px))
-         (+ h (* 2 py))])))
+        [(+ w px)
+         (+ h py)])))
 
 (defn padding [px py elem]
   (Padding. px py elem))
