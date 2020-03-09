@@ -785,11 +785,11 @@
   The effects are:
 
   `:update` similar to `update` except instead of a keypath, takes a more generic path.
-  example: `[:update path inc]`
-  `:set` sets the value given a path
-  example: `[:set path value]`
-  `:delete` deletes value at path
-  example: `[:delete path]`
+  example: `[:update $path inc]`
+  `:set` sets the value given a $path
+  example: `[:set $path value]`
+  `:delete` deletes value at $path
+  example: `[:delete $path]`
   "
   [atm]
   {:update
