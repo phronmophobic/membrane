@@ -1317,7 +1317,7 @@
 
   `path`: the filename to write the image to
   `elem`: the graphical element to draw
-  `size`: the width and height of the image. If size is nil, the bounds of elem will be used.
+  `size`: the width and height of the image. If size is nil, the bounds and origin of elem will be used.
   `image-format`: The image format to use. Should be one of
    :membrane.skia/image-format-jpeg
    :membrane.skia/image-format-png
@@ -1339,7 +1339,10 @@
   ([path elem [w h :as size] image-format quality clear?]
    (let [size (if size
                 size
-                (bounds elem))
+                (let [[w h] (bounds elem)
+                      [ox oy] (origin elem)]
+                  [(+ w ox)
+                   (+ h oy)]))
          image-format (if image-format
                         image-format
                         (guess-image-format path))
