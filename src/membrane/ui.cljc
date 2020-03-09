@@ -652,6 +652,28 @@
   [x y]
   (Spacer. x y))
 
+(defcomponent Padding [px py drawable]
+    IDraw
+    (draw [this]
+        (draw
+         (translate px py
+                    drawable)))
+    IOrigin
+    (-origin [this]
+        [px py])
+  IChildren
+  (-children [this]
+      [drawable])
+
+  IBounds
+  (-bounds [this]
+      (let [[w h] (bounds drawable)]
+        [(+ w (* 2 px))
+         (+ h (* 2 py))])))
+
+(defn padding [px py elem]
+  (Padding. px py elem))
+
 
 (defcomponent Path [points]
     IOrigin
