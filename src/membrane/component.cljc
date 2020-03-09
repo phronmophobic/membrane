@@ -898,7 +898,7 @@
                      first)
          m (second arglist)
          arg-names (disj (set (:keys m))
-                         'emit! 'extra)
+                         'extra)
          defaults (:or m)
          top-level (fn []
                      (top-level-ui :state @state-atom :$state nil
