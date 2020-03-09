@@ -14,12 +14,8 @@
             [membrane.basic-components :as basic])
   (:gen-class))
 
-
-
-
-
-
-
+;; Draw a red X that we'll use to display a delete button
+;; No interactivity, so `defui` not needed
 (defn delete-X []
   (ui/with-style :membrane.ui/style-stroke
     (ui/with-color
@@ -34,6 +30,7 @@
 (comment
   (skia/run #(delete-X)))
 
+;; Display a single todo item
 (defui todo-item [ & {:keys [todo]}]
   (horizontal-layout
    (translate 5 5
@@ -53,7 +50,8 @@
                         :description "fix me"}}))
 
 
-
+;; Display a list of `todo-item`s stacked vertically
+;; Add 5px of spacing between `todo-item`s
 (defui todo-list [ & {:keys [todos]}]
   (apply
    vertical-layout
@@ -78,6 +76,8 @@
    :active (comp not :complete?)
    :complete? :complete?})
 
+;; Create a toggle that allows the user
+;; to toggle between options
 (defui toggle [& {:keys [options selected]}]
   (apply
    horizontal-layout
@@ -91,7 +91,7 @@
          (fn [[mx my]]
            [[:set $selected option]])
          (ui/with-color [0.8 0.8 0.8]
-                       (ui/label (name option)))))))))
+           (ui/label (name option)))))))))
 
 (comment
   (run-ui #'toggle
