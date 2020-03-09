@@ -1146,15 +1146,19 @@
   (CursorPosCallback. window handler))
 
 
+(def key-action-map
+  {1 :press
+   2 :repeat
+   3 :release})
 (defn -key-callback [window window-handle key scancode action mods]
-
-  (let [ui @(:ui window)]
+  (let [action (get key-action-map action :unknown)
+        ui @(:ui window)]
     (ui/key-event ui key scancode action mods)
     (cond
 
       ;; paste
       (and (= key 86)
-           (= action 1)
+           (= action :press)
            (= mods 8))
       (let [nodes (->> (tree-seq (fn [n]
                                    true)
@@ -1167,7 +1171,7 @@
 
       ;; cut
       (and (= key 88)
-           (= action 1)
+           (= action :press)
            (= mods 8))
       (let [node (->> (tree-seq (fn [n]
                                   true)
@@ -1181,13 +1185,13 @@
 
       ;; copy
       (and (= key 67)
-           (= action 1)
+           (= action :press)
            (= mods 8))
       (ui/clipboard-copy ui)
 
       ;; special keys
-      (or (= 1 action)
-          (= 2 action))
+      (or (= :press action)
+          (= :repeat action))
       (let [k (get keymap key)]
         (when (keyword? k)
           (try
