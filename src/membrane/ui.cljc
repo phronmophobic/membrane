@@ -19,14 +19,29 @@
 
 (defrecord Font [name size weight])
 
+
 (def default-font (Font. #? (:clj (if (.exists (clojure.java.io/file "/System/Library/Fonts/HelveticaNeueDeskInterface.ttc"))
-                                 "/System/Library/Fonts/HelveticaNeueDeskInterface.ttc"
-                                 "/usr/share/fonts/truetype/ubuntu/Ubuntu-R.ttf")
-                          :cljs "Ubuntu"
-                          )
-                         14
-                         #?(:clj nil
-                            :cljs nil)))
+                                    "/System/Library/Fonts/HelveticaNeueDeskInterface.ttc"
+                                    "/usr/share/fonts/truetype/ubuntu/Ubuntu-R.ttf")
+                             :cljs "Ubuntu"
+                             )
+                            14
+                            #?(:clj nil
+                               :cljs nil)))
+
+(defn font
+  "Creates a font.
+
+  `name`: Should be the path to a font file on desktop. If nil, use the default font.
+  `size`: Size of the font. If nil, use the default font size."
+  [name size]
+  (Font. (if name
+           name
+           (:name default-font))
+         (if size
+           size
+           (:size default-font))
+         (:weight default-font)))
 
 
 (defprotocol IMouseMove (-mouse-move [this info]))
