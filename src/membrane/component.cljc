@@ -769,14 +769,10 @@
 
 #?(:clj
    (do
-     (defeffect :clipboard-copy [_ s]
-       (-> (java.awt.Toolkit/getDefaultToolkit )
-           (.getSystemClipboard)
-           (.setContents (java.awt.datatransfer.StringSelection. s) nil)))
+     (defeffect :clipboard-copy [s]
+       (ui/copy-to-clipboard s))
      (defeffect :clipboard-cut [s]
-       (-> (java.awt.Toolkit/getDefaultToolkit )
-           (.getSystemClipboard)
-           (.setContents (java.awt.datatransfer.StringSelection. s) nil))))
+       (ui/copy-to-clipboard s)))
    )
 
 

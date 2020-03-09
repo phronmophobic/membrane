@@ -908,6 +908,13 @@
 
 (intern (the-ns 'membrane.ui) 'index-for-position index-for-position)
 
+(defn copy-to-clipboard [s]
+  (let [glfw-window *window*
+        window-handle (:window glfw-window)]
+    ;; window-handle may be null
+    (glfw-call void glfwSetClipboardString window-handle s)))
+(intern (the-ns 'membrane.ui) 'copy-to-clipboard copy-to-clipboard)
+
 
 (defc skia_load_font membraneskialib Pointer [font-path font-size])
 (defn load-font [font-path font-size]
