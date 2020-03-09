@@ -371,7 +371,7 @@
                 special? (if (symbol? first-form)
                            (if-let [m (or (meta (resolve first-form))
                                           (meta first-form))]
-                             (:special? m)
+                             (::special? m)
                              (contains? @special-fns @full-sym)))]
             (if special?
               (let [args (into {} (map vec (partition 2 (rest form))))
@@ -602,7 +602,7 @@
                 (when defaults
                   {:or defaults}))
          ui-name-meta (merge
-                       {:special? true :arglists `([ ~'& ~(dissoc ui-arg-map :as)])}
+                       {::special? true :arglists `([ ~'& ~(dissoc ui-arg-map :as)])}
                        def-meta)
 ]
 
