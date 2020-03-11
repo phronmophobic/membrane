@@ -29,7 +29,7 @@ All examples below will use the following namespace requires.
             [membrane.component :as component
              :refer [defui run-ui run-ui-sync defeffect]]
             [membrane.basic-components :as basic])
-            ```
+```
 
 Below is the "Hello World!" program for membrane:
 
