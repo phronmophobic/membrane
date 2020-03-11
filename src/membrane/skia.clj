@@ -1343,6 +1343,9 @@
                       [ox oy] (origin elem)]
                   [(+ w ox)
                    (+ h oy)]))
+         _ (assert (and (pos? (first size))
+                        (pos? (second size)))
+                   "Size must be two positive numbers [w h]")
          image-format (if image-format
                         image-format
                         (guess-image-format path))
