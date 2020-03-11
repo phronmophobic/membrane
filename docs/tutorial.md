@@ -45,7 +45,7 @@ Currently, there are two supported graphics backends, skia for desktop and webgl
 
 ## Coordinates
 
-![Coordinates](/images/coordinates.png?raw=true)
+![Coordinates](/docs/images/coordinates.png?raw=true)
 
 Coordinates are represented as a vector of two numbers [x, y].
 
@@ -60,6 +60,7 @@ For more examples, check out the [kitchen sink](/src/membrane/example/kitchen_si
 
 ### Text
 
+```
 ;; label using default font
 (ui/label "Hello\nWorld!")
 
@@ -70,9 +71,10 @@ For more examples, check out the [kitchen sink](/src/membrane/example/kitchen_si
 
 ;; Use the default font, but change the size
 (ui/label "Hello\nWorld!" (ui/font nil 22))
-
+```
 ### Lines and Shapes
 
+```
 line
 
 filled polygon
@@ -81,13 +83,17 @@ filled polygon
 (ui/rectangle 10 10)
 
 rounded rectangle
+```
 
 ### Color
+
+```
 ;; colors are vectors of [red green blue] or [red green blue alpha]
 ;; with values from 0 - 1 inclusive
 
 (ui/with-color [1 0 0]
 (ui/label "Hello"))
+```
 
 ### Transforms
 
@@ -228,7 +234,8 @@ Will only be called if [mx my] is within the element's bounds
 (on :mouse-down (fn [[mx my :as mpos]]
                   ;;return a sequence of effects
                   [[:hello mx my]])
-    (ui/label "Hello"))```
+    (ui/label "Hello"))
+```
 
 ### :mouse-up
 :mouse-up [[mx my]]
@@ -239,7 +246,8 @@ Will only be called if [mx my] is within the element's bounds
 (on :mouse-up (fn [[mx my :as mpos]]
                 ;;return a sequence of effects
                 [[:hello mx my]])
-    (ui/label "Hello"))```
+    (ui/label "Hello"))
+```
 
 #### :mouse-move
 
@@ -270,14 +278,14 @@ CAPS_LOCK   0x0010
 NUM_LOCK   0x0020
 ```
 
-Will only be called if [mx my] is within the element's bounds
+Will only be called if `[mx my]` is within the element's bounds
 
 ```
 (on :mouse-event (fn [[mpos button mouse-down? mods]]
                    ;;return a sequence of effects
                    [[:hello mx my]])
     (ui/label "Hello"))
-    ```
+```
 
 #### :key-event
 :key-event [key scancode action mods]
@@ -301,7 +309,7 @@ NUM LOCK   0x0020
 (on :key-event (fn [key scancode action mods]
                  [[:hello key scancode action mods]])
     (ui/label "Hello"))
-    ```
+```
 
 #### :key-press
 :key-press [key]
@@ -435,7 +443,7 @@ Let's see what this same ugly checkbox would look like with `membrane.component`
 ```
 Here's what the above looks like
 
-![checkboxes](/images/checkbox.gif)
+![checkboxes](/docs/images/checkbox.gif)
 
 You'll notice a few differences in the code.
 
@@ -521,7 +529,7 @@ Let's create the component to display and select individual items.
 
 Next, we'll build a generic item selector. For our item selector, we'll have a vertical list of items. Additionally, we'll have a textarea that let's us filter for only names that have the textarea's substring.
 
-![item selector](/images/item-selector.png?raw=true) ![item selector filtered](/images/item-selector-filtered.png?raw=true)
+![item selector](/docs/images/item-selector.png?raw=true) ![item selector filtered](/docs/images/item-selector-filtered.png?raw=true)
 
 
 ```

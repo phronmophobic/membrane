@@ -1,6 +1,6 @@
 # Membrane
 
-Membrane is a platform agnostic library for creating user interfaces.
+## Membrane is a platform agnostic library for creating user interfaces.
 
 Membrane provides 3 layers:
 
@@ -22,6 +22,7 @@ Leiningen dependency:
 
 ## A Simple Example without the UI Framework
 
+Screenshot:
 ![simple counter](/docs/images/counter1.png?raw=true)
 
 ```
@@ -54,6 +55,7 @@ Leiningen dependency:
 
 ## Simple Example using `membrane.component` UI Framework
 
+Screenshot:
 ![simple counter](/docs/images/counter2.png?raw=true)
 
 ```
@@ -116,7 +118,6 @@ Leiningen dependency:
 
 ## Fun Features
 
-;;
 
 ```
 ;; graphical elements are values
