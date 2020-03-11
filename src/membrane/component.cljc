@@ -749,14 +749,19 @@
 (defmacro defeffect
   "Define an effect.
 
+  `defeffect` is a macro that does 3 things:
+1) It registers a global effect handler of `type`. `type` should be a keyword and since it is registered globally, should be namespaced
+2) It will define a var in the current namespace of `effect-*type*` where *type* is the name of the type keyword. This can be useful if you want to be able to use your effect functions in isolation
+3) It will implicitly add an additional argument as the first parameter named `dispatch`
+
+The arglist for `dispatch!` is `[type & args]`. Calling `dispatch!` will invoke the effect of `type` with `args`.
+The role of `dispatch!` is to allow effects to define themselves in terms of other effects. Effects should not be called directly because while the default for an application is to use all the globally defined effects, this can be overridden for testing, development, or otherwise.
 
 
   example:
 
   (defeffect ::increment-number [$num]
       (dispatch! :update $num inc))
-
-  Effects defined using deffect are added to a global list so namespaced keywords are encouraged.
 
   "
   [type args & body]
