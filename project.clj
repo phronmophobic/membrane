@@ -35,6 +35,7 @@
   :source-paths ["src"]
   :java-source-paths ["src-java"]
   ;; :java-cmd "/Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home/bin/java"
+    ;; :java-cmd "/Library/Java/JavaVirtualMachines/jdk1.8.0_60.jdk/Contents/Home/bin/java"
   :jvm-opts [;;"-Dapple.awt.UIElement=false"
              ;; "-Djna.debug_load=true"
              ;; "-Djna.debug_load.jna=true"
