@@ -1,4 +1,4 @@
-(defproject membrane "0.9.0-beta"
+(defproject com.phronemophobic/membrane "0.9.0-beta"
   :description "A platform agnostic library for creating user interfaces"
   :url "http://example.com/FIXME"
   :license {:name "Apache License, Version 2.0"
