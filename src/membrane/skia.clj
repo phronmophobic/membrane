@@ -729,7 +729,7 @@
 (try
   (defc skia_osx_run_on_main_thread_sync membraneskialib void [callback])
   (catch java.lang.UnsatisfiedLinkError e
-    nil))
+    (def skia_osx_run_on_main_thread_sync nil)))
 
 (deftype DispatchCallback [f]
   com.sun.jna.CallbackProxy
