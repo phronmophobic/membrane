@@ -73,12 +73,15 @@
               (catch java.lang.UnsatisfiedLinkError e
                 nil)))
 
-;; This library is absolutely necessary to show windows, but it's crashing the documentation generator
+;; These libraries is absolutely necessary to show windows, but it's crashing the documentation generator
 (def glfw (try
             (com.sun.jna.NativeLibrary/getInstance "glfw")
             (catch java.lang.UnsatisfiedLinkError e
               nil)))
-(def membraneskialib (com.sun.jna.NativeLibrary/getInstance "membraneskia"))
+(def membraneskialib (try
+                       (com.sun.jna.NativeLibrary/getInstance "membraneskia")
+                       (catch java.lang.UnsatisfiedLinkError e
+                         nil)))
 
 
 (def ^:dynamic *paint* {})
@@ -88,11 +91,14 @@
    `(defc ~fn-name ~lib ~ret []))
   ([fn-name lib ret args]
    (let [cfn-sym (with-meta (gensym "cfn") {:tag 'com.sun.jna.Function})]
-     `(let [~cfn-sym (.getFunction ~(with-meta lib {:tag 'com.sun.jna.NativeLibrary})
-                                   ~(name fn-name))]
+     `(if ~lib
+        (let [~cfn-sym (.getFunction ~(with-meta lib {:tag 'com.sun.jna.NativeLibrary})
+                                     ~(name fn-name))]
+          (defn ~fn-name [~@args]
+            (.invoke ~cfn-sym
+                     ~ret (to-array [~@args]))))
         (defn ~fn-name [~@args]
-          (.invoke ~cfn-sym
-                   ~ret (to-array [~@args])))))))
+          (throw (Exception. (str ~(name fn-name) " not loaded."))))))))
 
 (defmacro defgl
   ([fn-name ret]
@@ -1545,6 +1551,7 @@
                     window-start-y
                     handlers] :as options}]
    (assert glfw "Could not run because glfw could not be loaded.")
+   (assert membraneskialib "Could not run because membraneskia could not be loaded.")
 
    (async/>!! window-chan (map->GlfwSkiaWindow (merge
                                                 {:render make-ui}
@@ -1598,6 +1605,7 @@
                     window-start-y
                     handlers] :as options}]
    (assert glfw "Could not run because glfw could not be loaded.")
+   (assert membraneskialib "Could not run because membraneskia could not be loaded.")
 
    (async/thread
      (run-sync make-ui options))))
