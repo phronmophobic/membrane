@@ -132,7 +132,7 @@ For more examples, check out the [kitchen sink](/src/membrane/example/kitchen_si
 ```
 
 
-![Star](/docs/images/star.png?raw=true)
+![Star](/docs/images/sawtooth.png?raw=true)
 ```
 ;; line
 (ui/with-style :membrane.ui/style-stroke
@@ -174,12 +174,30 @@ For more examples, check out the [kitchen sink](/src/membrane/example/kitchen_si
   (ui/label "Hello"))
 ```
 
+### Groups
+
+To draw multiple elements, simply use a vector. The elements will be drawn in order.
+
+![label with color](/docs/images/group.png?raw=true)
+```
+[(ui/with-color [1 0 0 0.75]
+   (ui/label "red"))
+ (ui/with-color [0 1 0 0.75]
+   (ui/label "green"))
+ (ui/with-color [0 0 1 0.75]
+   (ui/label "blue"))]
+```
+
 ### Transforms
 
 ![translate](/docs/images/translate.png?raw=true)
 ```
-(ui/translate 30 100
-    (ui/label "x: 30, y: 100"))
+[(ui/with-style :membrane.ui/style-stroke
+   [(ui/path [0 0] [0 100])
+    (ui/path [0 0] [60 0])])
+ (ui/rectangle 30 50)
+ (ui/translate 30 50
+               (ui/rectangle 30 50))]
 ```
 
 ![scale](/docs/images/scale.png?raw=true)
@@ -188,21 +206,79 @@ For more examples, check out the [kitchen sink](/src/membrane/example/kitchen_si
     (ui/label "sx: 3, sy: 10"))
 ```
 
-### Groups
+### Basic Layout
 
-### Simple Layouts
+![vertical layout](/docs/images/vertical-layout.png?raw=true)
 
+```
 ;; vertical
-;; horizontal
+(ui/vertical-layout
+ (ui/button "hello")
+ (ui/button "world"))
+```
 
-;; most layouts can be created jsut by using bounds
+![horizontal layout](/docs/images/horizontal-layout.png?raw=true)
+
+```
+;; horizontal
+(ui/horizontal-layout
+ (ui/button "hello")
+ (ui/button "world"))
+```
+
+![horizontal layout spacing](/docs/images/horizontal-layout-spacing.png?raw=true)
+
+```
+(apply ui/horizontal-layout
+       (interpose
+        (spacer 10 0)
+        (for [i (range 1 5)]
+          (ui/with-color [0 0 0 (/ i 5.0)]
+            (ui/rectangle 100 50)))))
+```
+
+
+![centering](/docs/images/center2.png?raw=true)
+```
+;; most layouts can be created just by using bounds
+(defn center [elem [width height]]
+  (let [[ewidth eheight] (bounds elem)]
+    (translate (int (- (/ width 2)
+                       (/ ewidth 2)))
+               (int (- (/ height 2)
+                       (/ eheight 2)))
+               elem)))
+(ui/with-style :membrane.ui/style-stroke
+  (let [rect (ui/rectangle 100 50)
+        line (center (ui/path [0 0] [75 0])
+                     (ui/bounds rect))]
+    [rect line]))
+```
+
+
 
 ### Common UI Elements
 
+Typically, the graphics for elements and their event handling code is intertwined. These elements are simply views and have no default behavior associated with them. If you want both, check out `membrane.component/button` and `membrane.component/checkbox`.
 
-checkbox
+![checkbox](/docs/images/checkbox-elem.png?raw=true)
 
-button
+```
+(ui/horizontal-layout
+ (ui/padding 10 10
+             (ui/checkbox false))
+ (ui/padding 10 10
+             (ui/checkbox true)))
+```
+
+![button](/docs/images/button-elem.png?raw=true)
+```
+(ui/horizontal-layout
+ (ui/padding 10 10
+             (ui/button "button"))
+ (ui/padding 10 10
+             (ui/button "button" nil true)))
+```
 
 ## Events
 
