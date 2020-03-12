@@ -180,11 +180,12 @@ Screenshot:
 
 That's it! For more in-depth info, check out the documentation.
 
-[Tutorial](/docs/tutorial.md)
-Guides
-Examples
-Design Philosophy
-FAQ
+[Tutorial](/docs/tutorial.md)  
+[Docs](https://phronmophobic.github.io/membrane/)  
+[Examples](https://github.com/phronmophobic/membrane/tree/master/src/membrane/example)  
+Guides  
+Design Philosophy  
+FAQ  
 
 
 
