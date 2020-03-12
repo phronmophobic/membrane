@@ -72,7 +72,12 @@
               (com.sun.jna.NativeLibrary/getInstance "CoreFoundation")
               (catch java.lang.UnsatisfiedLinkError e
                 nil)))
-(def glfw (com.sun.jna.NativeLibrary/getInstance "glfw"))
+
+;; This library is absolutely necessary to show windows, but it's crashing the documentation generator
+(def glfw (try
+            (com.sun.jna.NativeLibrary/getInstance "glfw")
+            (catch java.lang.UnsatisfiedLinkError e
+              nil)))
 (def membraneskialib (com.sun.jna.NativeLibrary/getInstance "membraneskia"))
 
 
@@ -1539,6 +1544,7 @@
                     window-start-x
                     window-start-y
                     handlers] :as options}]
+   (assert glfw "Could not run because glfw could not be loaded.")
 
    (async/>!! window-chan (map->GlfwSkiaWindow (merge
                                                 {:render make-ui}
@@ -1591,6 +1597,7 @@
                     window-start-x
                     window-start-y
                     handlers] :as options}]
+   (assert glfw "Could not run because glfw could not be loaded.")
 
    (async/thread
      (run-sync make-ui options))))
