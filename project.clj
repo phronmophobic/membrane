@@ -55,7 +55,8 @@
          ;;:source-paths ["cljs_src"]
          }}
 
-
+  :deploy-repositories [["releases" :clojars]
+                        ["snapshots" :clojars]]
   :cljsbuild {:builds
               [{:id "webgltest"
                 :source-paths ["src"]
