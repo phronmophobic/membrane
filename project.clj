@@ -30,6 +30,7 @@
 
   :plugins [[lein-cljsbuild "1.1.7"]
             [lein-figwheel "0.5.18"]
+            [lein-codox "0.10.7"]
             ]
 
   :source-paths ["src"]
