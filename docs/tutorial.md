@@ -162,7 +162,7 @@ button
 ## Events
 
 In membrane, events handlers are pure functions that take in events and return a sequence of effects.
-Effects is a data description of what to do rather than a side effect.
+Effects are a data description of what to do rather than a side effect.
 
 ```
 ;; mouse-down event at location [15 15]

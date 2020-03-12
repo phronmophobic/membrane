@@ -1,6 +1,6 @@
 # Membrane
 
-## Membrane is a platform agnostic library for creating user interfaces.
+### Membrane is a platform agnostic library for creating user interfaces.
 
 Membrane provides 3 layers:
 
@@ -8,7 +8,7 @@ Membrane provides 3 layers:
 2. A platform agnostic model for graphics and events
 3. Multiple graphics backends that provide concrete implementations for #2
 
-While these 3 layers are made to work together, they can also be mixed and matched with other implementations. For example, you could use your favorite UI framework and leverage layers #2 & #3 to reach another platform. Alternatively, you could use layers #1 & #2 and provide your own ncurses graphics backend.
+While these 3 layers are made to work together, they can also be mixed and matched with other implementations. For example, you could use your favorite UI framework and the other layers to reach another platform. Alternatively, you could provide your own ncurses graphics backend and leverage the ui framework and graphics model.
 
 The currently supported platforms are Mac OSX, Linux, and the Web via WebGL. Support for Windows and other platforms are coming soon!
 
@@ -23,7 +23,7 @@ Leiningen dependency:
 ## A Simple Example without the UI Framework
 
 Screenshot:
-![simple counter](/docs/images/counter1.png?raw=true)
+![simple counter](/docs/images/counter1.gif?raw=true)
 
 ```
 (ns counter
@@ -56,7 +56,7 @@ Screenshot:
 ## Simple Example using `membrane.component` UI Framework
 
 Screenshot:
-![simple counter](/docs/images/counter2.png?raw=true)
+![simple counter](/docs/images/counter2.gif?raw=true)
 
 ```
 
@@ -64,6 +64,7 @@ Screenshot:
   (:require [membrane.skia :as skia]
             [membrane.ui :as ui
              :refer [horizontal-layout
+                     vertical-layout
                      button
                      label
                      on]]
@@ -88,7 +89,14 @@ Screenshot:
   ;; pop up a window showing our counter with
   ;; num initially set to 10
   (run-ui #'counter {:num 10}))
+```
 
+Here's an exmaple of how you can use your `counter` component.
+
+Screenshot:
+![couning counter](/docs/images/counter3.gif?raw=true)
+
+```
 ;; Display an "Add Counter" button
 ;; on top of a stack of counters
 ;;
