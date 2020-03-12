@@ -95,49 +95,94 @@ For more examples, check out the [kitchen sink](/src/membrane/example/kitchen_si
 
 ### Text
 
+![Label Default](/docs/images/label-default.png?raw=true)
+
 ```
 ;; label using default font
 (ui/label "Hello\nWorld!")
+```
 
+
+![Label with font](/docs/images/label-font.png?raw=true)
+```
 ;; label with specified font
 ;; font will check the default System font folder
 ;; on Mac osx, check /System/Library/Fonts/ for available fonts
 (ui/label "Hello\nWorld!" (ui/font "Menlo.ttc" 22))
+```
 
+![Label with font](/docs/images/label-font.png?raw=true)
+```
 ;; Use the default font, but change the size
 (ui/label "Hello\nWorld!" (ui/font nil 22))
 ```
 ### Lines and Shapes
 
+![Star](/docs/images/star.png?raw=true)
 ```
-line
+;; filled polygon
+(ui/path [24.20 177.98]
+         [199.82 37.93]
+         [102.36 240.31]
+         [102.36 15.68]
+         [199.82 218.06]
+         [24.20 78.01]
+         [243.2 127.99]
+         [24.20 177.98])
+```
 
-filled polygon
 
+![Star](/docs/images/star.png?raw=true)
+```
+;; line
+(ui/with-style :membrane.ui/style-stroke
+  (ui/with-stroke-width 3
+    (ui/with-color [1 0 0]
+      (apply
+       ui/path
+       (for [i (range 10)]
+         [(* 30 i)
+          (if (even? i) 0 30)])))))
+```
+
+
+![rectangle](/docs/images/rectangle.png?raw=true)
+```
 ;; draw a filled  rectangle
-(ui/rectangle 10 10)
+(ui/with-style :membrane.ui/style-stroke
+  (ui/with-stroke-width 3
+    (ui/with-color [0.5 0 0.5]
+      (ui/rectangle 100 200))))
 
-rounded rectangle
+
+```
+
+![rounded rectangle](/docs/images/rounded-rectangle.png?raw=true)
+```
+;; rounded rectangle
+(ui/rounded-rectangle 200 100 10)
 ```
 
 ### Color
 
+![label with color](/docs/images/label-color.png?raw=true)
 ```
 ;; colors are vectors of [red green blue] or [red green blue alpha]
 ;; with values from 0 - 1 inclusive
 
 (ui/with-color [1 0 0]
-(ui/label "Hello"))
+  (ui/label "Hello"))
 ```
 
 ### Transforms
 
+![translate](/docs/images/translate.png?raw=true)
 ```
 (ui/translate 30 100
     (ui/label "x: 30, y: 100"))
 ```
 
-
+![scale](/docs/images/scale.png?raw=true)
 ```
 (ui/scale 3 10
     (ui/label "sx: 3, sy: 10"))
