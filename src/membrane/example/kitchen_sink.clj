@@ -277,7 +277,20 @@ with values from 0 - 1 inclusive"
            args)))
 
 
-(defui show-examples [& {:keys [examples selected example-state]}]
+(let [counter (atom 0)]
+  (defeffect :fade-copy-text [$show-copy-text]
+    (let [num (swap! counter inc)]
+      (dispatch! :set $show-copy-text num)
+      (future
+        (java.lang.Thread/sleep 2000)
+        (dispatch! :update $show-copy-text
+                   (fn [old-val]
+                     (if (= old-val num)
+                       nil
+                       old-val)))))))
+
+
+(defui show-examples [& {:keys [examples selected example-state show-copy-text]}]
   
   (translate 20 20
              (vertical-layout
@@ -304,9 +317,14 @@ with values from 0 - 1 inclusive"
                   (vertical-layout
                    (ui/label (:code example))
                    (spacer 0 10)
-                   (basic/button :text "Copy to clipboard"
-                                 :on-click (fn []
-                                             [[:clipboard-copy (pr-str (:code example))]]))
+                   (horizontal-layout
+                    (basic/button :text "Copy to clipboard"
+                                  :on-click (fn []
+                                              [[:clipboard-copy (pr-str (:code example))]
+                                               [:fade-copy-text $show-copy-text]]))
+                    (when show-copy-text
+                      (translate 10 3
+                                 (ui/label "copied!"))))
                    (spacer 0 10)
                    (let [elem (if (:component? example)
                                 (example-component :ui-var (:fn example) :state example-state)
