@@ -744,14 +744,14 @@ Finally, we'll define a file-selector function using our `item-selector` ui.
 Since `run-ui-sync` will wait until the window is closed and returns the app state atom. All we need to do is derefence the returned atom and grab the value for the `:selected` key.
 
 
-## Examples of form `defui` understands
+<!-- ## Examples of form `defui` understands -->
 
 
 
 
-## Component gotchas
+<!-- ## Component gotchas -->
 
-using a declared `component` rather than a defined one.
+<!-- using a declared `component` rather than a defined one. -->
 
 
 
