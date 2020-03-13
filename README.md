@@ -12,6 +12,13 @@ While these 3 layers are made to work together, they can also be mixed and match
 
 The currently supported platforms are Mac OSX, Linux, and the Web via WebGL. Support for Windows and other platforms are coming soon!
 
+[Tutorial](/docs/tutorial.md)  
+[Docs](https://phronmophobic.github.io/membrane/api)  
+[Examples](https://github.com/phronmophobic/membrane/tree/master/src/membrane/example)  
+<!-- Guides   -->
+<!-- Design Philosophy   -->
+<!-- FAQ   -->
+
 ## Usage
 Leiningen dependency:
 
@@ -181,11 +188,12 @@ Screenshot:
 That's it! For more in-depth info, check out the documentation.
 
 [Tutorial](/docs/tutorial.md)  
-[Docs](https://phronmophobic.github.io/membrane/)  
+[Docs](https://phronmophobic.github.io/membrane/api)  
 [Examples](https://github.com/phronmophobic/membrane/tree/master/src/membrane/example)  
-Guides  
-Design Philosophy  
-FAQ  
+<!-- Guides   -->
+<!-- Design Philosophy   -->
+<!-- FAQ   -->
+
 
 
 
