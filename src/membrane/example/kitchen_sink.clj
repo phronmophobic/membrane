@@ -35,19 +35,26 @@
 (defmacro defcomponent-example
   ([category title elem initial-state]
    `(defcomponent-example ~category ~title nil ~elem ~initial-state))
-  ([category title doc elem initial-state]
-   `(let [title# ~title
-          category# ~category]
-      (swap! ~'examples assoc
-             [category# title#]
-             {:title title#
-              :category category#
-              :doc ~doc
-              :fn ~elem
-              :component? true
-              :initial-state ~initial-state
-              ;;:code (quote ~elem)
-              }))
+  ([category title doc initial-state elem]
+   (let [component-sym (gensym "example-component-")]
+     `(let [title# ~title
+            category# ~category]
+        (defui ~component-sym [ & {:keys ~(mapv (fn [k]
+                                                  (-> k
+                                                      name
+                                                      symbol))
+                                                (keys initial-state))}]
+          ~elem)
+        (swap! ~'examples assoc
+               [category# title#]
+               {:title title#
+                :category category#
+                :doc ~doc
+                :fn (var ~component-sym)
+                :component? true
+                :initial-state ~initial-state
+                :code (quote ~elem)
+                })))
    
    )
   )
@@ -56,8 +63,8 @@
 (defcomponent-example
   "Components"
   "textarea"
-  #'basic/textarea
-  {:text "sup" :font (assoc ui/default-font :size 24)})
+  {:text "sup"}
+  (basic/textarea :text text :font (assoc ui/default-font :size 24)))
 
 
 
@@ -134,9 +141,8 @@
 (defcomponent-example
   "Components"
   "button"
-  #'basic/button
-  {:hover? false :text "hello"}
-  )
+  {:hover? false}
+  (basic/button :hover? hover? :text "hello"))
 
 
 
@@ -144,8 +150,8 @@
 (defcomponent-example
   "Components"
   "textarea-light"
-  #'basic/textarea-light
-  {:text "sup" :font (assoc ui/default-font :size 24)})
+  {:text "hello"}
+  (basic/textarea-light :text text :font (assoc ui/default-font :size 24)))
 
 
 
@@ -157,16 +163,16 @@
 (defcomponent-example
   "Components"
   "scrollview"
-  #'basic/scrollview
-  {:scroll-bounds [200 150]
-   :body (ui/image (clojure.java.io/resource "lines.png"))})
+  {}
+  (basic/scrollview :scroll-bounds [200 150]
+                    :body (ui/image (clojure.java.io/resource "lines.png"))))
 
 
 (defcomponent-example
   "Components"
   "checkbox"
-  #'basic/checkbox
-  {:checked? false})
+  {:checked? false}
+  (basic/checkbox :checked? checked?))
 
 
 
@@ -314,13 +320,12 @@ with values from 0 - 1 inclusive"
   )
 
 (defn run-examples []
-  
   (async/go
     (let [atm (run-ui #'show-examples {:examples @examples})]
 
       (add-watch examples :run-examples
                  (fn [k r o new-examples]
-                   [swap! atm assoc :examples new-examples]))
-      )
-    )
-  )
+                   [swap! atm assoc :examples new-examples])))))
+
+(defn -main [ & args]
+  (run-ui-sync #'show-examples {:examples @examples}))
