@@ -618,7 +618,7 @@
 
 
               (declare ~ui-name)
-              (defn ~draw-fn-name [~ui-arg-map]
+              (defn ~draw-fn-name {:no-doc true} [~ui-arg-map]
                 (let [~@arg-path-bindings]
                   ;; force evaluation so *ns* variable is set
                   ;; correctly. we need to know the *ns* for clojurescript
@@ -684,7 +684,7 @@
               ;; you wipe the full component cache, then rerendering a child component
               ;; won't be reflected in most cases since the parent component's cache
               ;; won't have been updated
-              (defn ~rerender-fn-name [m#]
+              (defn ~rerender-fn-name  {:no-doc true} [m#]
                 (let [~elem-sym (~component-map-constructor m#)
                       key# [~ui-name-kw
                             [~@(for [k arg-keys]
