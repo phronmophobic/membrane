@@ -9,7 +9,7 @@ Each of the examples can be run from the command line if membrane is a dependenc
 
 ## Counter
 `lein run -m membrane.example.counter`  
-![simple counter](/docs/images/counter2.gif?raw=true)
+![simple counter](/docs/images/counter3.gif?raw=true)
 
 ## File Selector
 
