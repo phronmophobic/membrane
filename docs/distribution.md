@@ -5,7 +5,7 @@ Regardless of how you distribute your app, you'll probably want to use `run-ui-s
 ```
 (defn -main [ & args]
   (let [initial-state {:foo "bar"}]
-    (run-ui-sync #'run-app initial-state)))
+    (run-ui-sync #'app-root initial-state)))
 ```
 
 
