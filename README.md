@@ -191,6 +191,7 @@ That's it! For more in-depth info, check out the documentation.
 [Tutorial](/docs/tutorial.md)  
 [Docs](https://phronmophobic.github.io/membrane/api)  
 [Examples](https://github.com/phronmophobic/membrane/tree/master/src/membrane/example)  
+[Distributing your app](/docs/distribution.md)  
 <!-- Guides   -->
 <!-- Design Philosophy   -->
 <!-- FAQ   -->
