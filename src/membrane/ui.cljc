@@ -1310,6 +1310,42 @@
   [on-key-event & drawables]
   (OnKeyEvent. on-key-event drawables))
 
+(defcomponent OnBubble [on-bubble drawables]
+    IOrigin
+    (-origin [_]
+        [0 0])
+
+
+  IBounds
+  (-bounds [this]
+    (reduce
+     (fn [[max-width max-height] elem]
+       (let [[ox oy] (origin elem)
+             [w h] (bounds elem)]
+         [(max max-width (+ ox w))
+          (max max-height (+ oy h))]))
+     [0 0]
+     drawables))
+
+  IDraw
+  (draw [this]
+      (doseq [drawable drawables]
+        (draw drawable)))
+  IChildren
+  (-children [this]
+      drawables)
+
+   IBubble
+   (-bubble [this effects]
+       (on-bubble effects)))
+
+(defn on-bubble
+  "Wraps drawables and adds a handler for bubbling
+
+  on-bubble should take seq of effects"
+  [on-bubble & drawables]
+  (OnBubble. on-bubble drawables))
+
 
 (defcomponent OnClipboardPaste [on-clipboard-paste drawables]
     IOrigin
