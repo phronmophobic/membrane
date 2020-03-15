@@ -1306,7 +1306,7 @@
 (defn on-key-event
   "Wraps drawables and adds a handler for key events.
 
-  on-key-eveent should take 4 arguments key, scancode, action, mods and return a sequence of effects."
+  on-key-event should take 4 arguments key, scancode, action, mods and return a sequence of effects."
   [on-key-event & drawables]
   (OnKeyEvent. on-key-event drawables))
 
