@@ -950,6 +950,8 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
   ([ui-var initial-state]
    (run-ui ui-var initial-state nil))
   ([ui-var initial-state handler]
+   (run-ui ui-var initial-state handler nil))
+  ([ui-var initial-state handler options]
    (let [state-atom (if (instance? #?(:clj clojure.lang.Atom
                                       :cljs cljs.core.Atom)
                                    initial-state)
@@ -960,7 +962,7 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
                    (default-handler state-atom))
          top-level (make-top-level-ui ui-var state-atom handler)
          ]
-     (membrane.ui/run top-level)
+     (membrane.ui/run top-level options)
      state-atom)))
 
 #?
@@ -971,6 +973,8 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
    ([ui-var initial-state]
     (run-ui-sync ui-var initial-state nil))
    ([ui-var initial-state handler]
+    (run-ui-sync ui-var initial-state handler nil))
+   ([ui-var initial-state handler options]
     (let [state-atom (if (instance? #?(:clj clojure.lang.Atom
                                        :cljs cljs.core.Atom)
                                     initial-state)
@@ -980,7 +984,7 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
                     handler
                     (default-handler state-atom))
           top-level (make-top-level-ui ui-var state-atom handler)]
-      (membrane.ui/run-sync top-level)
+      (membrane.ui/run-sync top-level options)
       state-atom))))
 
 

@@ -4,7 +4,7 @@
   (:require
    [membrane.component :refer [defui]]
    membrane.audio
-   membrane.webgl
+   [membrane.webgl :as webgl]
    [com.rpl.specter :as spec
     :refer [ATOM ALL FIRST LAST MAP-VALS META]]
    membrane.basic-components
@@ -21,18 +21,7 @@
    )
   )
 
-#_(run-webgl-project "todo-list")
-;; opentype.load('fonts/Roboto-Black.ttf');
-#_(js/opentype.load "fonts/Menlo-Regular2.ttf"
-                  (fn [err font]
-                    (if err
-                      (do (println "Error: " err)
-                          (js/console.log err))
-                      (do
-                        
-                        
-                        (js/console.log font)
-                        (set! js/window.font font)))))
+(def canvas (.getElementById js/document "canvas"))
 
 (defui test-ui [& {:keys [a b]}]
   (let [l (label a)
@@ -42,23 +31,50 @@
                 (membrane.basic-components/textarea :text a))]
     #_(translate 20 20
                  )
-    #_[(label "hi there")
-       (ui/on
-        :mouse-move
-        (fn [[x y]]
-          [[:set $b (str [x y]
-                         (ui/index-for-position ui/default-font a x y))]]
-          )
-        (label a))
-       (label b)]
+    #_(ui/with-color [255 0 0]
+      (ui/rectangle 100 100))
+    #_(ui/rectangle 10 10)
+    #_(vertical-layout
+     (label "hi there")
+     (ui/on
+      :mouse-move
+      (fn [[x y]]
+        [[:set $b (str [x y]
+                       (ui/index-for-position ui/default-font a x y))]]
+        )
+      (label a))
+     (label b))
 
     
     )
   )
 
-(defonce start-app (membrane.component/run-ui #'test-ui (atom {:a "there"})))
-;; (defonce start-todo-app (membrane.component/run-ui #'todo/todo-app todo/todo-state))
-#_(js/setTimeout (fn []
-)
-               3000)
+(def enlarge-bottom-button (.getElementById js/document "enlarge-canvas-bottom"))
+
+(defonce enlargeBottomEventHandler
+  (doto enlarge-bottom-button
+    (.addEventListener "mousedown"
+                       (fn []
+                         (doto canvas
+                           (.setAttribute "height" (+ (int (.-height canvas)) 200)))))))
+
+(def enlarge-right-button (.getElementById js/document "enlarge-canvas-right"))
+
+(defonce enlargeRightEventHandler
+  (doto enlarge-right-button
+    (.addEventListener "mousedown"
+                       (fn []
+                         (doto canvas
+                           (.setAttribute "width" (+ (int (.-width canvas)) 200)))))))
+
+;; (defonce start-app (membrane.component/run-ui #'test-ui (atom {:a "there"})))
+(defonce start-todo-app (membrane.component/run-ui #'todo/todo-app todo/todo-state nil {:canvas canvas}))
+
+(let [new-canvas (webgl/create-canvas 300 400)]
+  (.appendChild (.-body js/document) new-canvas)
+  (defonce start-other-app (membrane.component/run-ui #'todo/todo-app @todo/todo-state nil {:canvas new-canvas})))
+
+
+
+
 

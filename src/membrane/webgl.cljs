@@ -20,11 +20,17 @@
              :refer [ATOM ALL FIRST LAST MAP-VALS META]]))
 
 
-(def canvas (.getElementById js/document "canvas"))
-(def ctx (.getContext canvas "2d"))
+(def ^:dynamic *ctx*)
 (def ^:dynamic *paint-style* :membrane.ui/style-fill)
-
+(defonce event-handlers (atom {}))
 (def freetype-font)
+
+(defonce freetype-callbacks (atom []))
+(defn on-freetype-loaded [callback]
+  (if freetype-font
+    (callback freetype-font)
+    (swap! freetype-callbacks conj callback)))
+
 (js/opentype.load
  "https://fonts.gstatic.com/s/ubuntu/v10/4iCs6KVjbNBYlgo6eA.ttf"
  (fn [err font]
@@ -33,7 +39,20 @@
          (js/console.log err))
      (do
        (set! freetype-font font)
-       (reset! membrane.component/component-cache {})))))
+       (reset! membrane.component/component-cache {})
+       (doseq [cb @freetype-callbacks]
+         (cb freetype-font))
+       (reset! freetype-callbacks [])))))
+
+(defn load-font []
+  (let [link (.createElement js/document "link")]
+    (doto link
+      (.setAttribute "rel" "stylesheet")
+      (.setAttribute "href" "https://fonts.googleapis.com/css?family=Ubuntu&display=swap"))
+    (.appendChild (-> js/document .-body)
+                  link)))
+(load-font)
+
 
 (defn font-scale [freetype-font font-size]
   (* (/ 1 (aget freetype-font "unitsPerEm"))
@@ -79,21 +98,15 @@
 
 (set! membrane.ui/text-bounds text-bounds)
 
-(set! (.-font ctx)
-      (str (when-let [weight (:weight ui/default-font)]
-             (str weight " "))
-           (:size ui/default-font) "px"
-           " "
-           (:name ui/default-font)
-           ))
+
 
 (defn draw-rect []
-  (set! (.-fillStyle ctx)  "green")
+  (set! (.-fillStyle *ctx*)  "green")
   (case *paint-style*
-    :membrane.ui/style-fill (.fillRect ctx 10, 10, 150, 100)
-    :membrane.ui/style-stroke (.strokeRect ctx 10, 10, 150, 100)
-    :membrane.ui/style-stroke-and-fill (do (.strokeRect ctx 10, 10, 150, 100)
-                                           (.fillRect ctx 10, 10, 150, 100))))
+    :membrane.ui/style-fill (.fillRect *ctx* 10, 10, 150, 100)
+    :membrane.ui/style-stroke (.strokeRect *ctx* 10, 10, 150, 100)
+    :membrane.ui/style-stroke-and-fill (do (.strokeRect *ctx* 10, 10, 150, 100)
+                                           (.fillRect *ctx* 10, 10, 150, 100))))
 
 
 
@@ -149,9 +162,9 @@
     (let [lines (clojure.string/split (:text this) #"\n" -1)
           font (:font this)
           line-height (font-line-height font)]
-     (push-state ctx
+     (push-state *ctx*
                  (when font
-                   (set! (.-font ctx)
+                   (set! (.-font *ctx*)
                          (str (when (:weight font)
                                 (str (:weight font) " "))
                               (or (:size font)
@@ -160,19 +173,18 @@
                               (or (:name font)
                                   (:name ui/default-font)))))
                  (doseq [line lines]
-                   (.translate ctx 0 (dec line-height))
+                   (.translate *ctx* 0 (dec line-height))
                    (case *paint-style*
 
-                     :membrane.ui/style-fill (.fillText ctx line 0 0)
-                     :membrane.ui/style-stroke (.strokeText ctx line 0 0)
+                     :membrane.ui/style-fill (.fillText *ctx* line 0 0)
+                     :membrane.ui/style-stroke (.strokeText *ctx* line 0 0)
                      :membrane.ui/style-stroke-and-fill (do
-                                                          (.fillText ctx line 0 0)
-                                                          (.strokeText ctx line 0 0)))
+                                                          (.fillText *ctx* line 0 0)
+                                                          (.strokeText *ctx* line 0 0)))
                    )))
     ))
 
 (defonce images (atom {}))
-
 
 
 (defn image-size [image-path]
@@ -190,18 +202,18 @@
   (draw [this]
     (when-let [image-info (get @images (:image-path this))]
       (let [[width height] (:size this)]
-        (push-state ctx
+        (push-state *ctx*
                     (when-let [opacity (:opacity this)]
-                      (set! (.-globalAlpha ctx) opacity))
-                    (.drawImage ctx
+                      (set! (.-globalAlpha *ctx*) opacity))
+                    (.drawImage *ctx*
                                 (:image-obj image-info)
                                 0 0
                                 width height))))))
 (extend-type membrane.ui.Translate
   IDraw
   (draw [this]
-    (push-state ctx
-     (.translate ctx (:x this) (:y this))
+    (push-state *ctx*
+     (.translate *ctx* (:x this) (:y this))
      (draw (:drawable this)))))
 
 
@@ -291,9 +303,9 @@
     (let [{:keys [width height border-radius]} this
           x 0
           y 0]
-      (push-state ctx
-                  (.beginPath ctx)
-                  (doto ctx
+      (push-state *ctx*
+                  (.beginPath *ctx*)
+                  (doto *ctx*
                     (.moveTo (+ x border-radius) y)
                     (.lineTo , (+ x width (- border-radius)) y)
                     (.quadraticCurveTo (+ x width), y, (+ x width) , (+ y border-radius))
@@ -303,27 +315,27 @@
                     (.quadraticCurveTo , x, (+ y height,) x, (+ y height (- border-radius)))
                     (.lineTo , x, (+ y border-radius))
                     (.quadraticCurveTo , x, y, (+ x border-radius,) y))
-                  (.closePath ctx)
+                  (.closePath *ctx*)
                   (case *paint-style*
-                    :membrane.ui/style-fill (.fill ctx)
-                    :membrane.ui/style-stroke (.stroke ctx)
-                    :membrane.ui/style-stroke-and-fill (doto ctx
+                    :membrane.ui/style-fill (.fill *ctx*)
+                    :membrane.ui/style-stroke (.stroke *ctx*)
+                    :membrane.ui/style-stroke-and-fill (doto *ctx*
                                                          (.stroke)
                                                          (.fill)))))))
 
 (extend-type membrane.ui.Path
   IDraw
   (draw [this]
-    (push-state ctx
-                (.beginPath ctx)
+    (push-state *ctx*
+                (.beginPath *ctx*)
                 (let [[x y] (first (:points this))]
-                  (.moveTo ctx x y))
+                  (.moveTo *ctx* x y))
                 (doseq [[x y] (rest (:points this))]
-                  (.lineTo ctx x y))
+                  (.lineTo *ctx* x y))
                 (case *paint-style*
-                  :membrane.ui/style-fill (.fill ctx)
-                  :membrane.ui/style-stroke (.stroke ctx)
-                  :membrane.ui/style-stroke-and-fill (doto ctx
+                  :membrane.ui/style-fill (.fill *ctx*)
+                  :membrane.ui/style-stroke (.stroke *ctx*)
+                  :membrane.ui/style-stroke-and-fill (doto *ctx*
                                                        (.stroke)
                                                        (.fill))))))
 
@@ -336,9 +348,9 @@
   IDraw
   (draw [this]
     (let [color-style (color-text (:color this))]
-      (push-state ctx
-                  (set! (.-fillStyle ctx) color-style)
-                  (set! (.-strokeStyle ctx) color-style )
+      (push-state *ctx*
+                  (set! (.-fillStyle *ctx*) color-style)
+                  (set! (.-strokeStyle *ctx*) color-style )
                   (doseq [drawable (:drawables this)]
                     (draw drawable))))))
 
@@ -354,8 +366,8 @@
   IDraw
   (draw [this]
     (let [stroke-width (:stroke-width this)]
-      (push-state ctx
-                  (set! (.-lineWidth ctx) stroke-width)
+      (push-state *ctx*
+                  (set! (.-lineWidth *ctx*) stroke-width)
                   (doseq [drawable (:drawables this)]
                     (draw drawable))
                   ))))
@@ -363,9 +375,9 @@
 (extend-type membrane.ui.Scale
   IDraw
   (draw [this]
-    (push-state ctx
+    (push-state *ctx*
                 (let [[sx sy] (:scalars this)]
-                  (.scale ctx sx sy))
+                  (.scale *ctx* sx sy))
                 (doseq [drawable (:drawables this)]
                   (draw drawable)))))
 
@@ -391,19 +403,62 @@
       (doseq [drawable (:drawables this)]
         (draw drawable))))
 
-(defonce ui (atom nil))
-(declare -make-ui)
-(defn redraw []
-  (when -make-ui
-    (.clearRect ctx
-                0 0
-                (.-width canvas) (.-height canvas))
-    (reset! ui (-make-ui))
-    (draw @ui)))
+(defn create-canvas [width height]
+  (doto (.createElement js/document "canvas")
+    (.setAttribute "width" width)
+    (.setAttribute "height" height)
+    (.setAttribute "tabindex" "0")))
 
-(defn run [make-ui]
-  (set! -make-ui make-ui)
-  (redraw))
+(defrecord WebglCanvas [ui make-ui last-touch touch-check? canvas-elem ctx])
+
+(defn webgl-canvas [canvas-elem make-ui]
+  
+  (let [ctx (.getContext canvas-elem "2d")
+        canvas (WebglCanvas.
+                (atom nil)
+                make-ui
+                (atom false)
+                (atom nil)
+                canvas-elem
+                ctx)
+        ]
+    (set! (.-font ctx)
+          (str (when-let [weight (:weight ui/default-font)]
+                 (str weight " "))
+               (:size ui/default-font) "px"
+               " "
+               (:name ui/default-font)
+               ))
+    (doseq [[event handler] @event-handlers]
+      (.addEventListener canvas-elem event (partial handler canvas)))
+    canvas))
+
+
+(defn redraw [canvas]
+  (binding [*ctx* (:ctx canvas)]
+    (let [ui (:ui canvas)
+          canvas-elem (:canvas-elem canvas)]
+      (.clearRect *ctx*
+                  0 0
+                  (.-width canvas-elem) (.-height canvas-elem))
+      (reset! ui ((:make-ui canvas)))
+      (draw @ui))))
+
+
+
+(defn run [make-ui options]
+  (on-freetype-loaded
+   (fn [_]
+     (-> (.-fonts js/document)
+         (.load (str (when-let [weight (:weight ui/default-font)]
+                       (str weight " "))
+                     (:size ui/default-font) "px"
+                     " "
+                     (:name ui/default-font)
+                     ))
+         (.then (fn []
+                  (let [canvas (webgl-canvas (:canvas options) make-ui)]
+                    (redraw canvas))))))))
 (set! membrane.ui/run run)
 
 
@@ -416,88 +471,66 @@
   )
 
 
-(let [touch-check? (atom false)
-      last-touch (atom nil)]
-  (defn -on-mouse-down [e]
+(defn -on-mouse-down [canvas e]
+  (let [touch-check? (:touch-check? canvas)]
     (when (not @touch-check?)
       (do
         (when (.-targetTouches e)
-          (.removeEventListener canvas "mousedown" -on-mouse-down))
-        (reset! touch-check? true)))
-    
+          (.removeEventListener (:canvas-elem canvas) "mousedown" -on-mouse-down))
+        (reset! touch-check? true))))
+  
+  (let [rect (.getBoundingClientRect (:canvas-elem canvas))
+        [client-x client-y] (get-client-pos e)
+        pos [(- client-x (.-left rect))
+             (- client-y (.-top rect))]
+        button (.-button e)
+        mouse-down? true]
+    (try
+      (membrane.ui/mouse-event @(:ui canvas) pos button mouse-down? nil)
+      (catch js/Object e
+        (println e))))
 
-    (let [rect (.getBoundingClientRect canvas)
-          [client-x client-y] (get-client-pos e)
-          pos [(- client-x (.-left rect))
-               (- client-y (.-top rect))]
-          button (.-button e)
-          mouse-down? true]
-      (try
-        (membrane.ui/mouse-event @ui pos button mouse-down? nil)
-        (catch js/Object e
-          (println e))))
+  (redraw canvas)
+  ;; (.stopPropagation e)
+  ;; (.preventDefault e)
 
-    (redraw)
-    ;; (.stopPropagation e)
-    ;; (.preventDefault e)
+  (let [current-time (.getTime (js/Date.))
+        last-touch (:last-touch canvas)]
+    (when-let [last-touch-time @last-touch]
+      (when (< (- current-time last-touch-time)
+               300)
+        (.stopPropagation e)
+        (.preventDefault e)))
+    (reset! last-touch current-time))
 
-    (let [current-time (.getTime (js/Date.))]
-      (when-let [last-touch-time @last-touch]
-        (when (< (- current-time last-touch-time)
-                 300)
-          (.stopPropagation e)
-          (.preventDefault e)))
-      (reset! last-touch current-time))
+  nil)
 
-    nil))
+(swap! event-handlers
+       assoc
+       "touchstart" -on-mouse-down
+       "mousedown" -on-mouse-down)
 
-(defonce mouseDownEventHandler
-  (doto canvas
-    (.addEventListener "touchstart"
-                       -on-mouse-down)
-    (.addEventListener "mousedown"
-                       -on-mouse-down)))
-
-(defn -on-mouse-up [e]
-  (let [rect (.getBoundingClientRect canvas)
+(defn -on-mouse-up [canvas e]
+  (let [rect (.getBoundingClientRect (:canvas-elem canvas))
         [client-x client-y] (get-client-pos e)
         pos [(- client-x (.-left rect))
              (- client-y (.-top rect))]
         button (.-button e)
         mouse-down? false]
     (try
-      (membrane.ui/mouse-event @ui pos button mouse-down? nil)
+      (membrane.ui/mouse-event @(:ui canvas) pos button mouse-down? nil)
       (catch js/Object e
         (println e))))
 
-  (redraw)
+  (redraw canvas)
   ;; (.stopPropagation e)
   ;; (.preventDefault e)
 
   nil)
 
-(defonce mouseUpEventHandler
-  (doto canvas
-    (.addEventListener "mouseup"
-                       -on-mouse-up)))
-
-(def enlarge-bottom-button (.getElementById js/document "enlarge-canvas-bottom"))
-
-(defonce enlargeBottomEventHandler
-  (doto enlarge-bottom-button
-    (.addEventListener "mousedown"
-                       (fn []
-                         (doto canvas
-                           (.setAttribute "height" (+ (int (.-height canvas)) 200)))))))
-
-(def enlarge-right-button (.getElementById js/document "enlarge-canvas-right"))
-
-(defonce enlargeRightEventHandler
-  (doto enlarge-right-button
-    (.addEventListener "mousedown"
-                       (fn []
-                         (doto canvas
-                           (.setAttribute "width" (+ (int (.-width canvas)) 200)))))))
+(swap! event-handlers
+       assoc
+       "mouseup" -on-mouse-up)
 
 
 #_(defn -scroll-callback [window window-handle offset-x offset-y]
@@ -514,30 +547,28 @@
             :while (not (false? ret))]))
   (redraw))
 
-(defn -on-mouse-move [e]
-  (let [rect (.getBoundingClientRect canvas)
+(defn -on-mouse-move [canvas e]
+  (let [rect (.getBoundingClientRect (:canvas-elem canvas))
         [client-x client-y] (get-client-pos e)
         pos [(- client-x (.-left rect))
              (- client-y (.-top rect))]]
         (try
-          (doall (membrane.ui/mouse-move @ui pos))
+          (doall (membrane.ui/mouse-move @(:ui canvas) pos))
 
           (catch js/Object e
             (println e))))
 
-  (redraw)
+  (redraw canvas)
 
   ;; (.stopPropagation e)
   ;; (.preventDefault e)
   
   nil)
-(defonce mouseMoveHandler
-  (doto canvas
-    (.addEventListener "mousemove"
-                       -on-mouse-move)
-    (.addEventListener "touchmove"
-                       -on-mouse-move)))
 
+(swap! event-handlers
+       assoc
+       "mousemove" -on-mouse-move
+       "touchmove" -on-mouse-move)
 
 (def keymap
   {
@@ -557,35 +588,35 @@
 
    })
 
-(defn -on-key-down [e]
+(defn -on-key-down [canvas e]
   (let [raw-key (.-key e)
         key (if (> (.-length raw-key) 1)
                 (get keymap raw-key :undefined)
                 raw-key)]
-    (membrane.ui/key-event @ui key nil nil nil)
-    (membrane.ui/key-press @ui key))
+    (membrane.ui/key-event @(:ui canvas) key nil nil nil)
+    (membrane.ui/key-press @(:ui canvas) key))
 
     (.stopPropagation e)
     (.preventDefault e)
 
 
-  (redraw))
+  (redraw canvas))
 
-(defonce keyDownHandler
-  (.addEventListener canvas "keydown"
-                     -on-key-down))
+(swap! event-handlers
+       assoc
+       "keydown" -on-key-down)
 
-(defn -on-key-up [e]
+(defn -on-key-up [canvas e]
   ;; (println (.-key e))
     (.stopPropagation e)
     (.preventDefault e)
 
 
-  (redraw))
+  (redraw canvas))
 
-(defonce keyUpHandler
-  (.addEventListener canvas "keyup"
-                     -on-key-up))
+(swap! event-handlers
+       assoc
+       "keyup" -on-key-up)
 
 
 
