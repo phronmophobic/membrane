@@ -12,7 +12,7 @@
             [membrane.component :as component
              :refer [defui run-ui run-ui-sync defeffect]]
             [membrane.basic-components :as basic])
-  (:gen-class))
+  #?(:clj (:gen-class)))
 
 ;; Draw a red X that we'll use to display a delete button
 ;; No interactivity, so `defui` not needed
