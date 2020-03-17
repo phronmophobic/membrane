@@ -554,6 +554,7 @@
              (- client-y (.-top rect))]]
         (try
           (doall (membrane.ui/mouse-move @(:ui canvas) pos))
+          (doall (membrane.ui/mouse-move-global @(:ui canvas) pos))
 
           (catch js/Object e
             (println e))))
