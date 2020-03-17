@@ -67,11 +67,24 @@
 ;; (defonce start-app (membrane.component/run-ui #'test-ui (atom {:a "there"})))
 (defonce start-todo-app (membrane.component/run-ui #'todo/todo-app todo/todo-state nil {:canvas canvas}))
 
-(let [new-canvas (webgl/create-canvas 300 400)]
-  (.appendChild (.-body js/document) new-canvas)
-  (defonce start-other-app (membrane.component/run-ui #'todo/todo-app @todo/todo-state nil {:canvas new-canvas})))
+#_(defonce start-app (membrane.webgl/run #(ui/label "Hello World") {:canvas canvas}))
+#_(let [canvas (webgl/create-canvas 300 400)]
+  (.appendChild (.-body js/document) canvas)
+  (defonce start-app (membrane.webgl/run #(ui/label "Hello World") {:canvas canvas})))
+
+#_(let [new-canvas (webgl/create-canvas 300 400)]
+       (.appendChild (.-body js/document) new-canvas)
+       (defonce start-other-app (membrane.component/run-ui #'todo/todo-app @todo/todo-state nil {:canvas new-canvas})))
 
 
 
 
 
+#_(ns component-example
+  (:require [membrane.component ]
+            [membrane.webgl :as webgl]
+            [membrane.example.todo :as todo]))
+
+#_(let [canvas (webgl/create-canvas 500 500)]
+  (.appendChild (.-body js/document) canvas)
+  (defonce start-app (membrane.component/run-ui #'todo/todo-app @todo/todo-state nil {:canvas canvas})))

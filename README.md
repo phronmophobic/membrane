@@ -15,7 +15,8 @@ The currently supported platforms are Mac OSX, Linux, and the Web via WebGL. Sup
 [Tutorial](/docs/tutorial.md)  
 [Docs](https://phronmophobic.github.io/membrane/api)  
 [Examples](https://github.com/phronmophobic/membrane/tree/master/src/membrane/example)  
-[Distributing your app](/docs/distribution.md)  
+[Distributing your desktop app](/docs/distribution.md)  
+[Targeting WebGL](/docs/webgl.md)  
 <!-- Guides   -->
 <!-- Design Philosophy   -->
 <!-- FAQ   -->
@@ -191,7 +192,8 @@ That's it! For more in-depth info, check out the documentation.
 [Tutorial](/docs/tutorial.md)  
 [Docs](https://phronmophobic.github.io/membrane/api)  
 [Examples](https://github.com/phronmophobic/membrane/tree/master/src/membrane/example)  
-[Distributing your app](/docs/distribution.md)  
+[Distributing your desktop app](/docs/distribution.md)  
+[Targeting WebGL](/docs/webgl.md)  
 <!-- Guides   -->
 <!-- Design Philosophy   -->
 <!-- FAQ   -->
