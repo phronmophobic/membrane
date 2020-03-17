@@ -417,8 +417,8 @@
         canvas (WebglCanvas.
                 (atom nil)
                 make-ui
-                (atom false)
                 (atom nil)
+                (atom false)
                 canvas-elem
                 ctx)
         ]
