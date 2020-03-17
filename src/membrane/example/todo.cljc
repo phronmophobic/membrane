@@ -154,16 +154,18 @@
                         :next-todo-text ""})))
 
 
-(defn -main [& args]
-  (run-ui-sync #'todo-app {:todos
-                           [{:complete? false
-                             :description "first"}
-                            {:complete? false
-                             :description "second"}
-                            {:complete? true
-                             :description "third"}]
-                           :next-todo-text ""})
-  )
+#?
+(:clj
+ (defn -main [& args]
+   (run-ui-sync #'todo-app {:todos
+                            [{:complete? false
+                              :description "first"}
+                             {:complete? false
+                              :description "second"}
+                             {:complete? true
+                              :description "third"}]
+                            :next-todo-text ""})
+   ))
 
 
 
