@@ -1,6 +1,6 @@
 (ns membrane.webgltest
-  ;; (:require [cljsjs.opentype])
-  (:require-macros [membrane.webgl-macros])
+  (:require-macros [membrane.webgl-macros
+                    :refer [add-image!]])
   (:require
    [membrane.component :refer [defui]]
    membrane.audio
@@ -16,10 +16,7 @@
             translate
             origin-x
             origin-y]]
-   [membrane.example.todo :as todo]
-   
-   )
-  )
+   [membrane.example.todo :as todo]))
 
 (def canvas (.getElementById js/document "canvas"))
 
