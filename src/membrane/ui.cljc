@@ -1860,10 +1860,12 @@
      ~body
      (NoKeyEvent. ~body)))
 
-(def ^:dynamic run)
+(defn ^:dynamic run [& args]
+  (throw (Exception. "No backend found. Have you required membrane.skia or membrane.webgl?")))
 
 #?(:clj
-   (def ^:dynamic run-sync))
+   (defn ^:dynamic run-sync [& args]
+     (throw (Exception. "No backend found. Have you required membrane.skia or membrane.webgl?"))))
 #_(defn run [make-ui]
   (assert false "run should be replaced by implementation"))
 
