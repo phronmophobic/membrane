@@ -25,7 +25,7 @@ The currently supported platforms are Mac OSX, Linux, and the Web via WebGL. Sup
 Leiningen dependency:
 
 ```
-[com.phronemophobic/membrane "0.9.6-beta-SNAPSHOT"]
+[com.phronemophobic/membrane "0.9.7-beta"]
 ```
 
 
