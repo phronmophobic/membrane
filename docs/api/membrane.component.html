@@ -30,4 +30,42 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
 
 The arguments for a component must take the form (defui my-component [ &amp; {:keys [arg1 arg2 ...]}])
 
-</pre></div></div><div class="public anchor" id="var-doall*"><h3>doall*</h3><div class="usage"><code>(doall* s)</code></div><div class="doc"><pre class="plaintext"></pre></div></div><div class="public anchor" id="var-effect-clipboard-copy"><h3>effect-clipboard-copy</h3><div class="usage"></div><div class="doc"><pre class="plaintext"></pre></div></div><div class="public anchor" id="var-effect-clipboard-cut"><h3>effect-clipboard-cut</h3><div class="usage"></div><div class="doc"><pre class="plaintext"></pre></div></div><div class="public anchor" id="var-effects"><h3>effects</h3><div class="usage"></div><div class="doc"><pre class="plaintext"></pre></div></div><div class="public anchor" id="var-fully-qualified"><h3>fully-qualified</h3><div class="usage"><code>(fully-qualified sym)</code></div><div class="doc"><pre class="plaintext"></pre></div></div><div class="public anchor" id="var-make-top-level-ui"><h3>make-top-level-ui</h3><div class="usage"><code>(make-top-level-ui ui-var state-atom handler)</code></div><div class="doc"><pre class="plaintext"></pre></div></div><div class="public anchor" id="var-path-.3Espec"><h3>path-&gt;spec</h3><div class="usage"><code>(path-&gt;spec elem)</code></div><div class="doc"><pre class="plaintext"></pre></div></div><div class="public anchor" id="var-path-replace-macro"><h3>path-replace-macro</h3><h4 class="type">macro</h4><div class="usage"><code>(path-replace-macro deps form)</code><code>(path-replace-macro form)</code></div><div class="doc"><pre class="plaintext"></pre></div></div><div class="public anchor" id="var-run-ui"><h3>run-ui</h3><div class="usage"><code>(run-ui ui-var)</code><code>(run-ui ui-var initial-state)</code><code>(run-ui ui-var initial-state handler)</code></div><div class="doc"><pre class="plaintext"></pre></div></div><div class="public anchor" id="var-run-ui-sync"><h3>run-ui-sync</h3><div class="usage"><code>(run-ui-sync ui-var)</code><code>(run-ui-sync ui-var initial-state)</code><code>(run-ui-sync ui-var initial-state handler)</code></div><div class="doc"><pre class="plaintext"></pre></div></div><div class="public anchor" id="var-special-fns"><h3>special-fns</h3><div class="usage"></div><div class="doc"><pre class="plaintext"></pre></div></div><div class="public anchor" id="var-special-syms"><h3>special-syms</h3><div class="usage"></div><div class="doc"><pre class="plaintext"></pre></div></div><div class="public anchor" id="var-top-level-ui"><h3>top-level-ui</h3><div class="usage"><code>(top-level-ui &amp; {:keys [extra state body arg-names defaults handler context]})</code></div><div class="doc"><pre class="plaintext"></pre></div></div></div></body></html>
+</pre></div></div><div class="public anchor" id="var-doall*"><h3>doall*</h3><div class="usage"><code>(doall* s)</code></div><div class="doc"><pre class="plaintext"></pre></div></div><div class="public anchor" id="var-effect-clipboard-copy"><h3>effect-clipboard-copy</h3><div class="usage"></div><div class="doc"><pre class="plaintext"></pre></div></div><div class="public anchor" id="var-effect-clipboard-cut"><h3>effect-clipboard-cut</h3><div class="usage"></div><div class="doc"><pre class="plaintext"></pre></div></div><div class="public anchor" id="var-effects"><h3>effects</h3><div class="usage"></div><div class="doc"><pre class="plaintext"></pre></div></div><div class="public anchor" id="var-fully-qualified"><h3>fully-qualified</h3><div class="usage"><code>(fully-qualified sym)</code></div><div class="doc"><pre class="plaintext"></pre></div></div><div class="public anchor" id="var-make-top-level-ui"><h3>make-top-level-ui</h3><div class="usage"><code>(make-top-level-ui ui-var state-atom handler)</code></div><div class="doc"><pre class="plaintext"></pre></div></div><div class="public anchor" id="var-path-.3Espec"><h3>path-&gt;spec</h3><div class="usage"><code>(path-&gt;spec elem)</code></div><div class="doc"><pre class="plaintext"></pre></div></div><div class="public anchor" id="var-path-replace-macro"><h3>path-replace-macro</h3><h4 class="type">macro</h4><div class="usage"><code>(path-replace-macro deps form)</code><code>(path-replace-macro form)</code></div><div class="doc"><pre class="plaintext"></pre></div></div><div class="public anchor" id="var-run-ui"><h3>run-ui</h3><div class="usage"><code>(run-ui ui-var)</code><code>(run-ui ui-var initial-state)</code><code>(run-ui ui-var initial-state handler)</code><code>(run-ui ui-var initial-state handler options)</code></div><div class="doc"><pre class="plaintext">`ui-var` The var for a component
+`initial-state` The initial state of the component to run or an atom that contains the initial state.
+`handler` The effect handler for your UI. The `handler` will be called with all effects returned by the event handlers of your ui.
+
+If `handler` is nil or an arity that doesn't specify `handler` is used, then a default handler using all of the globally defined effects from `defeffect` will be used. In addition to the globally defined effects the handler will provide 3 additional effects:
+
+`:update` similar to `update` except instead of a keypath, takes a more generic path.
+example: `[:update $path inc]`
+
+`:set` sets the value given a $path
+example: `[:set $path value]`
+
+`:delete` deletes value at $path
+example: `[:delete $path]`
+
+return value: the state atom used by the ui.
+
+The only difference between `run-ui` and `run-ui-sync` is that `run-ui-sync` will wait until the window is closed before returning.
+
+`options` options is a map of options that get passed to the underlying graphics platform. see `membrane.skia/run` or `membrane.webgl/run` for more info.</pre></div></div><div class="public anchor" id="var-run-ui-sync"><h3>run-ui-sync</h3><div class="usage"><code>(run-ui-sync ui-var)</code><code>(run-ui-sync ui-var initial-state)</code><code>(run-ui-sync ui-var initial-state handler)</code><code>(run-ui-sync ui-var initial-state handler options)</code></div><div class="doc"><pre class="plaintext">`ui-var` The var for a component
+`initial-state` The initial state of the component to run or an atom that contains the initial state.
+`handler` The effect handler for your UI. The `handler` will be called with all effects returned by the event handlers of your ui.
+
+If `handler` is nil or an arity that doesn't specify `handler` is used, then a default handler using all of the globally defined effects from `defeffect` will be used. In addition to the globally defined effects the handler will provide 3 additional effects:
+
+`:update` similar to `update` except instead of a keypath, takes a more generic path.
+example: `[:update $path inc]`
+
+`:set` sets the value given a $path
+example: `[:set $path value]`
+
+`:delete` deletes value at $path
+example: `[:delete $path]`
+
+return value: the state atom used by the ui.
+
+The only difference between `run-ui` and `run-ui-sync` is that `run-ui-sync` will wait until the window is closed before returning.
+
+`options` options is a map of options that get passed to the underlying graphics platform. see `membrane.skia/run` or `membrane.webgl/run` for more info.</pre></div></div><div class="public anchor" id="var-special-fns"><h3>special-fns</h3><div class="usage"></div><div class="doc"><pre class="plaintext"></pre></div></div><div class="public anchor" id="var-special-syms"><h3>special-syms</h3><div class="usage"></div><div class="doc"><pre class="plaintext"></pre></div></div><div class="public anchor" id="var-top-level-ui"><h3>top-level-ui</h3><div class="usage"><code>(top-level-ui &amp; {:keys [extra state body arg-names defaults handler context]})</code></div><div class="doc"><pre class="plaintext"></pre></div></div></div></body></html>
