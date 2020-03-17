@@ -622,7 +622,7 @@ You'll notice a few differences in the code.
 
 The most interesting part of this example is the `:mouse-down` event handler which returns `[[::toggle $checked?]]`. Loosely translated, this means "when a `:mouse-down` event occurs, the checkbox proposes 1 effect which toggles the value of `checked?`." It does not specify _how_ the `::toggle` effect is implemented.
 
-What is exactly is "$checked?"? The symbol `$checked?` is replaced by the `defui` macro with a value that specifies the path to `checked?`. In fact, the `defui` macro will replace all symbols that start with "$" that derive from a keyword parameter with a value that represents the path of the corresponding symbol.
+What exactly is `$checked?`? The symbol `$checked?` is replaced by the `defui` macro with a value that specifies the path to `checked?`. In fact, the `defui` macro will replace all symbols that start with "$" that derive from a keyword parameter with a value that represents the path of the corresponding symbol.
 
 You can find the implementation of the `::toggle` effect by checking its `defeffect`.
 ```

@@ -1,4 +1,4 @@
-# Membrane with webgl target
+# Membrane with WebGL target
 
 The basic idea is that everything in `membrane.component` and `membrane.ui` is platform agnostic. As long as you build your GUI using the tools in those namespaces, your app should work on other platforms.
 
