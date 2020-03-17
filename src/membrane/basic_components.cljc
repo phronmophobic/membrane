@@ -184,54 +184,65 @@
 
 
 (def double-click-threshold 500)
-#?
-(:clj
- (defeffect ::text-double-click [$last-click $select-cursor $cursor pos text font]
-   (let [now (java.util.Date.)
-         [mx my] pos]
-     (run! #(apply dispatch! %)
-           [
-            [:update [(spec/collect-one (path->spec $last-click))
-                      $select-cursor]
-             (fn [[last-click [dx dy]] select-cursor]
-               (if last-click
-                 (let [diff (- (.getTime ^java.util.Date now) (.getTime ^java.util.Date last-click))]
-                   (if (and (< diff double-click-threshold)
-                            (< (+ (Math/pow (- mx dx) 2)
-                                  (Math/pow (- my dy) 2))
-                               100))
-                     (let [index (index-for-position font
-                                                     text mx my)
-                           matcher (doto (re-matcher  #"\s" text)
-                                     (.region index (count text)))]
-                       (if (.find matcher)
-                         (.start matcher)
-                         (count text)))
-                     select-cursor))
-                 select-cursor))]
-            [:update [(spec/collect-one (path->spec $last-click))
-                      $cursor]
-             (fn [[last-click [dx dy]] cursor]
-               (if last-click
-                 (let [diff (- (.getTime now) (.getTime ^java.util.Date last-click))]
-                   (if (and (< diff double-click-threshold)
-                            (< (+ (Math/pow (- mx dx) 2)
-                                  (Math/pow (- my dy) 2))
-                               100))
-                     (let [index (index-for-position font
-                                                     text mx my)
-                           text-backwards (clojure.string/reverse text)
-                           matcher (doto (re-matcher  #"\s" text-backwards)
-                                     (.region (- (count text) index) (count text)))
-                           ]
-                       (if (.find matcher)
-                         (- (count text) (.start matcher))
-                         0))
-                     cursor))
-                 cursor))]
-           
-            [:set $last-click [now pos]]]))
-   ))
+(let [getTimeMillis #?(:clj (fn [] (.getTime ^java.util.Date (java.util.Date.)))
+                       :cljs (fn [] (.getTime (js/Date.))))
+      pow #?(:clj (fn [n x] (Math/pow n x))
+             :cljs (fn [n x] (js/Math.pow n x)))
+      find-white-space #?(:clj (fn [text start]
+                                 (let [matcher (doto (re-matcher  #"\s" text)
+                                                 (.region start (count text)))]
+                                   (when (.find matcher)
+                                     (.start matcher))))
+                          :cljs (fn [text start]
+                                  (let [regexp (js/RegExp. "\\s" "g")]
+                                    (set! (.-lastIndex regexp) start)
+                                    (let [result (.exec regexp text)]
+                                      (when result
+                                        (.-index result))))))]
+  (defeffect ::text-double-click [$last-click $select-cursor $cursor pos text font]
+    (let [now (getTimeMillis)
+          [mx my] pos]
+      (run! #(apply dispatch! %)
+            [
+             [:update [(spec/collect-one (path->spec $last-click))
+                       $select-cursor]
+              (fn [[last-click [dx dy]] select-cursor]
+                (if last-click
+                  (let [diff (- now last-click)]
+                    (if (and (< diff double-click-threshold)
+                             (< (+ (pow (- mx dx) 2)
+                                   (pow (- my dy) 2))
+                                100))
+                      (let [index (index-for-position font
+                                                      text mx my)]
+                        (if-let [start (find-white-space text index)]
+                          start
+                          (count text)))
+                      select-cursor))
+                  select-cursor))]
+             [:update [(spec/collect-one (path->spec $last-click))
+                       $cursor]
+              (fn [[last-click [dx dy]] cursor]
+                (if last-click
+                  (let [diff (- now last-click)]
+                    (if (and (< diff double-click-threshold)
+                             (< (+ (pow (- mx dx) 2)
+                                   (pow (- my dy) 2))
+                                100))
+                      (let [index (index-for-position font
+                                                      text mx my)
+                            text-backwards (clojure.string/reverse text)]
+                        (if-let [start (find-white-space text-backwards
+                                                         (- (count text) index))]
+                          (- (count text) start)
+                          0)
+                        )
+                      cursor))
+                  cursor))]
+
+             [:set $last-click [now pos]]]))
+    ))
+
 
 (defeffect ::delete-backward [$cursor $select-cursor $text]
   (run!
