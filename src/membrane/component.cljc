@@ -945,6 +945,26 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
             (println "no handler for " type)))))))
 
 (defn run-ui
+  "`ui-var` The var for a component
+  `initial-state` The initial state of the component to run or an atom that contains the initial state.
+  `handler` The effect handler for your UI. The `handler` will be called with all effects returned by the event handlers of your ui.
+
+  If `handler` is nil or an arity that doesn't specify `handler` is used, then a default handler using all of the globally defined effects from `defeffect` will be used. In addition to the globally defined effects the handler will provide 3 additional effects:
+
+  `:update` similar to `update` except instead of a keypath, takes a more generic path.
+  example: `[:update $path inc]`
+
+  `:set` sets the value given a $path
+  example: `[:set $path value]`
+
+  `:delete` deletes value at $path
+  example: `[:delete $path]`
+
+  return value: the state atom used by the ui.
+
+  The only difference between `run-ui` and `run-ui-sync` is that `run-ui-sync` will wait until the window is closed before returning.
+
+  `options` options is a map of options that get passed to the underlying graphics platform. see `membrane.skia/run` or `membrane.webgl/run` for more info."
   ([ui-var]
    (run-ui ui-var {}))
   ([ui-var initial-state]
@@ -968,6 +988,26 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
 #?
 (:clj
  (defn run-ui-sync
+   "`ui-var` The var for a component
+  `initial-state` The initial state of the component to run or an atom that contains the initial state.
+  `handler` The effect handler for your UI. The `handler` will be called with all effects returned by the event handlers of your ui.
+
+  If `handler` is nil or an arity that doesn't specify `handler` is used, then a default handler using all of the globally defined effects from `defeffect` will be used. In addition to the globally defined effects the handler will provide 3 additional effects:
+
+  `:update` similar to `update` except instead of a keypath, takes a more generic path.
+  example: `[:update $path inc]`
+
+  `:set` sets the value given a $path
+  example: `[:set $path value]`
+
+  `:delete` deletes value at $path
+  example: `[:delete $path]`
+
+  return value: the state atom used by the ui.
+
+  The only difference between `run-ui` and `run-ui-sync` is that `run-ui-sync` will wait until the window is closed before returning.
+
+  `options` options is a map of options that get passed to the underlying graphics platform. see `membrane.skia/run` or `membrane.webgl/run` for more info."
    ([ui-var]
     (run-ui-sync ui-var {}))
    ([ui-var initial-state]
