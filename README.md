@@ -10,7 +10,13 @@ Membrane provides three layers:
 
 While these three layers are made to work together, they can also be mixed and matched with other implementations. For example, you could use your favorite UI framework and the other layers to reach another platform. Alternatively, you could provide your own ncurses graphics backend and leverage the ui framework and graphics model.
 
-The currently supported platforms are Mac OSX, Linux, and the Web via WebGL. Support for Windows and other platforms is coming soon!
+
+#### Supported platforms:
+- Mac OSX
+- Linux
+- the web via WebGL
+
+Support for Windows and other platforms is coming soon!
 
 [Tutorial](/docs/tutorial.md)  
 [Docs](https://phronmophobic.github.io/membrane/api)  
