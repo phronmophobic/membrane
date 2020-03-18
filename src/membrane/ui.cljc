@@ -652,6 +652,26 @@
   [x y]
   (Spacer. x y))
 
+
+(defcomponent FixedBounds [size drawable]
+    IOrigin
+    (-origin [_]
+        [0 0])
+
+    IBounds
+    (-bounds [this]
+        size)
+
+  IDraw
+  (draw [this]
+      (draw drawable))
+  IChildren
+  (-children [this]
+      [drawable]))
+
+(defn fixed-bounds [size drawable]
+  (FixedBounds. size drawable))
+
 (defcomponent Padding [px py drawable]
     IDraw
     (draw [this]
