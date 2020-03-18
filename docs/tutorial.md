@@ -578,7 +578,7 @@ Without using any framework, your code might look something like this:
 
 ```
 
-This works great for this simple example, but your checkbox has to know exactly how to update the `checked?` value. If you have a different data model, then you have to change your checkbox code and we would really like our checkbox to be more reusable.
+This works great for this simple example, but this checkbox has to know exactly how to update the `checked?` value. Changing the data model would require changing the checkbox code and we would really like our checkbox to be more reusable.
 
 Let's see what this same ugly checkbox would look like with `membrane.component`
 
