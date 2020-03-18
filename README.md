@@ -2,13 +2,13 @@
 
 ### Membrane is a platform agnostic library for creating user interfaces.
 
-Membrane provides 3 layers:
+Membrane provides three layers:
 
 1. A UI framework, `membrane.component`, that deals with state management for GUIs
 2. A platform agnostic model for graphics and events
 3. Multiple graphics backends that provide concrete implementations for #2
 
-While these 3 layers are made to work together, they can also be mixed and matched with other implementations. For example, you could use your favorite UI framework and the other layers to reach another platform. Alternatively, you could provide your own ncurses graphics backend and leverage the ui framework and graphics model.
+While these three layers are made to work together, they can also be mixed and matched with other implementations. For example, you could use your favorite UI framework and the other layers to reach another platform. Alternatively, you could provide your own ncurses graphics backend and leverage the ui framework and graphics model.
 
 The currently supported platforms are Mac OSX, Linux, and the Web via WebGL. Support for Windows and other platforms is coming soon!
 
