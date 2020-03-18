@@ -197,7 +197,7 @@ Screenshot:
 ```
 
 
-That's it! For more in-depth info, check out the tutorial.
+That's it! For more in-depth info, check out the [tutorial](/docs/tutorial.md).
 
 [Tutorial](/docs/tutorial.md)  
 [Docs](https://phronmophobic.github.io/membrane/api)  
