@@ -27,9 +27,11 @@ Leiningen dependency:
 ```
 [com.phronemophobic/membrane "0.9.7-beta"]
 ```
+## Screenshots
 
+![Overview](/docs/images/overview.gif?raw=true)
 
-## A Simple Example without the UI Framework
+### A Simple Example without the UI Framework
 
 Screenshot:
 ![simple counter](/docs/images/counter1.gif?raw=true)
@@ -62,7 +64,7 @@ Screenshot:
 
 ```
 
-## Simple Example using `membrane.component` UI Framework
+### Simple Example using `membrane.component` UI Framework
 
 Screenshot:
 ![simple counter](/docs/images/counter2.gif?raw=true)
