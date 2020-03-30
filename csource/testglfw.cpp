@@ -26,7 +26,8 @@
 #include <fcntl.h>
 
 extern "C" {
-#include <tmt.h>
+#include <libtsm.h>
+#include <shl-llog.h>
 }
 
 /* Includes needed to make forkpty(3) work. */
@@ -83,8 +84,40 @@ unsigned short termh = 40;
 int cursorw = 10;
 int cursorh = 13;
 SkFont* menlo = NULL;
-TMT *vt;
+
 int wants_redraw = 0;
+typedef struct _termstruct {
+	/* child objects */
+	struct tsm_screen *screen;
+	struct tsm_vte *vte;
+
+} TSMTerm;
+TSMTerm tsm_term;
+
+tsm_age_t rend_age = 0;
+
+#define TMT_KEY_UP             "\033[A"
+#define TMT_KEY_DOWN           "\033[B"
+#define TMT_KEY_RIGHT          "\033[C"
+#define TMT_KEY_LEFT           "\033[D"
+#define TMT_KEY_HOME           "\033[H"
+#define TMT_KEY_END            "\033[Y"
+#define TMT_KEY_INSERT         "\033[L"
+#define TMT_KEY_BACKSPACE      "\x08"
+#define TMT_KEY_ESCAPE         "\x1b"
+#define TMT_KEY_BACK_TAB       "\033[Z"
+#define TMT_KEY_PAGE_UP        "\033[V"
+#define TMT_KEY_PAGE_DOWN      "\033[U"
+#define TMT_KEY_F1             "\033OP"
+#define TMT_KEY_F2             "\033OQ"
+#define TMT_KEY_F3             "\033OR"
+#define TMT_KEY_F4             "\033OS"
+#define TMT_KEY_F5             "\033OT"
+#define TMT_KEY_F6             "\033OU"
+#define TMT_KEY_F7             "\033OV"
+#define TMT_KEY_F8             "\033OW"
+#define TMT_KEY_F9             "\033OX"
+#define TMT_KEY_F10            "\033OY"
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods){
 
@@ -152,8 +185,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
                 if ( key < 128 ){
                     char c = key - 'A' + 1;
                     write(pt, &c, 1);
+                    fprintf(stdout,"control %c, %d, %d\n", (char)key, key, scancode);
                 }
-                fprintf(stdout,"control %c, %d, %d\n", (char)key, key, scancode);
             }else{
 
                 // char c;
@@ -183,149 +216,330 @@ void char_callback(GLFWwindow* window, unsigned int codepoint){
 
 }
 
-void
-callback(tmt_msg_t m, TMT *vt, const void *a, void *p)
-{
-    if ( ! termresource){
-        fprintf(stderr, "trying to call back without resourcs \n");
-    }
-    /* grab a pointer to the virtual screen */
-    const TMTSCREEN *s = tmt_screen(vt);
-    const TMTPOINT *c = tmt_cursor(vt);
-    SkCanvas* canvas = termresource->surface->getCanvas();
+// void
+// callback(tmt_msg_t m, TMT *vt, const void *a, void *p)
+// {
+//     if ( ! termresource){
+//         fprintf(stderr, "trying to call back without resourcs \n");
+//     }
+//     /* grab a pointer to the virtual screen */
+//     const TMTSCREEN *s = tmt_screen(vt);
+//     const TMTPOINT *c = tmt_cursor(vt);
+//     SkCanvas* canvas = termresource->surface->getCanvas();
 
-    if ( wants_redraw){
-        canvas->clear(SK_ColorWHITE);
-        wants_redraw = false;
-    }
+//     if ( wants_redraw){
+//         canvas->clear(SK_ColorWHITE);
+//         wants_redraw = false;
+//     }
 
-    int x,y;
-    SkRect rect;
+//     int x,y;
+//     SkRect rect;
 
-    canvas->save();
-    switch (m){
-        case TMT_MSG_BELL:
-            /* the terminal is requesting that we ring the bell/flash the
-             * screen/do whatever ^G is supposed to do; a is NULL
-             */
-            printf("bing!\n");
-            break;
+//     canvas->save();
+//     switch (m){
+//         case TMT_MSG_BELL:
+//             /* the terminal is requesting that we ring the bell/flash the
+//              * screen/do whatever ^G is supposed to do; a is NULL
+//              */
+//             printf("bing!\n");
+//             break;
 
-        case TMT_MSG_UPDATE:
-
-
-            skia_push_paint(termresource);            
-            skia_set_color(termresource, 1,1,1, 1);
-
-            rect = SkRect::MakeXYWH(0,0, 75, cursorh*termh);
-            termresource->surface->getCanvas()->drawRect(rect, termresource->getPaint());
-            skia_pop_paint(termresource);
+//         case TMT_MSG_UPDATE:
 
 
-            /* the screen image changed; a is a pointer to the TMTSCREEN */
-            for (size_t r = 0; r < s->nline; r++){
-                bool is_bold = false;;
-                bool is_dirty = false;
+//             skia_push_paint(termresource);            
+//             skia_set_color(termresource, 1,1,1, 1);
 
-                canvas->save();
-                canvas->translate(75,0);
-                if (s->lines[r]->dirty){
-                    for (size_t c = 0; c < s->ncol; c++){
-                        // printf("contents of %zd,%zd: %lc (%s bold)\n", r, c,
-                        //        s->lines[r]->chars[c].c,
-                        //        s->lines[r]->chars[c].a.bold? "is" : "is not");
-                        x = c*cursorw;
-                        y = (r+1)*cursorh ;
-                        is_bold = is_bold || s->lines[r]->chars[c].a.bold;
-                        is_dirty = is_dirty || s->lines[r]->dirty;
+//             rect = SkRect::MakeXYWH(0,0, 75, cursorh*termh);
+//             termresource->surface->getCanvas()->drawRect(rect, termresource->getPaint());
+//             skia_pop_paint(termresource);
 
-                        skia_push_paint(termresource);
 
-                        skia_set_color(termresource, 1,1,1, 1);
-                        rect = SkRect::MakeXYWH(x, y-cursorh, cursorw, cursorh);
-                        termresource->surface->getCanvas()->drawRect(rect, termresource->getPaint());
+//             /* the screen image changed; a is a pointer to the TMTSCREEN */
+//             for (size_t r = 0; r < s->nline; r++){
+//                 bool is_bold = false;;
+//                 bool is_dirty = false;
+
+//                 canvas->save();
+//                 canvas->translate(75,0);
+//                 if (s->lines[r]->dirty){
+//                     for (size_t c = 0; c < s->ncol; c++){
+//                         // printf("contents of %zd,%zd: %lc (%s bold)\n", r, c,
+//                         //        s->lines[r]->chars[c].c,
+//                         //        s->lines[r]->chars[c].a.bold? "is" : "is not");
+//                         x = c*cursorw;
+//                         y = (r+1)*cursorh ;
+//                         is_bold = is_bold || s->lines[r]->chars[c].a.bold;
+//                         is_dirty = is_dirty || s->lines[r]->dirty;
+
+//                         skia_push_paint(termresource);
+
+//                         skia_set_color(termresource, 1,1,1, 1);
+//                         rect = SkRect::MakeXYWH(x, y-cursorh, cursorw, cursorh);
+//                         termresource->surface->getCanvas()->drawRect(rect, termresource->getPaint());
                         
-                        skia_set_color(termresource, 0,0,0, 1);
+//                         skia_set_color(termresource, 0,0,0, 1);
 
-                        switch (s->lines[r]->chars[c].a.fg){
+//                         switch (s->lines[r]->chars[c].a.fg){
 
-                        case TMT_COLOR_DEFAULT: skia_set_color(termresource, 0,0,0,0.8); break;
-                        case TMT_COLOR_BLACK: skia_set_color(termresource, 0,0,0,0.8); break;
-                        case TMT_COLOR_RED: skia_set_color(termresource, 1,0,0,1); break;
-                        case TMT_COLOR_GREEN: skia_set_color(termresource, 1,0,0,1); break;
-                        case TMT_COLOR_YELLOW: skia_set_color(termresource, 1,0,0,1); break;
-                        case TMT_COLOR_BLUE: skia_set_color(termresource, 1,0,0,1); break;
-                        case TMT_COLOR_MAGENTA: skia_set_color(termresource, 1,0,0,1); break;
-                        case TMT_COLOR_CYAN: skia_set_color(termresource, 1,0,0,1); break;
-                        case TMT_COLOR_WHITE: skia_set_color(termresource, 1,0,0,1); break;
-                        }
+//                         case TMT_COLOR_DEFAULT: skia_set_color(termresource, 0,0,0,0.8); break;
+//                         case TMT_COLOR_BLACK: skia_set_color(termresource, 0,0,0,0.8); break;
+//                         case TMT_COLOR_RED: skia_set_color(termresource, 1,0,0,1); break;
+//                         case TMT_COLOR_GREEN: skia_set_color(termresource, 1,0,0,1); break;
+//                         case TMT_COLOR_YELLOW: skia_set_color(termresource, 1,0,0,1); break;
+//                         case TMT_COLOR_BLUE: skia_set_color(termresource, 1,0,0,1); break;
+//                         case TMT_COLOR_MAGENTA: skia_set_color(termresource, 1,0,0,1); break;
+//                         case TMT_COLOR_CYAN: skia_set_color(termresource, 1,0,0,1); break;
+//                         case TMT_COLOR_WHITE: skia_set_color(termresource, 1,0,0,1); break;
+//                         }
                         
-                        if ( s->lines[r]->chars[c].a.invisible ){
-                            skia_set_color(termresource, 0,1,0,1); 
-                        }
+//                         if ( s->lines[r]->chars[c].a.invisible ){
+//                             skia_set_color(termresource, 0,1,0,1); 
+//                         }
                         
 
 
                         
-                        char letter = s->lines[r]->chars[c].c;
+//                         char letter = s->lines[r]->chars[c].c;
 
-                        canvas->drawSimpleText(&letter, 1 , SkTextEncoding::kUTF8, x, y ,*menlo, termresource->getPaint());
+//                         canvas->drawSimpleText(&letter, 1 , SkTextEncoding::kUTF8, x, y ,*menlo, termresource->getPaint());
                         
-                        skia_pop_paint(termresource);
-                    }
-                }
-                canvas->restore();
+//                         skia_pop_paint(termresource);
+//                     }
+//                 }
+//                 canvas->restore();
 
-                char msg[10];
-                snprintf(msg, 10, "%d,%d,%lu", is_dirty, is_bold, r);
-                canvas->drawSimpleText(msg, strlen(msg) , SkTextEncoding::kUTF8, 0, (r+1)*cursorh ,*menlo, termresource->getPaint());
-            }
+//                 char msg[10];
+//                 snprintf(msg, 10, "%d,%d,%lu", is_dirty, is_bold, r);
+//                 canvas->drawSimpleText(msg, strlen(msg) , SkTextEncoding::kUTF8, 0, (r+1)*cursorh ,*menlo, termresource->getPaint());
+//             }
 
-            /* let tmt know we've redrawn the screen */
-            tmt_clean(vt);
-            break;
+//             /* let tmt know we've redrawn the screen */
+//             tmt_clean(vt);
+//             break;
 
-        case TMT_MSG_ANSWER:
-            /* the terminal has a response to give to the program; a is a
-             * pointer to a string */
-            printf("terminal answered %s\n", (const char *)a);
-            break;
+//         case TMT_MSG_ANSWER:
+//             /* the terminal has a response to give to the program; a is a
+//              * pointer to a string */
+//             printf("terminal answered %s\n", (const char *)a);
+//             break;
 
-        case TMT_MSG_MOVED:
-            /* the cursor moved; a is a pointer to the cursor's TMTPOINT */
+//         case TMT_MSG_MOVED:
+//             /* the cursor moved; a is a pointer to the cursor's TMTPOINT */
 
-            skia_push_paint(termresource);            
-            skia_set_color(termresource, 0.57, 0.57,0.57, 0.4f);
+//             skia_push_paint(termresource);            
+//             skia_set_color(termresource, 0.57, 0.57,0.57, 0.4f);
 
-            x = (c->c)*cursorw;
-            y = (c->r)*cursorh ;
-            rect = SkRect::MakeXYWH(x+75, y, cursorw, cursorh);
-            termresource->surface->getCanvas()->drawRect(rect, termresource->getPaint());
-            skia_pop_paint(termresource);
-            // tmt_clean(vt);
+//             x = (c->c)*cursorw;
+//             y = (c->r)*cursorh ;
+//             rect = SkRect::MakeXYWH(x+75, y, cursorw, cursorh);
+//             termresource->surface->getCanvas()->drawRect(rect, termresource->getPaint());
+//             skia_pop_paint(termresource);
+//             // tmt_clean(vt);
             
-            break;
+//             break;
 
-    case TMT_MSG_CURSOR:
-            // printf("cursor is now at %zd,%zd\n", c->r, c->c);
+//     case TMT_MSG_CURSOR:
+//             // printf("cursor is now at %zd,%zd\n", c->r, c->c);
 
-            skia_push_paint(termresource);            
-            skia_set_color(termresource, 0.57, 0.57,0.57, 0.4f);
+//             skia_push_paint(termresource);            
+//             skia_set_color(termresource, 0.57, 0.57,0.57, 0.4f);
 
-            x = (c->c)*cursorw;
-            y = (c->r)*cursorh ;
-            rect = SkRect::MakeXYWH(x+75, y, cursorw, cursorh);
-            termresource->surface->getCanvas()->drawRect(rect, termresource->getPaint());
-            skia_pop_paint(termresource);
+//             x = (c->c)*cursorw;
+//             y = (c->r)*cursorh ;
+//             rect = SkRect::MakeXYWH(x+75, y, cursorw, cursorh);
+//             termresource->surface->getCanvas()->drawRect(rect, termresource->getPaint());
+//             skia_pop_paint(termresource);
         
-            // tmt_clean(vt);
-            break;        
-    }
-    canvas->restore();
-    termresource->surface->flush();
+//             // tmt_clean(vt);
+//             break;        
+//     }
+//     canvas->restore();
+//     termresource->surface->flush();
 
+// }
+
+
+static void terminal_log_fn(void *data,
+			    const char *file,
+			    int line,
+			    const char *fn,
+			    const char *subs,
+			    unsigned int sev,
+			    const char *format,
+			    va_list args)
+{
+
+	switch (sev) {
+	case LLOG_FATAL:
+	case LLOG_ALERT:
+	case LLOG_CRITICAL:
+
+
+	case LLOG_ERROR:
+
+
+	case LLOG_WARNING:
+
+
+	case LLOG_NOTICE:
+
+
+	case LLOG_INFO:
+
+
+	case LLOG_DEBUG:
+            printf("logging\n");
+            printf(format, args);
+            fflush(stdout);
+	}
+
+
+// g_logv(G_LOG_DOMAIN "-tsm", flags, format, args);
 }
 
+static void terminal_write_fn(struct tsm_vte *vte,
+			      const char *u8,
+			      size_t len,
+			      void *data)
+{
+    //data is contxt 
+	// GtkTsmTerminal *term = data;
+	int r;
+
+        
+        printf("terminal write_fn!!\n");
+        write(pt, u8, len);
+	// r = shl_pty_write(p->pty, u8, len);
+	// if (r < 0)
+	// 	g_error("OOM in pty-write: %d", r);
+
+	// /* dont directly call into pty-bridge to avoid possible recursion */
+	// if (!p->idle_src)
+	// 	p->idle_src = g_idle_add(terminal_idle_fn, term);
+}
+
+
+static int renderer_draw_cell(struct tsm_screen *screen,
+			      uint64_t id,
+			      const uint32_t *ch,
+			      size_t len,
+			      unsigned int cwidth,
+			      unsigned int posx,
+			      unsigned int posy,
+			      const struct tsm_screen_attr *attr,
+			      tsm_age_t age,
+			      void *data)
+{
+	// const struct gtktsm_renderer_ctx *ctx = data;
+	// struct gtktsm_renderer *rend = ctx->rend;
+	// struct gtktsm_face *face;
+	uint8_t fr, fg, fb, br, bg, bb;
+	unsigned int x, y;
+	// struct gtktsm_glyph *glyph;
+	bool skip;
+	int r;
+
+        SkCanvas* canvas = termresource->surface->getCanvas();
+
+	/* Skip if our age and the cell age is non-zero *and* the cell-age is
+	 * smaller than our age. */
+	skip = (age && rend_age && age <= rend_age);
+
+	if (skip)
+		return 0;
+
+	x = posx * cursorw;
+	y = posy * cursorh;
+
+	/* invert colors if requested */
+	// if (attr->inverse) {
+	// 	fr = attr->br;
+	// 	fg = attr->bg;
+	// 	fb = attr->bb;
+	// 	br = attr->fr;
+	// 	bg = attr->fg;
+	// 	bb = attr->fb;
+	// } else {
+	// 	fr = attr->fr;
+	// 	fg = attr->fg;
+	// 	fb = attr->fb;
+	// 	br = attr->br;
+	// 	bg = attr->bg;
+	// 	bb = attr->bb;
+	// }
+
+	/* select correct font */
+	// if (attr->bold && ctx->face_bold)
+	// 	face = ctx->face_bold;
+	// else if (attr->italic && ctx->face_italic)
+	// 	face = ctx->face_italic;
+	// else
+	// 	face = ctx->face_regular;
+
+	/* !len means background-only */
+	// if (!len) {
+	// 	renderer_fill(rend,
+	// 		      x,
+	// 		      y,
+	// 		      ctx->cell_width * cwidth,
+	// 		      ctx->cell_height,
+	// 		      br, bg, bb);
+	// } else {
+	// 	r = gtktsm_face_render(face,
+	// 			       &glyph,
+	// 			       id,
+	// 			       ch,
+	// 			       len,
+	// 			       cwidth);
+	// 	if (r < 0)
+	// 		renderer_fill(rend,
+	// 			      x,
+	// 			      y,
+	// 			      ctx->cell_width * cwidth,
+	// 			      ctx->cell_height,
+	// 			      br, bg, bb);
+	// 	else
+	// 		renderer_blend(rend,
+	// 			       glyph,
+	// 			       x,
+	// 			       y,
+	// 			       fr, fg, fb,
+	// 			       br, bg, bb);
+	// }
+
+        skia_push_paint(termresource);
+
+        skia_set_color(termresource, 1,1,1, 1);
+        SkRect rect;
+        rect = SkRect::MakeXYWH(x, y-cursorh, cursorw*cwidth, cursorh);
+        termresource->surface->getCanvas()->drawRect(rect, termresource->getPaint());
+        skia_pop_paint(termresource);
+
+
+        // char letter = *ch;
+        if ( len ){
+            canvas->drawSimpleText(ch, len , SkTextEncoding::kUTF8, x, y ,*menlo, termresource->getPaint());
+        }
+
+
+	// if (attr->underline)
+	// 	renderer_fill(rend,
+	// 		      x,
+	// 		      y + face->underline_pos,
+	// 		      ctx->cell_width * cwidth,
+	// 		      face->line_thickness,
+	// 		      fr, fg, fb);
+
+	// if (!skip && ctx->debug)
+	// 	renderer_highlight(rend,
+	// 			   x,
+	// 			   y,
+	// 			   ctx->cell_width * cwidth,
+	// 			   ctx->cell_height);
+
+	return 0;
+}
 
 void newterm(SkiaResource* resource){
 
@@ -333,6 +547,7 @@ void newterm(SkiaResource* resource){
     pid_t pid = forkpty(&pt, NULL, NULL, &ws);
 
     // int* pt = NULL;
+
 
     if (pid < 0){
         fprintf(stderr, "forking error! \n");
@@ -350,7 +565,7 @@ void newterm(SkiaResource* resource){
 
     fcntl(pt, F_SETFL, O_NONBLOCK);
 
-    fprintf(stdout, "making size : %d, %d\n", (termw*cursorw+ 20)* 2, (termh*cursorh+20)* 2);
+
     termresource = skia_offscreen_buffer(resource, (termw*cursorw+ 200)* 2, (termh*cursorh+20)* 2);
     {
         SkCanvas* termCanvas = termresource->surface->getCanvas();
@@ -359,7 +574,26 @@ void newterm(SkiaResource* resource){
 
     }
 
-    vt = tmt_open(termh, termw, callback, NULL, NULL);
+	int r;
+
+
+
+	r = tsm_screen_new(&tsm_term.screen,
+			   terminal_log_fn,
+			   &tsm_term);
+	if (r < 0)
+		printf("tsm_screen_new() failed: %d\n", r);
+
+	r = tsm_vte_new(&tsm_term.vte,
+			tsm_term.screen,
+			terminal_write_fn,
+			&tsm_term,
+			terminal_log_fn,
+			&tsm_term);
+	if (r < 0)
+		printf("tsm_vte_new() failed: %d\n", r);
+	// tsm_vte_set_osc_cb(p->vte, terminal_osc_fn, term);
+
 
 }
 
@@ -369,7 +603,12 @@ void runterm(){
     do{
         r = read(pt, iobuf, sizeof(iobuf));
         if (r > 0){
-            tmt_write(vt, iobuf, r);
+            tsm_vte_input(tsm_term.vte, iobuf, r);
+
+            rend_age = tsm_screen_draw(tsm_term.screen,
+                                        renderer_draw_cell,
+                                       &tsm_term);
+            // tmt_write(vt, iobuf, r);
         } else if (r <= 0 && errno != EINTR && errno != EWOULDBLOCK){
             fprintf(stderr, "error reading!\n");
             exit(1);
