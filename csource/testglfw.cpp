@@ -183,6 +183,7 @@ void char_callback(GLFWwindow* window, unsigned int codepoint){
 
 }
 
+int screenshot = 0;
 void
 callback(tmt_msg_t m, TMT *vt, const void *a, void *p)
 {
@@ -281,6 +282,8 @@ callback(tmt_msg_t m, TMT *vt, const void *a, void *p)
                 canvas->drawSimpleText(msg, strlen(msg) , SkTextEncoding::kUTF8, 0, (r+1)*cursorh ,*menlo, termresource->getPaint());
             }
 
+
+
             /* let tmt know we've redrawn the screen */
             tmt_clean(vt);
             break;
@@ -323,6 +326,14 @@ callback(tmt_msg_t m, TMT *vt, const void *a, void *p)
     }
     canvas->restore();
     termresource->surface->flush();
+
+    sk_sp<SkImage> img(termresource->surface->makeImageSnapshot());
+    SkEncodedImageFormat fmt = SkEncodedImageFormat::kPNG;
+    sk_sp<SkData> img_data(img->encodeToData(fmt, 100));
+    char path[256]; 
+    snprintf(path, 256, "screenshots/ss-%d.png", screenshot++);
+    SkFILEWStream out(path);
+    out.write(img_data->data(), img_data->size());
 
 }
 
@@ -626,8 +637,10 @@ int main() {
   glfwMakeContextCurrent(window);
 
   glfwSetCursorPosCallback(window, cursor_position_callback);
-  glfwSetKeyCallback(window, key_callback);
-  glfwSetCharCallback(window, char_callback);  
+  // glfwSetKeyCallback(window, key_callback);
+  // glfwSetCharCallback(window, char_callback);
+
+  
 
   // glDebugMessageCallback(glMessageCallback, NULL);
   // glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_FALSE);
@@ -656,6 +669,16 @@ int main() {
     const char s[]= "woohoo\nthere";
 
     newterm(resource);
+
+
+    write(pt, "emacs", strlen("emacs"));
+    char enter = 13;
+    write(pt, &enter, 1);
+
+    write(pt, "\x18", 1);
+    write(pt, "2", 1);
+    
+    
 
   do {
       skia_clear(resource);
