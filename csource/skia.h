@@ -102,6 +102,7 @@ extern "C"{
 
     int skia_save_image(SkiaResource* image, int format, int quality, const char* path);
 
+    int skia_fork_pty(unsigned short rows, unsigned short columns);
 #if defined(__APPLE__)
     void skia_osx_run_on_main_thread_sync(void(*callback)(void));
 #endif
