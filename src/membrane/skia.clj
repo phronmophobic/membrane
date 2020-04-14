@@ -255,6 +255,17 @@
 (defc skia_draw_image membraneskialib void [skia-resource image-texture])
 (defc skia_draw_image_rect membraneskialib void [skia-resource image-texture w h])
 
+(defc skia_fork_pty membraneskialib Integer/TYPE [rows columns])
+(defn fork-pty [rows columns]
+  (let [rows (short rows)
+        columns (short columns)
+        _ (assert (> rows 0) (str "invalid rows: " rows))
+        _ (assert (> columns 0) (str "invalid columns: " columns))
+        pty (skia_fork_pty rows columns)]
+    (when (= -1 pty)
+      (throw (Exception. "Unable to create pty.")))
+    pty))
+
 (def ^:dynamic *image-cache* nil)
 (def ^:dynamic *font-cache* (atom {}))
 (def ^:dynamic *draw-cache* nil)
