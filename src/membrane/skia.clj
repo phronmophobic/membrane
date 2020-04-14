@@ -240,6 +240,15 @@
 (def GL_STENCIL_BUFFER_BIT (int 0x00000400))
 (def GLFW_VISIBLE (int 0x00020004))
 
+
+(def GLFW_MOD_SHIFT 0x0001)
+(def GLFW_MOD_CONTROL 0x0002)
+(def GLFW_MOD_ALT 0x0004)
+(def GLFW_MOD_SUPER 0x0008)
+(def GLFW_MOD_CAPS_LOCK 0x0010)
+(def GLFW_MOD_NUM_LOCK 0x0020)
+
+
 ;; (defc demo_main freetype Integer/TYPE [argc argv])
 (defc skia_load_image membraneskialib Pointer [path])
 (defc skia_load_image_from_memory membraneskialib Pointer [buf buf-length])
