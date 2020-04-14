@@ -1522,6 +1522,9 @@
               *skia-resource* skia-resource]
       (let [to-render (swap! ui (fn [_]
                                   (render)))]
+        ;; TODO: should try to implement
+        ;; Yes, that's fine.  Another common approach is to record the entire scene normally as an SkPicture, and just play it back into each tile, clipped and translated as appropriate.
+;; This approach works best if you use SkRTreeFactory when calling beginRecording()... that'll build an R-tree to help us skip issuing draws that fall outside each tile.
         (do
           (draw to-render))))
     (skia_flush skia-resource)
