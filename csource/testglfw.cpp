@@ -665,6 +665,7 @@ int main() {
     skia_reshape(resource, frameBufferWidth, frameBufferHeight, xscale, yscale);
 
     menlo = skia_load_font("/System/Library/Fonts/Menlo.ttc", cursorh);
+    // menlo_bold = new SkFont(SkTypeface::MakeFromName("Menlo", SkFontStyle::Bold()), fontSize);
 
     const char s[]= "woohoo\nthere";
 
