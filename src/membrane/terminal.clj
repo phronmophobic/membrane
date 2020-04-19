@@ -19,15 +19,7 @@
                                         alts!
                                         thread]
              :as async])
-  (:import com.googlecode.lanterna.terminal.virtual.DefaultVirtualTerminal
-           com.googlecode.lanterna.TerminalSize
-           com.googlecode.lanterna.input.DefaultKeyDecodingProfile
-           com.googlecode.lanterna.input.KeyStroke
-           com.googlecode.lanterna.screen.TerminalScreen
-           com.googlecode.lanterna.screen.ScreenTextGraphics
-           com.googlecode.lanterna.graphics.TextGraphicsWriter
-
-           com.sun.jna.Memory))
+  (:import com.sun.jna.Memory))
 
 ;; https://vt100.net/emu/
 ;; https://vt100.net/emu/dec_ansi_parser
