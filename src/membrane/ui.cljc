@@ -118,9 +118,22 @@
     false)
   IHasMouseMoveGlobal
   (has-mouse-move-global [this]
-    false))
+    false)
+  IMouseDown
+  (-mouse-down [elem mpos]
+    nil)
+  IMouseUp
+  (-mouse-up [elem mpos]
+    nil)
+  IMouseEvent
+  (-mouse-event [elem local-pos button mouse-down? mods]
+    nil))
 
-(declare IBubble -bubble)
+(defprotocol IBubble
+  "Allows an element add, remove, modify effects emitted from its children."
+  (-bubble [_ effects]
+    "Called when an effect is being emitted by a child element. The parent element can either return the same effects or allow them to continue to bubble."))
+
 (defn -default-mouse-move-global [elem offset]
   (let [[ox oy] (origin elem)
         [sx sy] offset
@@ -135,34 +148,75 @@
         (-bubble elem steps)
         steps))))
 
+
+(declare bounds)
+
 (extend-type #?(:clj Object
                 :cljs default)
- IHasKeyEvent
- (has-key-event [this]
-   (some has-key-event (children this)))
- IHasKeyPress
- (has-key-press [this]
-   (some has-key-press (children this)))
- IHasMouseMoveGlobal
- (has-mouse-move-global [this]
-   (some has-mouse-move-global (children this)))
- IMouseMoveGlobal
- (-mouse-move-global [this offset]
-   (-default-mouse-move-global this offset))
+  IHasKeyEvent
+  (has-key-event [this]
+    (some has-key-event (children this)))
+  IHasKeyPress
+  (has-key-press [this]
+    (some has-key-press (children this)))
+  IHasMouseMoveGlobal
+  (has-mouse-move-global [this]
+    (some has-mouse-move-global (children this)))
+  IMouseMoveGlobal
+  (-mouse-move-global [this offset]
+    (-default-mouse-move-global this offset))
 
- IKeyPress
- (-key-press [this info]
-   (let [steps (mapcat #(-key-press % info) (children this))]
-     (if (satisfies? IBubble this)
-       (-bubble this steps)
-       steps)))
+  IBubble
+  (-bubble [this steps]
+    steps)
 
- IKeyEvent
- (-key-event [this key scancode action mods]
-   (let [steps (mapcat #(-key-event % key scancode action mods) (children this))]
-     (if (satisfies? IBubble this)
-       (-bubble this steps)
-       steps))))
+  IMouseEvent
+  (-mouse-event [elem local-pos button mouse-down? mods]
+    (let [[x y] local-pos
+          [ox oy] (origin elem)
+          [width height] (bounds elem)
+          local-x (- x ox)
+          local-y (- y oy)
+          local-pos [local-x local-y]]
+      (if (and
+           (< local-x
+              width)
+           (>= local-x 0)
+           (< local-y
+              height)
+           (>= local-y 0))
+        (let [steps
+              ;; use seq to make sure we don't stop for empty sequences
+              (some #(seq
+                      (concat
+                       (if mouse-down?
+                         (-mouse-down % local-pos)
+                         (-mouse-up % local-pos))
+                       (-mouse-event % local-pos button mouse-down? mods)))
+                    (reverse (children elem)))]
+          (-bubble elem steps)))))
+
+  IMouseDown
+  (-mouse-down [elem mpos]
+    nil)
+
+  IMouseUp
+  (-mouse-up [elem mpos]
+    nil)
+
+  IKeyPress
+  (-key-press [this info]
+    (let [steps (mapcat #(-key-press % info) (children this))]
+      (if (satisfies? IBubble this)
+        (-bubble this steps)
+        steps)))
+
+  IKeyEvent
+  (-key-event [this key scancode action mods]
+    (let [steps (mapcat #(-key-event % key scancode action mods) (children this))]
+      (if (satisfies? IBubble this)
+        (-bubble this steps)
+        steps))))
 
 
 
@@ -287,10 +341,8 @@
     height))
 
 
-(defprotocol IBubble
-  "Allows an element add, remove, modify effects emitted from its children."
-  (-bubble [_ effects]
-    "Called when an effect is being emitted by a child element. The parent element can either return the same effects or allow them to continue to bubble."))
+
+
 
 
 (defn mouse-move
@@ -351,63 +403,7 @@
              (-bubble elem steps)
              steps)))))))
 
-(defn mouse-event
-  "Returns the effects of a mouse move event on elem. Will only call -mouse-move on mouse events within an elements bounds.
-
-  mouse-event is used for both mouse up and mouse down events."
-  ([elem global-pos button mouse-down? mods]
-   (mouse-event elem global-pos button mouse-down? mods [0 0]))
-  ([elem global-pos button mouse-down? mods offset]
-   #_(when-not (satisfies? IComponent elem)
-       (throw (Exception. (str "Expecting IComponent, got " (type elem) " " elem))))
-   (let [left-button? (zero? button)
-         ;; satisfies is a macro in clojurescript
-         protocol-check (if mouse-down?
-                          #(satisfies? IMouseDown %)
-                          #(satisfies? IMouseUp %)) 
-         protocol-fn (if mouse-down?
-                       -mouse-down
-                       -mouse-up)
-         protocol? (protocol-check elem)
-         mouse-event? (satisfies? IMouseEvent elem)]
-
-     (cond
-       (or protocol?
-           mouse-event?)
-       (let [[x y] global-pos
-             [sx sy] offset
-             [ox oy] (origin elem)
-             [width height] (bounds elem)
-             local-x (- x (+ sx ox))
-             local-y (- y (+ sy oy))]
-         
-         (when (and
-                (< local-x
-                   width)
-                (>= local-x 0)
-                (< local-y
-                   height)
-                (>= local-y 0))
-           
-           (concat
-            (when protocol?
-              (protocol-fn elem [local-x local-y]))
-            (when mouse-event?
-              (-mouse-event elem [local-x local-y] button mouse-down? mods)))))
-
-       ;; (satisfies? IChildren elem)
-       ::else
-       (let [[ox oy] (origin elem)
-             [sx sy] offset
-             child-offset [(+ ox sx)
-                           (+ oy sy)]]
-         (let [steps 
-               (some #(seq
-                       (mouse-event % global-pos button mouse-down? mods child-offset))
-                     (reverse (children elem)))]
-           (if (satisfies? IBubble elem)
-             (-bubble elem steps)
-             steps)))))))
+(def mouse-event -mouse-event)
 
 (defn mouse-down
   "Returns the effects of a mouse down event on elem. Will only call -mouse-event or -mouse-down if the position is in the element's bounds."
