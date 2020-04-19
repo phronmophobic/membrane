@@ -1883,6 +1883,31 @@
      ~body
      (NoKeyEvent. ~body)))
 
+(defcomponent NoKeyPress [drawable]
+    IOrigin
+    (-origin [_]
+        [0 0])
+
+    IBounds
+    (-bounds [this]
+        (bounds drawable))
+
+    IChildren
+    (-children [this]
+        [drawable])
+
+    IDraw
+    (draw [this]
+        (draw drawable))
+    IHasKeyPress
+    (has-key-press [this]
+        false))
+
+(defmacro maybe-key-press [test body]
+  `(if ~test
+     ~body
+     (NoKeyPress. ~body)))
+
 (defn ^:dynamic run [& args]
   (throw (Exception. "No backend found. Have you required membrane.skia or membrane.webgl?")))
 

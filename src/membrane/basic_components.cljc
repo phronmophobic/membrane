@@ -29,7 +29,7 @@
                      on-key-press
                      bordered
                      children
-                     maybe-key-event
+                     maybe-key-press
                      on
                      IHandleEvent
                      index-for-position]]))
@@ -287,7 +287,7 @@
            text ""
            border? true}}]
   (let [text (or text "")]
-    (maybe-key-event
+    (maybe-key-press
      focus?
      (on
       :key-press
