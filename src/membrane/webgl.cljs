@@ -15,9 +15,7 @@
                      label
                      image]]
             [membrane.audio :as audio]
-            [membrane.component :refer [defui run-ui]]
-            [com.rpl.specter :as spec
-             :refer [ATOM ALL FIRST LAST MAP-VALS META]]))
+            [membrane.component :refer [defui run-ui]]))
 
 
 (def ^:dynamic *ctx*)
@@ -151,7 +149,7 @@
     ))
 (set! membrane.ui/index-for-position index-for-position)
 
-(extend-type membrane.ui/Label
+(extend-type membrane.ui.Label
   IBounds
   (-bounds [this]
     (let [font (:font this)]
