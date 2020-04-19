@@ -52,8 +52,9 @@
   (doto enlarge-bottom-button
     (.addEventListener "mousedown"
                        (fn []
-                         (doto canvas
-                           (.setAttribute "height" (+ (int (.-height canvas)) 200)))))))
+                         (let [style (.-style canvas)
+                               ch (.-clientHeight canvas)]
+                           (set! (.-height style) (str (int (+ ch 200)) "px")))))))
 
 (def enlarge-right-button (.getElementById js/document "enlarge-canvas-right"))
 
@@ -61,8 +62,10 @@
   (doto enlarge-right-button
     (.addEventListener "mousedown"
                        (fn []
-                         (doto canvas
-                           (.setAttribute "width" (+ (int (.-width canvas)) 200)))))))
+                         (let [style (.-style canvas)
+                               cw (.-clientWidth canvas)]
+                           (set! (.-width style) (str (int (+ cw 200)) "px")))
+                         ))))
 
 ;; (defonce start-app (membrane.component/run-ui #'test-ui (atom {:a "there"})))
 (defonce start-todo-app (membrane.component/run-ui #'todo/todo-app todo/todo-state nil {:canvas canvas}))

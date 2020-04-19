@@ -409,8 +409,26 @@
 
 (defrecord WebglCanvas [ui make-ui last-touch touch-check? canvas-elem ctx])
 
+(defn update-scale [canvas]
+  (let [content-scale (.-devicePixelRatio js/window)]
+    (when (and content-scale (not= 1 content-scale))
+      (let [cwidth (.-clientWidth canvas)
+            cheight (.-clientHeight canvas)
+            canvas-style (.-style canvas)
+            ctx (.getContext canvas "2d")]
+        (set! (.-width canvas-style) (str cwidth "px") )
+        (set! (.-height canvas-style) (str cheight "px"))
+
+        (set! (.-width canvas) (* cwidth content-scale))
+        (set! (.-height canvas) (* cheight content-scale))
+        (set! (.-font ctx)
+          (str (when-let [weight (:weight ui/default-font)]
+                 (str weight " "))
+               (:size ui/default-font) "px"
+               " "
+               (:name ui/default-font)))))))
+
 (defn webgl-canvas [canvas-elem make-ui]
-  
   (let [ctx (.getContext canvas-elem "2d")
         canvas (WebglCanvas.
                 (atom nil)
@@ -418,29 +436,37 @@
                 (atom nil)
                 (atom false)
                 canvas-elem
-                ctx)
-        ]
-    (set! (.-font ctx)
-          (str (when-let [weight (:weight ui/default-font)]
-                 (str weight " "))
-               (:size ui/default-font) "px"
-               " "
-               (:name ui/default-font)
-               ))
+                ctx)]
+    (update-scale canvas-elem)
     (doseq [[event handler] @event-handlers]
       (.addEventListener canvas-elem event (partial handler canvas)))
     canvas))
 
+(let [content-scale (.-devicePixelRatio js/window)]
+  (defn redraw [canvas]
+    (binding [*ctx* (:ctx canvas)]
+      (let [ui (:ui canvas)
+            canvas-elem (:canvas-elem canvas)]
+        (.clearRect *ctx*
+                    0 0
+                    (.-width canvas-elem) (.-height canvas-elem))
+        (when (and
+               content-scale
+               (not= 1 content-scale)
+               (or (not= (.-width canvas-elem)
+                         (* content-scale (.-clientWidth canvas-elem)))
+                   (not= (.-height canvas-elem)
+                         (* content-scale (.-clientHeight canvas-elem)))))
+          (println "resizing canvas")
+          (update-scale canvas-elem))
 
-(defn redraw [canvas]
-  (binding [*ctx* (:ctx canvas)]
-    (let [ui (:ui canvas)
-          canvas-elem (:canvas-elem canvas)]
-      (.clearRect *ctx*
-                  0 0
-                  (.-width canvas-elem) (.-height canvas-elem))
-      (reset! ui ((:make-ui canvas)))
-      (draw @ui))))
+        (reset! ui ((:make-ui canvas)))
+        (push-state *ctx*
+                    (let [content-scale (.-devicePixelRatio js/window)]
+                      (when (and content-scale (not= 1 content-scale))
+                        (.scale *ctx* content-scale content-scale)))
+                    (draw @ui))
+        ))))
 
 
 
