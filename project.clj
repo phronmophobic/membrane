@@ -41,6 +41,11 @@
              ;; "-Djna.debug_load=true"
              ;; "-Djna.debug_load.jna=true"
              ;; "-Xmx14g"
+
+             ;; useful for clj-async-profiler
+             ;; "-Djdk.attach.allowAttachSelf"
+             ;; "-XX:+UnlockDiagnosticVMOptions"
+             ;; "-XX:+DebugNonSafepoints"
              ]
 
   :clean-targets ^{:protect false} ["resources/public/js/compiled" "target"]
@@ -52,6 +57,7 @@
           [re-frame "0.11.0"]
           [org.clojure/test.check "0.9.0"]
           [criterium "0.4.5"]
+          [com.clojure-goes-fast/clj-async-profiler "0.4.1"]
           ]
          :repl-options {:nrepl-middleware [cider.piggieback/wrap-cljs-repl]}
          ;;:source-paths ["cljs_src"]
