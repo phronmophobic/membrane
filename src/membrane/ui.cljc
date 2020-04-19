@@ -612,7 +612,10 @@
 
   IBounds
   (-bounds [this]
-      (bounds drawable)))
+      (let [[w h] (bounds drawable)
+            [ox oy] (origin drawable)]
+        [(+ w ox)
+         (+ h oy)])))
 
 (defn translate
   "A graphical elem that will shift drawable's origin by x and y and draw it at its new origin."

@@ -5,7 +5,7 @@
    [com.rpl.specter :as spec
     :refer [ATOM ALL FIRST LAST MAP-VALS META]]
    cljs.analyzer.api
-   [membrane.ui :as ui :refer [defcomponent draw children bounds]]))
+   [membrane.ui :as ui :refer [defcomponent draw children bounds origin]]))
 
 (def ^:dynamic *root* nil)
 
@@ -694,7 +694,10 @@
                                  `(~(keyword (str "$" (name k))) ~elem-sym))]]
                       rendered# (~draw-fn-name ~elem-sym)
                       ~elem-sym (-> ~elem-sym
-                                    (assoc ::bounds (bounds rendered#))
+                                    (assoc ::bounds (let [[w# h#] (bounds rendered#)
+                                                          [ox# oy#] (origin rendered#)]
+                                                      [(+ ox# w#)
+                                                       (+ oy# h#)]))
                                     (assoc ::children [rendered#])
                                     (assoc ::rendered rendered#)
                                     (assoc ::has-key-event (membrane.ui/has-key-event rendered#))
