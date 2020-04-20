@@ -5,7 +5,7 @@
    [com.rpl.specter :as spec
     :refer [ATOM ALL FIRST LAST MAP-VALS META]]
    cljs.analyzer.api
-   [membrane.ui :as ui :refer [defcomponent draw children bounds origin]]))
+   [membrane.ui :as ui :refer [defcomponent children bounds origin]]))
 
 (def ^:dynamic *root* nil)
 
@@ -671,11 +671,7 @@
                  (::children this#)
                  )
                 
-                membrane.ui/IDraw
-                (~'draw [this#]
-                 ;; (draw (~draw-fn-name this#))
-                 (draw (::rendered this#))
-                 ))
+                )
               (alter-meta! (var ~ui-name) (fn [old-meta#]
                                             (merge old-meta# (quote ~ui-name-meta))))
 

@@ -1,11 +1,10 @@
 (ns membrane.webgl
   (:require-macros [membrane.webgl-macros
                     :refer [push-state
-                            add-image!]])
+                            add-image!]]
+                   [membrane.ui :refer [add-default-draw-impls-cljs!]])
   (:require [membrane.ui :as ui
              :refer [IBounds
-                     IDraw
-                     draw
                      vertical-layout
                      horizontal-layout
                      rectangle
@@ -22,6 +21,11 @@
 (def ^:dynamic *paint-style* :membrane.ui/style-fill)
 (defonce event-handlers (atom {}))
 (def freetype-font)
+
+(defprotocol IDraw
+  (draw [this]))
+
+(add-default-draw-impls-cljs! IDraw draw)
 
 (defonce freetype-callbacks (atom []))
 (defn on-freetype-loaded [callback]

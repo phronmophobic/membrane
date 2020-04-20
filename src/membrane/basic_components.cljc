@@ -21,11 +21,9 @@
                      defcomponent
                      IBounds
                      IKeyPress
-                     IDraw
                      origin
                      origin-x
                      origin-y
-                     draw
                      on-key-press
                      bordered
                      children

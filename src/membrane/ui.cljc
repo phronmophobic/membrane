@@ -222,18 +222,27 @@
 
 
 
-(defprotocol IDraw
-  (draw [this]))
 
-(extend-protocol IDraw
-  nil
-  (draw [this])
-  
-  #?(:cljs cljs.core/PersistentVector
-     :clj clojure.lang.PersistentVector)
-  (draw [this]
-    (doseq [drawable this]
-      (draw drawable))))
+(defonce default-draw-impls (atom {}))
+
+(swap! default-draw-impls
+       assoc nil (fn [draw]
+                   (fn [this])))
+
+(swap! default-draw-impls
+       assoc #?(:cljs cljs.core/PersistentVector
+                :clj clojure.lang.PersistentVector)
+       (fn [draw]
+         (fn [this]
+           (doseq [drawable this]
+             (draw drawable)))))
+
+(swap! default-draw-impls
+       assoc #?(:clj Object
+                :cljs :default)
+       (fn [draw]
+         (fn [this]
+           (draw (children this)))))
 
 (defprotocol IComponent)
 
@@ -584,13 +593,15 @@
      [0 0]
      drawables))
 
-  IDraw
-  (draw [this]
-      (doseq [drawable drawables]
-        (draw drawable)))
   IChildren
   (-children [this]
     drawables))
+
+(swap! default-draw-impls
+       assoc Group (fn [draw]
+                     (fn [this]
+                       (doseq [drawable (:drawables this)]
+                         (draw drawable)))))
 
 (defn group
   "Creates a graphical elem that will draw drawables in order"
@@ -638,11 +649,13 @@
     IOrigin
     (-origin [_]
         [0 0])
-    IDraw
-    (draw [this])
     IBounds
     (-bounds [this]
         [x y]))
+
+(swap! default-draw-impls
+       assoc Spacer (fn [draw]
+                      (fn [this])))
 
 (defn spacer
   "An empty graphical element with width x and height y.
@@ -661,22 +674,20 @@
     (-bounds [this]
         size)
 
-  IDraw
-  (draw [this]
-      (draw drawable))
   IChildren
   (-children [this]
       [drawable]))
+
+(swap! default-draw-impls
+       assoc FixedBounds
+       (fn [draw]
+         (fn [this]
+           (draw (:drawable this)))))
 
 (defn fixed-bounds [size drawable]
   (FixedBounds. size drawable))
 
 (defcomponent Padding [px py drawable]
-    IDraw
-    (draw [this]
-        (draw
-         (translate px py
-                    drawable)))
     IOrigin
     (-origin [this]
         [px py])
@@ -689,6 +700,14 @@
       (let [[w h] (bounds drawable)]
         [(+ w px)
          (+ h py)])))
+
+(swap! default-draw-impls
+       assoc Padding
+       (fn [draw]
+         (fn [this]
+               (draw
+                (translate (:px this) (:py this)
+                           (:drawable this))))))
 
 (defn padding [px py elem]
   (Padding. px py elem))
@@ -841,15 +860,14 @@
 (defn bordered-draw [this]
   (let [{:keys [drawable padding-x padding-y]} this
         [width height] (bounds drawable)]
-    (draw
-     [(let [gray  0.65]
-        (with-color [gray gray gray]
-          (with-style ::style-stroke
-            (rectangle (+ width (* 2 padding-x))
-                       (+ height (* 2 padding-y))))))
-      (translate padding-x
-                 padding-y
-                 drawable)])))
+    [(let [gray  0.65]
+       (with-color [gray gray gray]
+         (with-style ::style-stroke
+           (rectangle (+ width (* 2 padding-x))
+                      (+ height (* 2 padding-y))))))
+     (translate padding-x
+                padding-y
+                drawable)]))
 
 (defcomponent Bordered [padding-x padding-y drawable]
     IOrigin
@@ -864,10 +882,13 @@
   (-bounds [this]
       (let [[width height] (bounds drawable)]
         [(+ width (* 2 padding-x))
-         (+ height (* 2 padding-y))]))
-  IDraw
-  (draw [this]
-      (bordered-draw this)))
+         (+ height (* 2 padding-y))])))
+
+(swap! default-draw-impls
+       assoc Bordered
+       (fn [draw]
+         (fn [this]
+           (bordered-draw this))))
 
 (defn bordered
   "Graphical elem that will draw drawable with a gray border."
@@ -880,15 +901,14 @@
 (defn fill-bordered-draw [this]
   (let [{:keys [color drawable padding-x padding-y]} this
         [width height] (bounds drawable)]
-    (draw
-     [
-      (filled-rectangle
-       color
-       (+ width (* 2 padding-x))
-       (+ height (* 2 padding-y)))
-      (translate padding-x
-                 padding-y
-                 drawable)])))
+    [
+     (filled-rectangle
+      color
+      (+ width (* 2 padding-x))
+      (+ height (* 2 padding-y)))
+     (translate padding-x
+                padding-y
+                drawable)]))
 
 (defcomponent FillBordered [color padding-x padding-y drawable]
     IOrigin
@@ -903,10 +923,13 @@
   (-bounds [this]
       (let [[width height] (bounds drawable)]
         [(+ width (* 2 padding-x))
-         (+ height (* 2 padding-y))]))
-  IDraw
-  (draw [this]
-      (fill-bordered-draw this)))
+         (+ height (* 2 padding-y))])))
+
+(swap! default-draw-impls
+       assoc FillBordered
+       (fn [draw]
+         (fn [this]
+           (draw (fill-bordered-draw this)))))
 
 (defn fill-bordered
   "Graphical elem that will draw elem with filled border."
@@ -955,12 +978,16 @@
     (-bounds [this]
         (bounds (draw-checkbox checked?)))
 
-    IDraw
-    (draw [this]
-        (draw (draw-checkbox checked?)))
     IChildren
     (-children [this]
         [(draw-checkbox checked?)]))
+
+(swap! default-draw-impls
+       assoc Checkbox
+       (fn [draw]
+         (fn [this]
+           (draw (draw-checkbox (:checked? this))))))
+
 (defn checkbox
   "Graphical elem that will draw a checkbox."
   [checked?]
@@ -984,21 +1011,20 @@
         rect-height (+ text-height padding)
         border-radius 3
         ]
-    (draw
-     [
-      (when (:hover? this)
-        (with-color [0.9 0.9 0.9]
-           (rounded-rectangle rect-width rect-height border-radius)))
-      (with-style ::style-stroke
-        [
-         (with-color [0.76 0.76 0.76 1]
-           (rounded-rectangle (+ 0.5 rect-width) (+ 0.5 rect-height) border-radius))
-         (with-color [0.85 0.85 0.85]
-           (rounded-rectangle rect-width rect-height border-radius))])
-      
-      (translate (/ padding 2)
-                 (- (/ padding 2) 2)
-                 (label text))])))
+    [
+     (when (:hover? this)
+       (with-color [0.9 0.9 0.9]
+         (rounded-rectangle rect-width rect-height border-radius)))
+     (with-style ::style-stroke
+       [
+        (with-color [0.76 0.76 0.76 1]
+          (rounded-rectangle (+ 0.5 rect-width) (+ 0.5 rect-height) border-radius))
+        (with-color [0.85 0.85 0.85]
+          (rounded-rectangle rect-width rect-height border-radius))])
+
+     (translate (/ padding 2)
+                (- (/ padding 2) 2)
+                (label text))]))
 
 (defcomponent Button [text on-click hover?]
     IOrigin
@@ -1015,11 +1041,14 @@
   IMouseDown
   (-mouse-down [this [mx my]]
       (when on-click
-        (on-click)))
+        (on-click))))
 
-  IDraw
-  (draw [this]
-    (button-draw this)))
+(swap! default-draw-impls
+       assoc Button
+       (fn [draw]
+         (fn [this]
+           (draw (button-draw this)))))
+
 (defn button
   "Graphical elem that draws a button. Optional on-click function may be provided that is called with no arguments when button has a mouse-down event."
   ([text]
@@ -1046,10 +1075,6 @@
      [0 0]
      drawables))
 
-  IDraw
-  (draw [this]
-      (doseq [drawable drawables]
-        (draw drawable)))
   IChildren
   (-children [this]
     drawables)
@@ -1058,6 +1083,14 @@
   (-mouse-down [this [mx my]]
       (when on-click
         (on-click))))
+
+(swap! default-draw-impls
+       assoc OnClick
+       (fn [draw]
+         (fn [this]
+           (doseq [drawable (:drawables this)]
+             (draw drawable)))))
+
 (defn on-click
   "Wrap an element with a mouse down event handler, on-click. 
 
@@ -1083,10 +1116,6 @@
      [0 0]
      drawables))
 
-  IDraw
-  (draw [this]
-      (doseq [drawable drawables]
-        (draw drawable)))
   IChildren
   (-children [this]
     drawables)
@@ -1095,6 +1124,14 @@
   (-mouse-down [this [mx my :as pos]]
       (when on-mouse-down
         (on-mouse-down pos))))
+
+(swap! default-draw-impls
+       assoc OnMouseDown
+       (fn [draw]
+         (fn [this]
+           (doseq [drawable (:drawables this)]
+             (draw drawable)))))
+
 (defn on-mouse-down
   "Wraps drawables and adds an event handler for mouse-down events.
 
@@ -1118,10 +1155,6 @@
      [0 0]
      drawables))
 
-  IDraw
-  (draw [this]
-      (doseq [drawable drawables]
-        (draw drawable)))
   IChildren
   (-children [this]
     drawables)
@@ -1130,6 +1163,14 @@
   (-mouse-up [this [mx my :as pos]]
       (when on-mouse-up
         (on-mouse-up pos))))
+
+(swap! default-draw-impls
+       assoc OnMouseUp
+       (fn [draw]
+         (fn [this]
+           (doseq [drawable (:drawables this)]
+             (draw drawable)))))
+
 (defn on-mouse-up
   "Wraps drawables and adds an event handler for mouse-up events.
 
@@ -1153,10 +1194,6 @@
      [0 0]
      drawables))
 
-  IDraw
-  (draw [this]
-      (doseq [drawable drawables]
-        (draw drawable)))
   IChildren
   (-children [this]
     drawables)
@@ -1165,6 +1202,14 @@
   (-mouse-move [this [mx my :as pos]]
       (when on-mouse-move
         (on-mouse-move pos))))
+
+(swap! default-draw-impls
+       assoc OnMouseMove
+       (fn [draw]
+         (fn [this]
+           (doseq [drawable (:drawables this)]
+             (draw drawable)))))
+
 (defn on-mouse-move
   "Wraps drawables and adds an event handler for mouse-move events.
 
@@ -1188,10 +1233,6 @@
      [0 0]
      drawables))
 
-  IDraw
-  (draw [this]
-      (doseq [drawable drawables]
-        (draw drawable)))
   IChildren
   (-children [this]
       drawables)
@@ -1204,6 +1245,14 @@
   (-mouse-move-global [this pos]
       (when on-mouse-move-global
         (on-mouse-move-global pos))))
+
+(swap! default-draw-impls
+       assoc OnMouseMoveGlobal
+       (fn [draw]
+         (fn [this]
+           (doseq [drawable (:drawables this)]
+             (draw drawable)))))
+
 (defn on-mouse-move-global
   "Wraps drawables and adds an event handler for mouse-move-global events.
 
@@ -1227,10 +1276,6 @@
          [0 0]
          drawables))
 
-    IDraw
-    (draw [this]
-        (doseq [drawable drawables]
-          (draw drawable)))
     IChildren
     (-children [this]
         drawables)
@@ -1239,6 +1284,14 @@
     (-mouse-event [this pos button mouse-down? mods]
         (when on-mouse-event
           (on-mouse-event pos button mouse-down? mods))))
+
+(swap! default-draw-impls
+       assoc OnMouseEvent
+       (fn [draw]
+         (fn [this]
+           (doseq [drawable (:drawables this)]
+             (draw drawable)))))
+
 (defn on-mouse-event
   "Wraps drawables and adds an event handler for mouse events.
 
@@ -1272,15 +1325,17 @@
     (when on-key-press
       (on-key-press key)))
 
-
-  IDraw
-  (draw [this]
-      (doseq [drawable drawables]
-        (draw drawable)))
   IChildren
   (-children [this]
-    drawables)
-)
+      drawables))
+
+(swap! default-draw-impls
+       assoc OnKeyPress
+       (fn [draw]
+         (fn [this]
+           (doseq [drawable (:drawables this)]
+             (draw drawable)))))
+
 (defn on-key-press
   "Wraps drawables and adds an event handler for key-press events.
 
@@ -1313,15 +1368,17 @@
       (when on-key-event
         (on-key-event key scancode action mods)))
 
-
-  IDraw
-  (draw [this]
-      (doseq [drawable drawables]
-        (draw drawable)))
   IChildren
   (-children [this]
-    drawables)
-)
+      drawables))
+
+(swap! default-draw-impls
+       assoc OnKeyEvent
+       (fn [draw]
+         (fn [this]
+           (doseq [drawable (:drawables this)]
+             (draw drawable)))))
+
 (defn on-key-event
   "Wraps drawables and adds a handler for key events.
 
@@ -1346,10 +1403,6 @@
      [0 0]
      drawables))
 
-  IDraw
-  (draw [this]
-      (doseq [drawable drawables]
-        (draw drawable)))
   IChildren
   (-children [this]
       drawables)
@@ -1357,6 +1410,13 @@
    IBubble
    (-bubble [this effects]
        (on-bubble effects)))
+
+(swap! default-draw-impls
+       assoc OnBubble
+       (fn [draw]
+         (fn [this]
+           (doseq [drawable (:drawables this)]
+             (draw drawable)))))
 
 (defn on-bubble
   "Wraps drawables and adds a handler for bubbling
@@ -1382,10 +1442,6 @@
          [0 0]
          drawables))
 
-    IDraw
-    (draw [this]
-        (doseq [drawable drawables]
-          (draw drawable)))
     IChildren
     (-children [this]
         drawables)
@@ -1394,6 +1450,14 @@
     (-clipboard-paste [this s]
         (when on-clipboard-paste
           (on-clipboard-paste s))))
+
+(swap! default-draw-impls
+       assoc OnClipboardPaste
+       (fn [draw]
+         (fn [this]
+           (doseq [drawable (:drawables this)]
+             (draw drawable)))))
+
 (defn on-clipboard-paste
   "Wraps drawables and adds a handler for clipboard paste events.
 
@@ -1417,10 +1481,6 @@
      [0 0]
      drawables))
 
-  IDraw
-  (draw [this]
-      (doseq [drawable drawables]
-        (draw drawable)))
   IChildren
   (-children [this]
     drawables)
@@ -1429,6 +1489,14 @@
   (-clipboard-copy [this]
       (when on-clipboard-copy
         (on-clipboard-copy))))
+
+(swap! default-draw-impls
+       assoc OnClipboardCopy
+       (fn [draw]
+         (fn [this]
+           (doseq [drawable (:drawables this)]
+             (draw drawable)))))
+
 (defn on-clipboard-copy
   "Wraps drawables and adds a handler for clipboard copy events.
 
@@ -1454,10 +1522,6 @@
      [0 0]
      drawables))
 
-  IDraw
-  (draw [this]
-      (doseq [drawable drawables]
-        (draw drawable)))
   IChildren
   (-children [this]
     drawables)
@@ -1466,6 +1530,14 @@
   (-clipboard-cut [this]
       (when on-clipboard-cut
         (on-clipboard-cut))))
+
+(swap! default-draw-impls
+       assoc OnClipboardCut
+       (fn [draw]
+         (fn [this]
+           (doseq [drawable (:drawables this)]
+             (draw drawable)))))
+
 (defn on-clipboard-cut
   "Wraps drawables and adds a handler for clipboard cut events.
 
@@ -1547,12 +1619,6 @@
      [0 0]
      drawables))
 
-  IDraw
-  (draw [this]
-      (doseq [drawable drawables]
-        (draw drawable)))
-
-
   IScroll
   (-scroll [this [offset-x offset-y :as offset]]
     (when on-scroll
@@ -1560,7 +1626,15 @@
 
   IChildren
   (-children [this]
-    drawables))
+      drawables))
+
+(swap! default-draw-impls
+       assoc OnScroll
+       (fn [draw]
+         (fn [this]
+           (doseq [drawable (:drawables this)]
+             (draw drawable)))))
+
 
 (defn on-scroll
   "Wraps drawables and adds an event handler for scroll events.
@@ -1634,10 +1708,6 @@
   (-children [this]
       [drawable])
 
-  IDraw
-  (draw [this]
-      (draw drawable))
-
   IBubble
   (-bubble [this events]
       (apply concat
@@ -1653,6 +1723,13 @@
 
   (-handle-event [this event-type event-args]
       (apply handler event-args)))
+
+(swap! default-draw-impls
+       assoc EventHandler
+       (fn [draw]
+         (fn [this]
+           (draw (:drawable this)))))
+
 
 
 
@@ -1805,10 +1882,6 @@
     (-children [this]
         [drawable])
 
-    IDraw
-    (draw [this]
-        (draw drawable))
-
     IBubble
     (-bubble [this events]
         nil)
@@ -1843,6 +1916,13 @@
     IScroll
     (-scroll [this pos] nil))
 
+(swap! default-draw-impls
+       assoc NoEvents
+       (fn [draw]
+         (fn [this]
+           (draw (:drawable this)))))
+
+
 #_(defn no-events [body]
   (NoEvents. body))
 
@@ -1867,12 +1947,16 @@
     (-children [this]
         [drawable])
 
-    IDraw
-    (draw [this]
-        (draw drawable))
     IHasKeyEvent
     (has-key-event [this]
         false))
+
+(swap! default-draw-impls
+       assoc NoKeyEvent
+       (fn [draw]
+         (fn [this]
+           (draw (:drawable this)))))
+
 
 (defmacro maybe-key-event [test body]
   `(if ~test
@@ -1892,12 +1976,16 @@
     (-children [this]
         [drawable])
 
-    IDraw
-    (draw [this]
-        (draw drawable))
     IHasKeyPress
     (has-key-press [this]
         false))
+
+(swap! default-draw-impls
+       assoc NoKeyPress
+       (fn [draw]
+         (fn [this]
+           (draw (:drawable this)))))
+
 
 (defmacro maybe-key-press [test body]
   `(if ~test
@@ -1919,4 +2007,39 @@
   (assert false "image size should be replaced by implementation"))
 
 (defn copy-to-clipboard [s])
+
+
+
+#?(:clj
+   (do
+     (defn add-default-draw-impls! [IDraw draw]
+       (doseq [[cls impl] @default-draw-impls]
+         (extend cls
+           IDraw
+           {:draw (impl draw)})))
+     (defmacro add-default-draw-impls-cljs! [IDraw draw]
+       `(do
+          ~@(doall
+             (for [[k impl] @default-draw-impls
+                   :let [cls (condp = k
+                               Object 'default
+                               nil nil
+                               clojure.lang.PersistentVector 'cljs.core/PersistentVector
+                               ;; else
+                               (symbol (.getName k)))
+                         k (condp = k
+                             Object :default
+                             nil nil
+                             clojure.lang.PersistentVector 'cljs.core/PersistentVector
+                             ;; else
+                             (symbol (.getName k)))
+                         ]]
+               `(do
+                  (let [draw# ((get @membrane.ui/default-draw-impls ~k) ~draw)]
+                    (extend-type ~cls
+                      ~IDraw
+                      (~draw [this#]
+                       (draw# this#))))))))
+       )))
+
 

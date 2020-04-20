@@ -13,8 +13,6 @@
              :as async]
             [membrane.ui :as ui
              :refer [IChildren
-                     IDraw
-                     draw
                      children
                      IBubble
                      -bubble
@@ -86,6 +84,11 @@
 (def skia-buf (Memory. 4096))
 
 (def ^:dynamic *paint* {})
+
+(defprotocol IDraw
+  (draw [this]))
+
+(ui/add-default-draw-impls! IDraw #'draw)
 
 (defmacro defc
   ([fn-name lib ret]
@@ -482,8 +485,8 @@
       [maxx maxy]))
   IDraw
   (draw [this]
-    (ui/draw (->Cached (LabelRaw. (:text this)
-                                  (:font this))))))
+    (draw (->Cached (LabelRaw. (:text this)
+                               (:font this))))))
 
 
 
