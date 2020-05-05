@@ -497,8 +497,10 @@
       (ui/on-mouse-event
        (fn [[mx my :as mpos] button mouse-down? mods]
          (if mouse-down?
-           (let [new-mdownx? (> my (- height scroll-button-height))
-                 new-mdowny? (> mx (- width scroll-button-width))]
+           (let [new-mdownx? (and (> my (- height scroll-button-height))
+                                  (> total-width width))
+                 new-mdowny? (and (> mx (- width scroll-button-width))
+                                  (> total-height height))]
              (into
               [[:set $mdownx? new-mdownx?]
                [:set $mdowny? new-mdowny?]]
