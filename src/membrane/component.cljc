@@ -145,19 +145,26 @@
      )))
 
 (defn calculate-path [deps k]
-  (loop [deps deps
-         k k
-         path []]
-    (if-let [[new-deps get-path] (get deps k)]
-      (let [[new-k step] @get-path]
-        (recur new-deps
-               new-k
-               (if (some? step)
-                 (conj path step)
-                 path)))
-      (vec (reverse (if k
-                      (conj path `(list (quote ~'keypath) (quote ~k)))
-                      path))))))
+  (let [path
+        (loop [deps deps
+               k k
+               path []]
+          (if-let [[new-deps get-path] (get deps k)]
+            (let [[new-k step] @get-path]
+              (recur new-deps
+                     new-k
+                     (if (some? step)
+                       (conj path step)
+                       path)))
+            (vec (reverse (if k
+                            (conj path `(list (quote ~'keypath) (quote ~k)))
+                            path)))))]
+    ;; special case to reduce nesting
+    (if (and (symbol? (first path))
+             (::flatten? (meta (first path))))
+      `(into ~(first path)
+             ~(vec (rest path)))
+      path)))
 
 
 
@@ -595,7 +602,8 @@
                       [arg-name
                        [{}
                         (delay
-                         [nil path-sym])]]))
+                         [nil (with-meta path-sym
+                                {::flatten? true})])]]))
          ui-arg-map
          (merge {:keys arg-keys
                  :as args-map-sym}
