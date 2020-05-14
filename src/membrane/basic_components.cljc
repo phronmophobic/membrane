@@ -1,7 +1,12 @@
 (ns membrane.basic-components
   #?(:cljs
-     (:require-macros [membrane.ui :refer [maybe-key-event]]))
-  (:require [membrane.component :refer [defui run-ui path->spec defeffect] :as component]
+     (:require-macros [membrane.ui :refer [maybe-key-event]]
+                      [membrane.component :refer [defui defeffect]]))
+  (:require [membrane.component :refer [#?(:clj defui)
+                                        #?(:clj defeffect)
+                                        run-ui
+                                        path->spec
+                                        ] :as component]
             [com.rpl.specter :as spec
              :refer [ATOM ALL FIRST LAST MAP-VALS META]]
             [membrane.ui :as ui
