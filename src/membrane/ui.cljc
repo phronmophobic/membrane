@@ -1,21 +1,13 @@
 (ns membrane.ui
-  #?@(:cljs
-      [(:require-macros [membrane.ui :refer [defcomponent]])])
-  #?@(:clj
-      [
-       
-       ])
-  )
+  #?(:cljs
+     (:require-macros [membrane.ui :refer [defcomponent]])))
 
-#?
-(:clj
- (defmacro defcomponent [name [& fields] & opts+specs]
+(defmacro defcomponent [name [& fields] & opts+specs]
    `(defrecord ~name [~@fields]
       IComponent
       ;; (~'cid [this#]
       ;;   cid#)
-      ~@opts+specs)))
-
+      ~@opts+specs))
 
 (defrecord Font [name size weight])
 
