@@ -19,10 +19,15 @@
                  [com.rpl/specter "1.1.1"]
                  [org.apache.commons/commons-text "1.8"]
 
+                 [com.googlecode.lanterna/lanterna "3.0.2"]
                  ;; these two go together
                  ;; built and installed locally!
                  ;; [com.oracle/appbundler "1.0ea-local"]
                  ;; [org.apache.ant/ant "1.10.5"]
+
+                 [com.phronemophobic/vdom "0.2.2"]
+
+                 [com.cognitect/transit-cljs "0.8.264"]
 ]
 
   :aot [
