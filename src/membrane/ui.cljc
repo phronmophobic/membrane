@@ -143,6 +143,20 @@
 
 (declare bounds)
 
+(defn within-bounds? [elem [x y]]
+  (let [[ox oy] (origin elem)
+        [width height] (bounds elem)
+        local-x (- x ox)
+        local-y (- y oy)]
+    (when (and
+           (< local-x
+              width)
+           (>= local-x 0)
+           (< local-y
+              height)
+           (>= local-y 0))
+      [local-x local-y])))
+
 (extend-type #?(:clj Object
                 :cljs default)
   IHasKeyEvent
@@ -164,29 +178,17 @@
 
   IMouseEvent
   (-mouse-event [elem local-pos button mouse-down? mods]
-    (let [[x y] local-pos
-          [ox oy] (origin elem)
-          [width height] (bounds elem)
-          local-x (- x ox)
-          local-y (- y oy)
-          local-pos [local-x local-y]]
-      (if (and
-           (< local-x
-              width)
-           (>= local-x 0)
-           (< local-y
-              height)
-           (>= local-y 0))
-        (let [steps
-              ;; use seq to make sure we don't stop for empty sequences
-              (some #(seq
-                      (concat
-                       (if mouse-down?
-                         (-mouse-down % local-pos)
-                         (-mouse-up % local-pos))
-                       (-mouse-event % local-pos button mouse-down? mods)))
-                    (reverse (children elem)))]
-          (-bubble elem steps)))))
+    (if-let [steps (seq
+                    (if mouse-down?
+                      (-mouse-down elem local-pos)
+                      (-mouse-up elem local-pos)))]
+      steps
+      (let [steps
+            ;; use seq to make sure we don't stop for empty sequences
+            (some #(when-let [local-pos (within-bounds? % local-pos)]
+                     (seq (-mouse-event % local-pos button mouse-down? mods)))
+                  (reverse (children elem)))]
+        (-bubble elem steps))))
 
   IMouseDown
   (-mouse-down [elem mpos]
@@ -409,12 +411,14 @@
 (defn mouse-down
   "Returns the effects of a mouse down event on elem. Will only call -mouse-event or -mouse-down if the position is in the element's bounds."
   [elem [mx my :as pos]]
-  (mouse-event elem pos 0 true 0))
+  (when-let [local-pos (within-bounds? elem pos)]
+    (mouse-event elem local-pos 0 true 0)))
 
 (defn mouse-up
   "Returns the effects of a mouse up event on elem. Will only call -mouse-event or -mouse-down if the position is in the element's bounds."
   [elem [mx my :as pos]]
-  (mouse-event elem pos 0 false 0))
+  (when-let [local-pos (within-bounds? elem pos)]
+    (mouse-event elem local-pos 0 false 0)))
 
 
 (defn make-event-handler [protocol-name protocol protocol-fn]
