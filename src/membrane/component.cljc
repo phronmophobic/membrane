@@ -812,15 +812,16 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
 
                          $kw
                          (into
-                          `[(~'keypath ~kw)]
+                          `[~'ATOM
+                            (~'keypath ~kw)]
                           (when (contains? defaults nm)
                             [(list 'nil->val (get defaults nm))]))]))
           main-view (apply
                      @body
                      :extra extra
-                     :$extra $extra
+                     :$extra  ['ATOM $extra]
                      :context context
-                     :$context $context
+                     :$context ['ATOM $context]
                      args)
           
           ]
@@ -879,7 +880,7 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
                          'extra)
          defaults (:or m)
          top-level (fn []
-                     (top-level-ui :state @state-atom :$state nil
+                     (top-level-ui :state @state-atom :$state []
                                    :body ui-var
                                    :arg-names arg-names
                                    :defaults defaults
@@ -887,35 +888,31 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
      top-level)))
 
 
-(defn- default-handler [atm]
-  (fn dispatch! [type & args]
-    (case type
-      :update
-      (let [[path f & args ] args]
-        (swap! atm
-               (fn [old-state]
-                 (spec/transform (path->spec path)
-                                 (fn [& spec-args]
-                                   (apply f (concat spec-args
-                                                    args)))
-                                 old-state))))
-      :set
-      (let [[path v] args]
-        (swap! atm
-                   (fn [old-state]
-                     old-state
-                     (spec/transform (path->spec path) (constantly v) old-state))))
-      :delete
-      (let [[path] args]
-        (swap! atm
-                   (fn [old-state]
-                     (spec/transform (path->spec path) (constantly spec/NONE) old-state))))
+(defn default-handler [atm]
+  (fn dispatch!
+    ([] nil)
+    ([type & args]
+     (case type
+       :update
+       (let [[path f & args ] args]
+         (spec/transform (path->spec path)
+                         (fn [& spec-args]
+                           (apply f (concat spec-args
+                                            args)))
+                         atm))
+       :set
+       (let [[path v] args]
+         (spec/setval (path->spec path) v atm))
 
-      (let [effects @effects]
-        (let [handler (get effects type)]
-          (if handler
-            (apply handler dispatch! args)
-            (println "no handler for " type)))))))
+       :delete
+       (let [[path] args]
+         (spec/setval (path->spec path) spec/NONE atm))
+
+       (let [effects @effects]
+         (let [handler (get effects type)]
+           (if handler
+             (apply handler dispatch! args)
+             (println "no handler for " type))))))))
 
 (defn run-ui
   "`ui-var` The var for a component
