@@ -2002,6 +2002,39 @@
      ~body
      (NoKeyPress. ~body)))
 
+(defcomponent TryDraw [drawable error-draw]
+    IOrigin
+    (-origin [_]
+        [0 0])
+
+    IBounds
+    (-bounds [this]
+        (try
+          (bounds drawable)
+          (catch Exception e
+            (println e)
+            (bounds (label "error"))
+            ))
+        )
+
+  IChildren
+  (-children [this]
+      [drawable]))
+
+(swap! default-draw-impls
+       assoc TryDraw
+       (fn [draw]
+         (fn [this]
+           (try
+             (draw (:drawable this))
+             (catch Exception e
+               ((:error-draw this) draw e))))))
+
+
+(defn try-draw [body error-draw]
+  (TryDraw. body error-draw))
+
+
 (defn ^:dynamic run [& args]
   (throw (Exception. "No backend found. Have you required membrane.skia or membrane.webgl?")))
 
