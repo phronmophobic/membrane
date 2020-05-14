@@ -1940,6 +1940,7 @@
     (on :mouse-down do-nothing
         :key-press do-nothing
         :mouse-up do-nothing
+        :mouse-event do-nothing
         :mouse-move do-nothing
         body)))
 
