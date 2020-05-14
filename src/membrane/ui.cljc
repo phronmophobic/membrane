@@ -2036,11 +2036,13 @@
 
 
 (defn ^:dynamic run [& args]
-  (throw (Exception. "No backend found. Have you required membrane.skia or membrane.webgl?")))
+  (throw (#?(:clj Exception.
+             :cljs str) "No backend found. Have you required membrane.skia or membrane.webgl?")))
 
 #?(:clj
    (defn ^:dynamic run-sync [& args]
-     (throw (Exception. "No backend found. Have you required membrane.skia or membrane.webgl?"))))
+     (throw (#?(:clj Exception.
+                :cljs str) "No backend found. Have you required membrane.skia or membrane.webgl?"))))
 #_(defn run [make-ui]
   (assert false "run should be replaced by implementation"))
 
