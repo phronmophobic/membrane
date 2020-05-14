@@ -1,4 +1,7 @@
 (ns membrane.example.todo
+  #?(:cljs
+     (:require-macros [membrane.component
+                       :refer [defui defeffect]]))
   (:require #?(:clj [membrane.skia :as skia])
             [membrane.ui :as ui
              :refer [vertical-layout
@@ -10,7 +13,10 @@
                      spacer
                      on]]
             [membrane.component :as component
-             :refer [defui run-ui run-ui-sync defeffect]]
+             :refer [#?(:clj defui)
+                     #?(:clj defeffect)
+                     run-ui
+                     run-ui-sync ]]
             [membrane.basic-components :as basic])
   #?(:clj (:gen-class)))
 

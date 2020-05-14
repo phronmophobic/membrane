@@ -58,8 +58,9 @@
   ;; with nums initially set to [0 1 2]
   (run-ui #'counter-counter {:nums [0 1 2]}))
 
-(defn -main [ & args]
-  (run-ui-sync #'counter-counter {:nums [0 1 2]}))
+#?(:clj
+   (defn -main [ & args]
+     (run-ui-sync #'counter-counter {:nums [0 1 2]})))
 
 
 
