@@ -75,6 +75,27 @@
                            :output-dir "resources/public/js/compiled/out.webgltest"
                            :source-map-timestamp true
                            ;;:optimizations :whitespace
+                           }}
+               {:id "vdomtest"
+                :source-paths ["src"]
+                :figwheel {:on-jsload "membrane.vdomtest/on-js-reload"}
+                :compiler {:main membrane.vdom
+                           :asset-path "js/compiled/out.vdomtest"
+                           :output-to "resources/public/js/compiled/vdomtest.js"
+                           :output-dir "resources/public/js/compiled/out.vdomtest"
+                           :source-map-timestamp true
+                           :aot-cache true
+                           ;; :optimizations :whitespace
+                           }}
+               {:id "buildertest"
+                :source-paths ["src"]
+                :figwheel {:on-jsload "membrane.buildertest/on-js-reload"}
+                :compiler {:main membrane.builder
+                           :asset-path "js/compiled/out.buildertest"
+                           :output-to "resources/public/js/compiled/buildertest.js"
+                           :output-dir "resources/public/js/compiled/out.buildertest"
+                           :source-map-timestamp true
+                           ;;:optimizations :whitespace
                            }}]}
 
   :figwheel {;; :http-server-root "public" ;; default and assumes "resources"
