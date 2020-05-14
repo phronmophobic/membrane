@@ -37,6 +37,7 @@
             {:image-obj (let [img# (js/Image.)]
                           (set! (.-src img#) ~url-path)
                           img#)
+             :url ~url-path
              :size ~size}
            )))
 
