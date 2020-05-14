@@ -373,14 +373,16 @@
           (let [full-sym (delay
                           (fully-qualified first-form))
                 special? (if (symbol? first-form)
-                           (if-let [m (or (meta (resolve first-form))
+                           (if-let [m (or (when cljs.env/*compiler*
+                                            (:meta (cljs/resolve-var *env* first-form)))
+                                          #?(:clj (meta (resolve first-form)))
                                           (meta first-form))]
                              (::special? m)
                              (contains? @special-fns @full-sym)))]
             (if special?
               (let [args (into {} (map vec (partition 2 (rest form))))
                     fn-meta (get @special-fns @full-sym
-                                 (or (meta (resolve first-form))
+                                 (or #?(:clj (meta (resolve first-form)))
                                      (meta first-form)
                                      ))
 
