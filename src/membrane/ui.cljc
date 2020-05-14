@@ -824,21 +824,34 @@
 (defn- arc [radius rad-start rad-end]
   (Arc. radius rad-start rad-end 10))
 
+(defcomponent Rectangle [width height]
+    IOrigin
+    (-origin [_]
+        [0 0])
+  IBounds
+  (-bounds [this]
+      [width height]))
 
+(swap! default-draw-impls
+       assoc Rectangle
+       (fn [draw]
+         (fn [this]
+           (let [{:keys [width height]} this]
+             (draw (path [0 0] [0 height] [width height] [width 0] [0 0]))))))
 
 (defn rectangle
   "Graphical elem that draws a rectangle.
 
   See with-style, with-stroke-width, and with-color for more options."
   [width height]
-  (path [0 0] [0 height] [width height] [width 0] [0 0]))
+  (Rectangle. width height))
 
 (defn filled-rectangle
   "Graphical elem that draws a filled rectangle with color, [r g b] or [r g b a]."
   [color width height]
   (with-color color
     (with-style :membrane.ui/style-fill
-      (path [0 0] [0 height] [width height] [width 0] [0 0]))))
+      (Rectangle. width height))))
 
 (defcomponent RoundedRectangle [width height border-radius]
     IOrigin
