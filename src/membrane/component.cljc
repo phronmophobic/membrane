@@ -5,6 +5,8 @@
    [com.rpl.specter :as spec
     :refer [ATOM ALL FIRST LAST MAP-VALS META]]
    cljs.analyzer.api
+   [cljs.analyzer :as cljs]
+   cljs.env
    [membrane.ui :as ui :refer [defcomponent children bounds origin]]))
 
 (def ^:dynamic *root* nil)
@@ -169,27 +171,22 @@
 
 
 
-#?(:clj
-    ;; we would like to just identify defui methods with metadata,
-   ;; but since macros in clojure script won't have access to that metadata
-   ;; we have to keep track elsewhere
-   ;; this is the elsewhere
-   (defonce special-fns (atom {})))
+;; we would like to just identify defui methods with metadata,
+;; but since macros in clojure script won't have access to that metadata
+;; we have to keep track elsewhere
+;; this is the elsewhere
+(defonce special-fns (atom {}))
+
+(def ^:dynamic *env* nil)
+(defn fully-qualified [sym]
+  (if cljs.env/*compiler*
+    (if-let [result (cljs.analyzer.api/resolve {:ns (get-in @cljs.env/*compiler* [:cljs.analyzer/namespaces (symbol (ns-name *ns*))])}  sym)]
+      (:name result))
+    #?(:clj (if-let [v (resolve sym)]
+              (symbol (name (ns-name (.ns v))) (name (.sym v)))))))
 
 
-#?
-(:clj
- (defn fully-qualified [sym]
-   (if cljs.env/*compiler*
-     (if-let [result (cljs.analyzer.api/resolve {:ns (get-in @cljs.env/*compiler* [:cljs.analyzer/namespaces (symbol (ns-name *ns*))])}  sym)]
-       (:name result))
-     (if-let [v (resolve sym)]
-       (symbol (name (ns-name (.ns v))) (name (.sym v)))))))
-
-#?
-(:clj
-
- (defn- path-replace
+ (defn path-replace
    "Given a form, walk and replace all $syms with the lens (or path) for the sym with the same name."
    ([form]
     (path-replace form {}))
@@ -494,7 +491,8 @@
       
       
       (seqable? form) (let [empty-form (empty form)
-                            empty-form (if (instance? clojure.lang.IObj empty-form)
+                            empty-form (if #?(:clj (instance? clojure.lang.IObj empty-form)
+                                              :cljs (satisfies? IMeta empty-form))
                                          (with-meta empty-form (meta form))
                                          empty-form)]
                         (into empty-form
@@ -507,14 +505,9 @@
 
 
 
- )
 
 
-
-
-#?
-(:clj
- (defmacro path-replace-macro
+(defmacro path-replace-macro
    ([deps form]
     (let [deps (into {}
                      (for [[sym dep] deps]
@@ -525,19 +518,17 @@
    ([form]
     (let [new-form (path-replace form)]
       ;; (clojure.pprint/pprint new-form)
-      new-form))))
+      new-form)))
 
 
+(defn doall* [s] (dorun (tree-seq seqable? seq s)) s)
 
 
-#?(:clj
-   (defn doall* [s] (dorun (tree-seq seqable? seq s)) s))
 
 (def component-cache (atom {}))
-#?
-(:clj
- (defmacro defui
-   "Define a component.
+
+(defmacro defui
+ "Define a component.
 
   The arguments for a component must take the form (defui my-component [ & {:keys [arg1 arg2 ...]}])
 
@@ -632,7 +623,8 @@
                   ;; correctly. we need to know the *ns* for clojurescript
                   ;; so we can correctly replace calls to other ui components
                   ;; with their provenance info
-                  ~@(doall* (map #(path-replace % deps) body))))
+                  ~@(binding [*env* &env]
+                      (doall* (map #(path-replace % deps) body)))))
 
               (defcomponent ~component-name [~@arg-keys]
                   membrane.ui/IOrigin
@@ -714,7 +706,9 @@
 
               (let [
                     ret#
-                    (defn ~ui-name [ ~'& ~ui-arg-map]
+                    (defn ~ui-name ~(dissoc ui-name-meta
+                                            :arglists)
+                      [ ~'& ~ui-arg-map]
 
                       (let [key# [~ui-name-kw
                                   [~@arg-keys
@@ -742,14 +736,19 @@
                                         elem#))]
                         elem#))]
                 (reset! component-cache {})
-                
+
+                ;; needed for bootstrapped cljs
+                (swap! special-fns
+                       assoc
+                       (quote ~(symbol (name (ns-name *ns*)) (name ui-name)))
+                       (quote ~ui-name-meta))
                 (alter-meta! (var ~ui-name) (fn [old-meta#]
                                               (merge old-meta# (quote ~ui-name-meta))))
                 ret#)
               
               )]
        (swap! special-fns assoc (symbol (name (ns-name *ns*)) (name ui-name)) ui-name-meta)
-       result))))
+       result)))
 
 
 (defonce effects (atom {}))
@@ -789,41 +788,6 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
 
 
 
-
-
-(defn db-effects
-  "Effects for updating state in an atom.
-
-  The effects are:
-
-  `:update` similar to `update` except instead of a keypath, takes a more generic path.
-  example: `[:update $path inc]`
-  `:set` sets the value given a $path
-  example: `[:set $path value]`
-  `:delete` deletes value at $path
-  example: `[:delete $path]`
-  "
-  [atm]
-  {:update
-   (fn [_ path f & args ]
-     (swap! atm
-            (fn [old-state]
-              (spec/transform (path->spec path)
-                              (fn [& spec-args]
-                                (apply f (concat spec-args
-                                                 args)))
-                              old-state))))
-   :set
-   (fn [_ path v]
-     (swap! atm
-            (fn [old-state]
-              old-state
-              (spec/transform (path->spec path) (constantly v) old-state))))
-   :delete
-   (fn [_ path]
-     (swap! atm
-            (fn [old-state]
-              (spec/transform (path->spec path) (constantly spec/NONE) old-state))))})
 
 
 (defui top-level-ui [& {:keys [extra
