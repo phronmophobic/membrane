@@ -99,8 +99,9 @@
                            :asset-path "js/compiled/out.buildertest"
                            :output-to "resources/public/js/compiled/buildertest.js"
                            :output-dir "resources/public/js/compiled/out.buildertest"
+                           :aot-cache true
                            :source-map-timestamp true
-                           ;;:optimizations :whitespace
+                           ;; :optimizations :simple
                            }}]}
 
   :figwheel {;; :http-server-root "public" ;; default and assumes "resources"
