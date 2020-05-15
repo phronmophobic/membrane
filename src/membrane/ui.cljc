@@ -2011,10 +2011,10 @@
     (-bounds [this]
         (try
           (bounds drawable)
-          (catch Exception e
+          (catch #?(:clj Exception
+                    :cljs js/Object) e
             (println e)
-            (bounds (label "error"))
-            ))
+            (bounds (label "error"))))
         )
 
   IChildren
@@ -2027,7 +2027,8 @@
          (fn [this]
            (try
              (draw (:drawable this))
-             (catch Exception e
+             (catch #?(:clj Exception
+                       :cljs js/Object) e
                ((:error-draw this) draw e))))))
 
 
