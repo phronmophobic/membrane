@@ -33,7 +33,7 @@ Support for Windows and other platforms is coming soon!
 Leiningen dependency:
 
 ```
-[com.phronemophobic/membrane "0.9.7-beta"]
+[com.phronemophobic/membrane "0.9.8-beta"]
 ```
 ## Screenshots
 
