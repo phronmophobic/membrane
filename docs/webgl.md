@@ -23,7 +23,7 @@ Below are a few tips for setting up your project when targeting opengl.
 (defonce start-app (membrane.webgl/run #(ui/label "Hello World") {:canvas canvas}))
 ```
 
-To receive key events, your canvas needs to a "tabindex" attribute set to zero or greater (https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/tabindex). If you don't know what value to set it to, then set it to zero. 
+To receive key events, your canvas needs to have a "tabindex" attribute set to zero or greater (https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/tabindex). If you don't know what value to set it to, then set it to zero. 
 
 You can also create your canvas in clojurescript and add it to the page. Creating a canvas element using `membrane.webgl/create-canvas` will set the tabindex to "0" for you.
 
