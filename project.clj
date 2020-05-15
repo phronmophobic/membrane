@@ -1,4 +1,4 @@
-(defproject com.phronemophobic/membrane "0.9.8-beta"
+(defproject com.phronemophobic/membrane "0.9.8-beta-SNAPSHOT"
   :description "A platform agnostic library for creating user interfaces"
   :url "http://example.com/FIXME"
   :license {:name "Apache License, Version 2.0"
@@ -12,9 +12,6 @@
                   :exclusions [net.java.dev.jna/jna]]
                  [net.java.dev.jna/jna "5.2.0"]
                  [org.clojure/core.async "0.4.490"]
-
-                 ;; [figwheel-sidecar "0.5.0-2"]
-                 [figwheel-sidecar "0.5.18" :exclusions [org.clojure/tools.nrepl]]
 
                  [com.rpl/specter "1.1.1"]
                  [org.apache.commons/commons-text "1.8"]
@@ -51,6 +48,7 @@
           [cider/piggieback "0.4.0"]
           [re-frame "0.11.0"]
           [org.clojure/test.check "0.9.0"]
+          [figwheel-sidecar "0.5.18" :exclusions [org.clojure/tools.nrepl]]
           ]
          :repl-options {:nrepl-middleware [cider.piggieback/wrap-cljs-repl]}
          ;;:source-paths ["cljs_src"]
