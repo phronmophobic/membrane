@@ -1396,6 +1396,7 @@
                                  (str "Image format must be one of " (keys image-formats)))))]
     (with-cpu-skia-resource skia-resource size
       (binding [*skia-resource* skia-resource
+                *image-cache* (atom {})
                 *already-drawing* true]
         (when clear?
           (Skia/skia_clear skia-resource))
