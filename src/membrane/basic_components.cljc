@@ -668,4 +668,6 @@
   (dispatch! :set $selected value))
 
 (comment
-  (run-ui #'dropdown {:options ["This" "That " "The Other"]}))
+  (run-ui #'dropdown {:options [[:this "This"]
+                                [:that "That "]
+                                [:the-other "The Other"]]}))
