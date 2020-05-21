@@ -897,7 +897,7 @@
        assoc Bordered
        (fn [draw]
          (fn [this]
-           (bordered-draw this))))
+           (draw (bordered-draw this)))))
 
 (defn bordered
   "Graphical elem that will draw drawable with a gray border."
