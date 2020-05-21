@@ -458,8 +458,7 @@
   (let [offset-x (nth offset 0)
         offset-y (nth offset 1)
         [width height] scroll-bounds
-        scroll-button-width 7
-        scroll-button-height 10
+        scroll-button-size 7
         [total-width total-height] (bounds body)
 
         scroll-elem (ui/scrollview
@@ -502,9 +501,9 @@
       (ui/on-mouse-event
        (fn [[mx my :as mpos] button mouse-down? mods]
          (if mouse-down?
-           (let [new-mdownx? (and (> my (- height scroll-button-height))
+           (let [new-mdownx? (and (> my height)
                                   (> total-width width))
-                 new-mdowny? (and (> mx (- width scroll-button-width))
+                 new-mdowny? (and (> mx width)
                                   (> total-height height))]
              (into
               [[:set $mdownx? new-mdownx?]
@@ -527,7 +526,7 @@
         (when (> total-height height)
           (translate width 0
                      [(filled-rectangle [0.941 0.941 0.941]
-                                        scroll-button-width height)
+                                        scroll-button-size height)
                       (let [top (/ offset-y total-height)
                             bottom (/ (+ offset-y height)
                                       total-height)]
@@ -535,28 +534,28 @@
                         (translate 0 (* height top)
                                    (with-color
                                     [0.73 0.73 0.73]
-                                    (ui/rounded-rectangle scroll-button-width (* height (- bottom top)) (/ scroll-button-width 2)))
+                                    (ui/rounded-rectangle scroll-button-size (* height (- bottom top)) (/ scroll-button-size 2)))
                                    ))
 
                       (with-color [0.89 0.89 0.89]
                         (with-style :membrane.ui/style-stroke
-                          (rectangle scroll-button-width height)))]))
+                          (rectangle scroll-button-size height)))]))
         (when (> total-width width)
           (translate 0 height
                      [(filled-rectangle [0.941 0.941 0.941]
-                                        width scroll-button-width)
+                                        width scroll-button-size)
                       (let [left (/ offset-x total-width)
                             right (/ (+ offset-x width)
                                      total-width)]
                         (translate (* width left) 0
                                    (with-color
                                     [0.73 0.73 0.73]
-                                    (ui/rounded-rectangle (* width (- right left)) scroll-button-width  (/ scroll-button-width 2)))
+                                    (ui/rounded-rectangle (* width (- right left)) scroll-button-size  (/ scroll-button-size 2)))
                                    )
                         )
                       (with-color [0.89 0.89 0.89]
                         (with-style :membrane.ui/style-stroke
-                          (rectangle width scroll-button-width )))]))
+                          (rectangle width scroll-button-size )))]))
 
         ])))))
 
