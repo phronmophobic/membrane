@@ -110,7 +110,7 @@ Screenshot:
   (run-ui #'counter {:num 10}))
 ```
 
-Here's an exmaple of how you can use your `counter` component.
+Here's an example of how you can use your `counter` component.
 
 Screenshot:
 ![couning counter](/docs/images/counter3.gif?raw=true)
