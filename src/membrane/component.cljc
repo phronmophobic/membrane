@@ -45,6 +45,9 @@
         keypath
         (spec/keypath arg)
 
+        keypath-list
+        (apply spec/keypath arg)
+
         filter
         (spec/filterer (if (keyword? arg)
                          (fn [x]
@@ -98,6 +101,16 @@
            4
            [(second form)
             `[(list (quote ~'keypath) ~(nth form 2))
+              (list (quote ~'nil->val) ~(nth form 3))]])
+
+         (clojure.core/get-in get-in)
+         (case (count form)
+           3
+           [(second form)
+            `(list (quote ~'keypath-list) ~(nth form 2))]
+           4
+           [(second form)
+            `[(list (quote ~'keypath-list) ~(nth form 2))
               (list (quote ~'nil->val) ~(nth form 3))]])
          
          (spec/select-one)
