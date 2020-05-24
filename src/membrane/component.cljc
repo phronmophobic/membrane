@@ -856,7 +856,8 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
               (if (seq steps)
                 (run! #(apply handler %) steps)
                 (when mouse-down?
-                  (handler :set [:context :focus] nil)))))
+                  (handler :set ['ATOM $context :focus] nil)
+                  nil))))
           (ui/on-key-press
            (fn [s]
              (let [steps (membrane.ui/key-press main-view s)]
