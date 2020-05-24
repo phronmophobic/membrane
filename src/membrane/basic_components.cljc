@@ -671,3 +671,92 @@
   (run-ui #'dropdown {:options [[:this "This"]
                                 [:that "That "]
                                 [:the-other "The Other"]]}))
+
+(defeffect ::counter-dec [$num min]
+  (if min
+    (dispatch! :update $num #(max min (dec %)))
+    (dispatch! :update $num dec)))
+
+(defeffect ::counter-inc [$num max]
+  (if max
+    (dispatch! :update $num #(min max (inc %)))
+    (dispatch! :update $num inc)))
+
+(defui counter [ & {:keys [num min max]
+                    :or {num 0}}]
+  (horizontal-layout
+   (button :text "-"
+           :on-click
+           (fn []
+             [[::counter-dec $num min]]))
+   (ui/spacer 5 0)
+   (let [lbl (ui/label num)
+         w (ui/width lbl)
+         padding (/ (clojure.core/max 0 (- 20 w)) 2)]
+     (horizontal-layout
+      (spacer padding 0)
+      lbl
+      (spacer padding 0)))
+   (ui/spacer 5 0)
+   (button :text "+"
+           :on-click
+           (fn []
+             [[::counter-inc $num max]]))))
+
+
+(comment
+  (run-ui #'counter {:num 3}))
+
+(defeffect ::update-slider [$num min max max-width integer? x]
+  (let [ratio (/ x max-width)
+        num (+ min (* ratio (- max min)))
+        num (if integer?
+              (int num)
+              (double num))]
+   (dispatch! :set $num num)))
+
+(defui number-slider [& {:keys [num max-width min max integer? mdown?]
+                         :or {max-width 100}}]
+  (let [ratio (/ (- num min)
+                 (- max min))
+        width (* max-width (double ratio))
+        tint 0.85
+        gray [tint tint tint]]
+    (on
+     :mouse-down
+     (fn [[x y]]
+       [[:set $mdown? true]
+        [::update-slider $num min max max-width integer? x]])
+     :mouse-up
+     (fn [[x y]]
+       [[:set $mdown? false]
+        [::update-slider $num min max max-width integer? x]])
+     :mouse-move
+     (fn [[x y]]
+       (when mdown?
+         [[::update-slider $num min max max-width integer? x]]))
+     (ui/translate 1 1
+                   (let [height 20
+                         lbl (ui/label (if integer?
+                                         num
+                                         (format "%.2f" num)))]
+                     [(ui/with-style :membrane.ui/style-fill
+                        (ui/with-color gray
+                          (rectangle width height)))
+                      lbl
+                      (ui/with-style :membrane.ui/style-stroke
+                        (rectangle max-width height))
+                      ]))))
+  )
+
+
+(comment
+  (run-ui #'number-slider {:num 3
+                           :min 0
+                           :max 20})
+
+  (run-ui #'number-slider {:num 3
+                           :min 5
+                           :max 20
+                           :max-width 300
+                           :integer? true}))
