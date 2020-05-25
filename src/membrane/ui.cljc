@@ -1689,6 +1689,12 @@
       (mouse-move drawable [(- mx (nth offset 0))
                             (- my (nth offset 1))]))
 
+  IMouseMoveGlobal
+  (-mouse-move-global [this mouse-offset]
+      (let [[mx my] mouse-offset]
+        (-default-mouse-move-global this [(- mx (nth offset 0))
+                                          (- my (nth offset 1))])))
+
   IChildren
   (-children [this]
       [drawable]))
