@@ -885,7 +885,7 @@
 
   IChildren
   (-children [this]
-      [drawable])
+      (bordered-draw this))
 
   IBounds
   (-bounds [this]
