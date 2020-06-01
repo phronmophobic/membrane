@@ -739,7 +739,7 @@
                    (let [height 20
                          lbl (ui/label (if integer?
                                          num
-                                         (format "%.2f" num)))]
+                                         (format "%.2f" (double num))))]
                      [(ui/with-style :membrane.ui/style-fill
                         (ui/with-color gray
                           (rectangle width height)))
