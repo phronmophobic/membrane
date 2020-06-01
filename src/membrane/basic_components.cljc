@@ -632,13 +632,19 @@
         [rows-width rows-height] (bounds rows)
         ]
     [(ui/with-style
-      ::ui/style-stroke
-      (ui/with-color [0.831
-                     0.831
-                     0.831]
-       (ui/rounded-rectangle rows-width
-                             (+ rows-height (* 2 padding-y))
-                             4)))
+       ::ui/style-stroke
+       (ui/with-color [0.831
+                       0.831
+                       0.831]
+         (ui/rounded-rectangle rows-width
+                               (+ rows-height (* 2 padding-y))
+                               4)))
+     (ui/with-style
+       ::ui/style-fill
+       (ui/with-color [1 1 1]
+         (ui/rounded-rectangle rows-width
+                               (+ rows-height (* 2 padding-y))
+                               4)))
      (translate 0 (- padding-y 2)
                 rows)])
   )
