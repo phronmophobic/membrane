@@ -569,6 +569,8 @@
                              " jumped over the lazy dog"
                              ))))))
 
+(defeffect ::toggle [$bool]
+  (dispatch! :update $bool not))
 
 (defui checkbox
   "Checkbox component."
@@ -576,7 +578,7 @@
   (on
    :mouse-down
    (fn [_]
-     [[:update $checked? not]])
+     [[::toggle $checked?]])
    (ui/checkbox checked?)))
 
 
