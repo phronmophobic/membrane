@@ -1492,6 +1492,16 @@
     (glClear (bit-or GL_COLOR_BUFFER_BIT
                      GL_STENCIL_BUFFER_BIT))
 
+    ;; there's some issue with caching when drawing text that's offscreen
+    ;; when using gpu renderer in skia.cpp.
+    ;; currently using cpu renderer which fixes the issue.
+    ;; it's unclear which method should be preferred or what the
+    ;; performance implications are.
+    ;;
+    ;; simply resetting cache on reshape also fixes the issue,
+    ;; but causes the window to be drawn black while a window
+    ;; is being resized.
+    ;; (reset! draw-cache {})
 
     (let [[xscale yscale :as content-scale] (get-window-content-scale-size window)
           [fb-width fb-height] (get-framebuffer-size window)]
