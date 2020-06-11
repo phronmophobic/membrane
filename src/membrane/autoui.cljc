@@ -1403,6 +1403,14 @@
      :body
      (testblades :obj obj)))
 
+;; examples of using macros with eval
+;; https://github.com/clojure/clojurescript/blob/master/src/test/self/self_host/test.cljs#L392
+
+;; from @mfikes on clojurians regarding AOT and macros
+;; You have to roll your own way of doing that. Planck does this https://blog.fikesfarm.com/posts/2016-02-03-planck-macros-aot.html
+;; The high-level idea is that you can use a build-time self-hosted compiler to compile macros namespaces down to JavaScript.
+;; Also Replete does this as well, all in the name of fast loading. So, you can look at Plank and Replete as inspiration on how to do this. There might be other examples out there as well.
+
 #?(:cljs
    (do
 
