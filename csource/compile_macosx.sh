@@ -49,42 +49,14 @@ export SDKROOT="/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"
 #     -o testtext \
 #     shader_utils.cpp platform.c vertex-attribute.c vector.c vertex-buffer.c texture-font.c utf8-utils.c distance-field.c edtaa3func.c texture-atlas.c mat4.c shader.c text.cpp testtext.cpp
 
-# clang++ \
-#     -I ./libs/glfw-3.3.bin.MACOS/include \
-#     -I ./libs/skia \
-#     -I ./libs/skia/include/gpu \
-#     -I ./libs/skia/include/gpu/gl \
-#     -I ./libs/skia/include/core \
-#     -I ./libs/skia/include/utils \
-#     -I ./libs/skia/include/private \
-#     -framework OpenGL \
-#     -framework Cocoa \
-#     -framework IOKit \
-#     -framework CoreFoundation \
-#     -framework CoreVideo \
-#     -framework AppKit \
-#     -framework CoreGraphics \
-#     -framework CoreServices \
-#     -framework Foundation \
-#     -mmacosx-version-min=10.10 \
-#     -dynamiclib \
-#     ./libs/skia/out/Static/libskia.a \
-#     -std=c++17 \
-#     -o libmembraneskia.dylib \
-#     skia.cpp
-
-cd ./libs/libtmt && ./compile.sh
-cd -
-
-# test
-clang++ -I ./libs/glfw-3.3.bin.MACOS/include \
+clang++ \
+    -I ./libs/glfw-3.3.bin.MACOS/include \
     -I ./libs/skia \
     -I ./libs/skia/include/gpu \
     -I ./libs/skia/include/gpu/gl \
     -I ./libs/skia/include/core \
     -I ./libs/skia/include/utils \
     -I ./libs/skia/include/private \
-    -I ./libs/libtmt \
     -framework OpenGL \
     -framework Cocoa \
     -framework IOKit \
@@ -95,13 +67,41 @@ clang++ -I ./libs/glfw-3.3.bin.MACOS/include \
     -framework CoreServices \
     -framework Foundation \
     -mmacosx-version-min=10.10 \
-    -DTESTING \
-    ./libs/glfw-3.3.bin.MACOS/lib-macos/libglfw3.a \
+    -dynamiclib \
     ./libs/skia/out/Static/libskia.a \
-    ./libs/libtmt/tmt.o \
     -std=c++17 \
-    -o testglfw \
-    testglfw.cpp skia.cpp
+    -o libmembraneskia.dylib \
+    skia.cpp
+
+# cd ./libs/libtmt && ./compile.sh
+# cd -
+
+# test
+# clang++ -I ./libs/glfw-3.3.bin.MACOS/include \
+#     -I ./libs/skia \
+#     -I ./libs/skia/include/gpu \
+#     -I ./libs/skia/include/gpu/gl \
+#     -I ./libs/skia/include/core \
+#     -I ./libs/skia/include/utils \
+#     -I ./libs/skia/include/private \
+#     -I ./libs/libtmt \
+#     -framework OpenGL \
+#     -framework Cocoa \
+#     -framework IOKit \
+#     -framework CoreFoundation \
+#     -framework CoreVideo \
+#     -framework AppKit \
+#     -framework CoreGraphics \
+#     -framework CoreServices \
+#     -framework Foundation \
+#     -mmacosx-version-min=10.10 \
+#     -DTESTING \
+#     ./libs/glfw-3.3.bin.MACOS/lib-macos/libglfw3.a \
+#     ./libs/skia/out/Static/libskia.a \
+#     ./libs/libtmt/tmt.o \
+#     -std=c++17 \
+#     -o testglfw \
+#     testglfw.cpp skia.cpp
 
 
 
