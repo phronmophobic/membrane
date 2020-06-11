@@ -105,6 +105,17 @@
                            :aot-cache true
                            :source-map-timestamp true
                            ;; :optimizations :simple
+                           }}
+               {:id "autouitest"
+                :source-paths ["src"]
+                :figwheel {:on-jsload "membrane.autouitest/on-js-reload"}
+                :compiler {:main membrane.autoui
+                           :asset-path "js/compiled/out.autouitest"
+                           :output-to "resources/public/js/compiled/autouitest.js"
+                           :output-dir "resources/public/js/compiled/out.autouitest"
+                           :aot-cache true
+                           :source-map-timestamp true
+                           ;; :optimizations :simple
                            }}]}
 
   :figwheel {;; :http-server-root "public" ;; default and assumes "resources"
