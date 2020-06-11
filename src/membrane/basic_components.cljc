@@ -747,7 +747,8 @@
                    (let [height 20
                          lbl (ui/label (if integer?
                                          num
-                                         (format "%.2f" (double num))))]
+                                         #?(:clj (format "%.2f" (double num))
+                                            :cljs (.toFixed (double num) 2))))]
                      [(ui/with-style :membrane.ui/style-fill
                         (ui/with-color gray
                           (rectangle width height)))
