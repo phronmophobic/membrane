@@ -519,13 +519,18 @@ extern "C" {
     SkiaResource* skia_offscreen_buffer(SkiaResource* resource, int width, int height){
 
         SkImageInfo info = SkImageInfo:: MakeN32Premul(width, height);
-        sk_sp<SkSurface> gpuSurface(
-            SkSurface::MakeRenderTarget(resource->grContext.get(), SkBudgeted::kNo, info));
-        if (!gpuSurface) {
+
+
+        sk_sp<SkSurface> cpuSurface(SkSurface::MakeRaster(info));
+
+        // gpu surface won't draw if offscreen originally
+        // sk_sp<SkSurface> gpuSurface(
+        //     SkSurface::MakeRenderTarget(resource->grContext.get(), SkBudgeted::kNo, info));
+        if (!cpuSurface) {
             SkDebugf("SkSurface::MakeRenderTarget returned null\n");
         }
 
-        SkiaResource* gpuResource = new SkiaResource(resource->grContext, gpuSurface);
+        SkiaResource* gpuResource = new SkiaResource(resource->grContext, cpuSurface);
 
         gpuResource->paints.pop();
         gpuResource->paints.emplace(SkPaint(resource->getPaint()));
