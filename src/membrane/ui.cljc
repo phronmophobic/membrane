@@ -2037,7 +2037,11 @@
 (defcomponent TryDraw [drawable error-draw]
     IOrigin
     (-origin [_]
-        [0 0])
+        (try
+          (origin drawable)
+          (catch #?(:clj Exception
+                    :cljs js/Object) e
+            (bounds (label "error")))))
 
     IBounds
     (-bounds [this]
