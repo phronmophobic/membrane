@@ -461,9 +461,7 @@
         scroll-button-size 7
         [total-width total-height] (bounds body)
 
-        scroll-elem (ui/scrollview
-                     scroll-bounds [(- offset-x) (- offset-y)]
-                     body)
+
 
         max-offset-x (max 0
                           (- total-width width))
@@ -477,6 +475,11 @@
                  (max 0
                       (min max-offset-y
                            old-offset)))
+
+        scroll-elem (ui/scrollview
+                     scroll-bounds [(- (clampx offset-x))
+                                    (- (clampy offset-y))]
+                     body)
 
         div0 (fn [a b]
              (if (zero? b)
