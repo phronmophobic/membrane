@@ -5,8 +5,8 @@
                       [membrane.autoui
                        :refer [defgen]]))
   (:require #?(:clj [membrane.skia :as skia])
-            ;; #?(:cljs membrane.webgl)
-            #?(:cljs membrane.vdom)
+            #?(:cljs membrane.webgl)
+            ;; #?(:cljs membrane.vdom)
             [membrane.ui :as ui
              :refer [vertical-layout
                      translate
@@ -308,7 +308,8 @@
 
 (defmethod can-gen-from-spec? OrGen [this specs spec]
   (and (seq? spec)
-       (= first 'clojure.spec.alpha/or)))
+       (#{'clojure.spec.alpha/or
+          'cljs.spec.alpha/or} (first spec))))
 
 (defgen SimpleTextAreaGen [opts context]
   
@@ -323,7 +324,8 @@
   (->SimpleTextAreaGen {} context))
 
 (defmethod can-gen-from-spec? SimpleTextAreaGen [this specs spec]
-  (= spec 'clojure.core/string?))
+  (#{'clojure.core/string?
+     'cljs.core/string?} spec ))
 
 
 (defui number-counter-inspector [& {:keys [gen]}]
@@ -383,7 +385,8 @@
   (->NumberCounterGen {} context))
 
 (defmethod can-gen-from-spec? NumberCounterGen [this specs spec]
-  (= spec 'clojure.core/integer?))
+  (#{'clojure.core/integer?
+     'cljs.core/integer?} spec ))
 
 
 (defui number-slider-inspector [& {:keys [gen]}]
@@ -430,9 +433,13 @@
 
 (defmethod can-gen-from-spec? NumberSliderGen [this specs spec]
   (#{'clojure.core/integer?
+     'cljs.core/integer?
      'clojure.core/number?
+     'cljs.core/number?
      'clojure.core/float?
-     'clojure.core/double?}
+     'cljs.core/float?
+     'clojure.core/double?
+     'cljs.core/double?}
    spec))
 
 
@@ -450,7 +457,8 @@
   (->CheckboxGen {} context))
 
 (defmethod can-gen-from-spec? CheckboxGen [this specs spec]
-  (#{'clojure.core/boolean?} spec))
+  (#{'clojure.core/boolean?
+     'cljs.core/boolean?} spec))
 
 
 (defgen TitleGen [opts context]
@@ -471,7 +479,9 @@
 
 (defmethod can-gen-from-spec? TitleGen [this specs spec]
   (#{'clojure.core/string?
-     'clojure.core/keyword?} spec))
+     'cljs.core/string?
+     'clojure.core/keyword?
+     'cljs.core/keyword?} spec))
 
 
 (defgen LabelGen [opts context]
@@ -738,32 +748,45 @@
   (gen-editor [this sym]
     (let [k-sym (gensym "k-")
           v-sym (gensym "v-")
-          klabel-sym (gensym "klabel-")]
+          klabel-sym (gensym "klabel-")
+          table-sym (gensym "table-")]
       `(ui/translate 10 10
-                     (ui/table-layout
-                      (for [[~k-sym ~v-sym] ~sym]
-                        ~(let [k-elem
-                                `(let [~klabel-sym (maybe-with-meta
-                                                    ~(gen-editor (:k opts) k-sym)
-                                                    ~{:relative-identity '(quote [(keypath :opts)
-                                                                                  (keypath :k)])})]
-                                   (vertical-layout
-                                    ~klabel-sym
-                                    ~(when (<= (:depth context) 1)
-                                       `(let [lbl-width# (ui/width ~klabel-sym)]
-                                          (ui/with-style :membrane.ui/style-stroke
-                                            (ui/with-color [0 0 0]
-                                              (ui/path [0 0] [lbl-width# 0])))))))
-                                v-elem
-                                `(let [~v-sym (get ~sym ~k-sym)]
-                                   (maybe-with-meta
-                                    ~(gen-editor (:v opts) v-sym)
-                                    ~{:relative-identity '(quote [(keypath :opts)
-                                                                  (keypath :v)])}))]
-                            (if (get opts :kv-order? true)
-                              [k-elem v-elem]
-                              [v-elem k-elem])))
-                      )
+                     (let [~table-sym (for [[~k-sym ~v-sym] ~sym]
+                                        ~(let [k-elem
+                                               `(let [~klabel-sym (maybe-with-meta
+                                                                   ~(gen-editor (:k opts) k-sym)
+                                                                   ~{:relative-identity '(quote [(keypath :opts)
+                                                                                                 (keypath :k)])})]
+                                                  (vertical-layout
+                                                   ~klabel-sym
+                                                   ~(when (<= (:depth context) 1)
+                                                      `(let [lbl-width# (ui/width ~klabel-sym)]
+                                                         (ui/with-style :membrane.ui/style-stroke
+                                                           (ui/with-color [0 0 0]
+                                                             (ui/path [0 0] [lbl-width# 0])))))))
+                                               v-elem
+                                               `(let [~v-sym (get ~sym ~k-sym)]
+                                                  (maybe-with-meta
+                                                   ~(gen-editor (:v opts) v-sym)
+                                                   ~{:relative-identity '(quote [(keypath :opts)
+                                                                                 (keypath :v)])}))]
+                                           (if (get opts :kv-order? true)
+                                             [k-elem v-elem]
+                                             [v-elem k-elem])))
+                           ]
+                       ~(if (= (:horizontal-rows? opts)
+                               (:horizontal-cols? opts))
+                          (let [layout (if (:horizontal-rows? opts)
+                                         `horizontal-layout
+                                         `vertical-layout)] 
+                            `(apply ~layout
+                                    (apply concat ~table-sym)))
+                          `(ui/table-layout ~(if (:horizontal-rows? opts)
+                                               table-sym
+                                               `[(map first ~table-sym)
+                                                 (map second ~table-sym)]))
+                          )
+                       )
                      #_(apply
                         ~(if (:horizontal-rows? opts)
                            `horizontal-layout
@@ -802,7 +825,8 @@
     (let [spec-fn (first spec)]
       (case spec-fn 
 
-        clojure.spec.alpha/map-of
+        (clojure.spec.alpha/map-of
+         cljs.spec.alpha/map-of)
         (let [[kpred vpred & opts] (rest spec)
               k-spec (if (keyword? kpred)
                        (get specs kpred)
@@ -818,7 +842,8 @@
                            :v (best-gen specs v-spec subcontext)}
                           context))
 
-        clojure.spec.alpha/keys
+        (clojure.spec.alpha/keys
+         cljs.spec.alpha/keys)
         (let [[& {:keys [req req-un opt opt-un gen]}] (rest spec)
               key-specs (concat req req-un opt opt-un)
               first-key-spec (get specs (first key-specs))]
@@ -832,8 +857,11 @@
 (defmethod can-gen-from-spec? StaticMapGen [this specs spec]
   (and (seq? spec)
        (let [spec-fn (first spec)]
-         (or (= spec-fn 'clojure.spec.alpha/map-of)
-             (and (= spec-fn 'clojure.spec.alpha/keys)
+         (or (#{'clojure.spec.alpha/map-of
+                'cljs.spec.alpha/map-of}
+              spec-fn )
+             (and (#{'clojure.spec.alpha/keys
+                     'cljs.spec.alpha/keys} spec-fn )
                   ;; all key specs should return the same gen type
                   ;; this is so ugly. forgive me
                   (let [[& {:keys [req req-un opt opt-un gen]}] (rest spec)
@@ -874,11 +902,13 @@
 
 (defmethod re-gen StaticSeqGen [_ specs spec context]
   (assert (can-gen-from-spec? StaticSeqGen specs spec))
-  (->StaticSeqGen {:vals (best-gen specs (second spec) (inc-context-depth context))}))
+  (->StaticSeqGen {:vals (best-gen specs (second spec) (inc-context-depth context))}
+                  context))
 
 (defmethod can-gen-from-spec? StaticSeqGen [this specs spec]
   (and (seq? spec)
-       (= 'clojure.spec.alpha/coll-of (first spec))))
+       (#{'clojure.spec.alpha/coll-of
+          'cljs.spec.alpha/coll-of} (first spec))))
 
 (defui keymap-gen-inspector [& {:keys [gen]}]
   (let [bordered? (get-in gen [:opts :bordered?] true)]
@@ -934,12 +964,16 @@
                                    (for [k (concat req opt)]
                                      [k (best-gen specs (get specs k) subcontext)])
                                    (for [k (concat req-un opt-un)]
-                                     [(keyword (name k)) (best-gen specs (get specs k) subcontext)])))}
+                                     [(keyword (name k)) (best-gen specs (get specs k) subcontext)])))
+                  :bordered? (if-let [depth (:depth context)]
+                               (pos? depth)
+                               true)}
                  context)))
 
 (defmethod can-gen-from-spec? KeyMapGen [this specs spec]
   (and (seq? spec)
-       (= 'clojure.spec.alpha/keys (first spec))))
+       (#{'clojure.spec.alpha/keys
+          'cljs.spec.alpha/keys} (first spec))))
 
 
 (defn first-matching-gen [obj]
@@ -1013,28 +1047,36 @@
     ([specs spec context]
      (let [gen (cond
 
-                 (= spec 'clojure.core/string?)
+                 (#{'clojure.core/string?
+                    'cljs.core/string?} spec )
                  (->SimpleTextAreaGen {} context)
                  
-                 (= spec 'clojure.core/boolean?)
+                 (#{'clojure.core/boolean?
+                    'cljs.core/boolean?} spec )
                  (->CheckboxGen {} context)
 
-                 (= spec 'clojure.core/keyword?)
+                 (#{'clojure.core/keyword?
+                    'cljs.core/keyword?} spec )
                  (->TitleGen {} context)
 
 
-                 (= spec 'clojure.core/integer?)
+                 (#{'clojure.core/integer?
+                    'cljs.core/integer?
+                    } spec )
                  (->NumberCounterGen {} context)
 
                  ('#{clojure.core/double?
-                     clojure.core/float?} spec)
+                     cljs.core/double?
+                     clojure.core/float?
+                     cljs.core/float?} spec)
                  (->NumberSliderGen {} context)
                  
 
                  
                  (seq? spec)
                  (case (first spec)
-                   clojure.spec.alpha/coll-of
+                   (clojure.spec.alpha/coll-of
+                    cljs.spec.alpha/coll-of)
                    (let [[pred & {:keys [into
                                          kind
                                          count
@@ -1051,10 +1093,12 @@
                                      context)
                      )
 
-                   clojure.spec.alpha/keys
+                   (clojure.spec.alpha/keys
+                    cljs.spec.alpha/keys)
                    (re-gen KeyMapGen specs spec context)
 
-                   clojure.spec.alpha/or
+                   (clojure.spec.alpha/or
+                    cljs.spec.alpha/or)
                    (let [key-preds (rest spec)]
                      (->OrGen {:preds (for [[k pred] (partition 2 key-preds)]
                                         [[pred (best-gen specs pred context)]])}
@@ -1079,7 +1123,7 @@
 
   
 
-  (prn
+  #_(prn
    (let [obj blades-json]
      (best-gen obj))))
 
@@ -1143,7 +1187,9 @@
 (defui gen-editor-inspector [& {:keys [ge]}]
   (let [sub (subgens ge)]
     (foldable-section
-     :title (get-gen-name (type ge))
+     :title (if-let [spec (-> ge :context :spec)]
+              (pr-str spec)
+              (get-gen-name (type ge)))
      :visible? (get extra [:foldable-visible $ge] true)
      :body
      (apply
@@ -1245,7 +1291,7 @@
 (defui eval-form [& {:keys [form eval-context cache eval-key]}]
   (let [cache (or cache {})
         result (background-eval form eval-context cache $cache eval-key)]
-    (prn "result:" result)
+    ;; (prn "result:" result)
     result))
 
 (defui gen-editor-editor [& {:keys [ge obj selected-ge-path ge-options]}]
@@ -1290,7 +1336,6 @@
         :mouse-down
         (fn [pos]
           (let [results (seq (find-under pos body 5))]
-            (prn (count results))
             (if-let [results results]
               (if (= (count results) 1)
                 (let [ident (:identity (first results))]
@@ -1346,14 +1391,17 @@
                ge (best-gen obj)]
            (def editor-state (run-ui #'gen-editor-editor {:ge ge
                                                           :obj obj}))))
+(defn start-blades []
+  (let [obj blades-json
+        ge (best-gen obj)]
+    (def editor-state (run-ui #'gen-editor-editor {:ge ge
+                                                          :obj obj}))))
 
 #_(defui blades-scroll [ & {:keys [obj]}]
     (basic/scrollview
      :scroll-bounds [800 800]
      :body
      (testblades :obj obj)))
-
-
 
 #?(:cljs
    (do
@@ -1363,10 +1411,17 @@
 
      (def aot-caches
        [
+
+        "js/compiled/out.autouitest/clojure/zip.cljs.cache.json"
         "js/compiled/out.autouitest/clojure/string.cljs.cache.json"
         "js/compiled/out.autouitest/clojure/walk.cljs.cache.json"
         "js/compiled/out.autouitest/clojure/set.cljs.cache.json"
         "js/compiled/out.autouitest/cognitect/transit.cljs.cache.json"
+        "js/compiled/out.autouitest/spec_provider/util.cljc.cache.json"
+        "js/compiled/out.autouitest/spec_provider/merge.cljc.cache.json"
+        "js/compiled/out.autouitest/spec_provider/rewrite.cljc.cache.json"
+        "js/compiled/out.autouitest/spec_provider/stats.cljc.cache.json"
+        "js/compiled/out.autouitest/spec_provider/provider.cljc.cache.json"
         "js/compiled/out.autouitest/cljs/tools/reader/impl/commons.cljs.cache.json"
         "js/compiled/out.autouitest/cljs/tools/reader/impl/utils.cljs.cache.json"
         "js/compiled/out.autouitest/cljs/tools/reader/impl/errors.cljs.cache.json"
@@ -1385,15 +1440,18 @@
         "js/compiled/out.autouitest/cljs/compiler.cljc.cache.json"
         "js/compiled/out.autouitest/cljs/analyzer.cljc.cache.json"
         "js/compiled/out.autouitest/cljs/tagged_literals.cljc.cache.json"
+        "js/compiled/out.autouitest/cljs/spec/test/alpha.cljs.cache.json"
         "js/compiled/out.autouitest/cljs/spec/gen/alpha.cljs.cache.json"
         "js/compiled/out.autouitest/cljs/spec/alpha.cljs.cache.json"
         "js/compiled/out.autouitest/cljs/reader.cljs.cache.json"
         "js/compiled/out.autouitest/cljs/source_map.cljs.cache.json"
         "js/compiled/out.autouitest/cljs/js.cljs.cache.json"
+        "js/compiled/out.autouitest/cljs/pprint.cljs.cache.json"
         "js/compiled/out.autouitest/cljs/source_map/base64.cljs.cache.json"
         "js/compiled/out.autouitest/cljs/source_map/base64_vlq.cljs.cache.json"
         "js/compiled/out.autouitest/cljs/core$macros.cljc.cache.json"
         "js/compiled/out.autouitest/cljs/analyzer/api.cljc.cache.json"
+        "js/compiled/out.autouitest/cljs/stacktrace.cljc.cache.json"
         "js/compiled/out.autouitest/membrane/audio.cljs.cache.json"
         "js/compiled/out.autouitest/membrane/jsonee.cljc.cache.json"
         "js/compiled/out.autouitest/membrane/webgl.cljs.cache.json"
@@ -1415,6 +1473,8 @@
         "js/compiled/out.autouitest/com/rpl/specter/navs.cljc.cache.json"
         "js/compiled/out.autouitest/vdom/core.cljs.cache.json"
         "js/compiled/out.autouitest/process/env.cljs.cache.json"
+
+
         ]
        )
 
@@ -1450,13 +1510,15 @@
            (async/go
 
              #_(prn (<! (membrane.eval/eval-async state '(require-macros '[membrane.component :refer [defui]])
-                                                #_(:require [membrane.audio :as audio]))))
-
-
+                                                  #_(:require [membrane.audio :as audio]))))
 
              (let [obj blades-json
-                   ge (gen-tree obj)]
-               (defonce start-auto-app (membrane.component/run-ui #'gen-editor-editor {:ge ge :obj obj} nil {:root (js/document.getElementById "app")})))
+                   ge (best-gen obj)]
+
+               (def canvas (.getElementById js/document "canvas"))
+               (defonce start-auto-app (membrane.component/run-ui  #'gen-editor-editor {:ge ge :obj obj} nil {:canvas canvas}))
+
+               #_(defonce start-auto-app (membrane.component/run-ui #'gen-editor-editor {:ge ge :obj obj} nil {:root (js/document.getElementById "app")})))
 
 
              (def background-eval-context (atom {}))
@@ -1477,7 +1539,7 @@
                                                 ~form)
 
                            result (<! (membrane.eval/eval-async cljstate form-with-context))]
-                       (prn result)
+                       ;; (prn result)
                        (if (:error result)
                          (do
                            (prn "error " (:error result))
@@ -1492,11 +1554,16 @@
                        
 
                        (swap! background-eval-context dissoc context-key)))
-                   (ui/label "loading..."))))
+                   (ui/label "loading...")))))))
 
-             (def canvas (.getElementById js/document "canvas"))
-             ;; (defonce start-builder-app (membrane.component/run-ui #'builder builder-state nil {:canvas canvas}))
-             )))
+       (set! (.-evaltest js/window
+                         )
+             (fn []
+               (let [source '(membrane.component/defui my-foo [& {:keys [ a b]}]) ]
+                 (cljs/eval state source membrane.eval/default-compiler-options
+                            #(prn %)))))
+
+
 
        (set! (.-evaltually js/window)
              (fn [source]
@@ -1505,10 +1572,57 @@
                               #(prn %))
                
                ))
-       
-       
-       )))
 
+       (set! (.-evaltually_statement js/window)
+             (fn [source]
+               (cljs/eval-str state source nil (assoc membrane.eval/default-compiler-options
+                                                      :context :statement)
+                              #(prn %)))))))
+
+
+
+(comment
+  #?(:cljs
+     (do
+       (defn default-load-fn [{:keys [name macros path] :as m} cb]
+         (prn "trying to load" m)
+         (throw "whoops!"))
+
+       (defn wrap-js-eval [resource]
+         (try
+           (cljs/js-eval resource)
+           (catch js/Object e
+             {::error e})))
+
+       (def compiler-options
+         {:source-map true
+          ;; :context :statement
+          :ns 'test.ns
+          :verbose true
+          :load default-load-fn
+          :def-emits-var true
+          :eval wrap-js-eval})
+
+       (def state (cljs/empty-state))
+
+       (defn eval-next [statements]
+         (when-let [statement (first statements)]
+           (prn "evaling " statement)
+           (cljs/eval state
+                      statement
+                      compiler-options
+                      #(do (prn "result: " %)
+                           (eval-next (rest statements))))))
+       (eval-next [
+                   '(ns test.ns)
+                   '(defmacro test-macro [& body]
+                      `(vector 42 ~@body))
+                   '(test-macro 123)
+                   ;; console log:
+                   ;; "evaling " (test-macro 123)
+                   ;; "result: " [42]
+
+                   ]))))
 
 
 
