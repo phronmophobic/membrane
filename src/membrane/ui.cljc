@@ -1555,7 +1555,7 @@
   (OnClipboardCut. on-clipboard-cut drawables))
 
 
-
+;; TODO: replace with defcomponent so that drawing doesn't require pushes and pops for each movement
 (defn vertical-layout
   "Returns a graphical elem of elems stacked on top of each other"
   [& elems]
@@ -1579,6 +1579,7 @@
                               elem))))
           group-elems)))))
 
+;; TODO: replace with defcomponent so that drawing doesn't require pushes and pops for each movement
 (defn horizontal-layout
   "Returns a graphical elem of elems layed out next to eachother."
   [& elems]
