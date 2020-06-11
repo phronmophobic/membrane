@@ -63,6 +63,9 @@
           [org.clojure/test.check "0.9.0"]
           [criterium "0.4.5"]
           [com.clojure-goes-fast/clj-async-profiler "0.4.1"]
+
+          [org.clojure/data.json "1.0.0"]
+          [spec-provider "0.4.14"]
           ]
          :repl-options {:nrepl-middleware [cider.piggieback/wrap-cljs-repl]}
          ;;:source-paths ["cljs_src"]
