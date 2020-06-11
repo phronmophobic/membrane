@@ -1603,6 +1603,31 @@
                               elem))))
           group-elems)))))
 
+(defn table-layout
+  ([table]
+   (table-layout table 0 0))
+  ([table cell-padding-x cell-padding-y]
+   (let [row-heights (mapv (fn [row]
+                             (reduce max (map height row)))
+                           table)
+         col-widths (reduce (fn [col-widths row]
+                              (reduce (fn [col-widths [i elem]]
+                                        (update col-widths i #(max (or % 0) (width elem))))
+                                      col-widths
+                                      (map-indexed vector row)))
+                            []
+                            table)
+         full-padding-x (* 2 cell-padding-x)
+         full-padding-y (* 2 cell-padding-y)]
+     (into []
+           (for [[i row] (map-indexed vector table)
+                 [j elem] (map-indexed vector row)]
+             (translate (+ cell-padding-x
+                           (reduce #(+ full-padding-x %1 %2) 0 (subvec col-widths 0 j)))
+                        (+ cell-padding-y
+                           (reduce #(+ full-padding-y %1 %2) 0 (subvec row-heights 0 i)))
+                        elem))))))
+
 
 (defn center [elem [width height]]
   (let [[ewidth eheight] (bounds elem)]
