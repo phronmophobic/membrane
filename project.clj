@@ -5,7 +5,7 @@
             :url "http://www.apache.org/licenses/LICENSE-2.0"}
 
   :dependencies [[org.clojure/clojure "1.10.0"]
-                 [org.clojure/clojurescript "1.10.741"]
+                 [org.clojure/clojurescript "1.10.764"]
 
 
                  [net.n01se/clojure-jna "1.0.0"
