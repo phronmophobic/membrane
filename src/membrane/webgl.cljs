@@ -391,13 +391,25 @@
 (extend-type membrane.ui.ScissorView
   IDraw
   (draw [this]
-    
-    ))
+    (push-state *ctx*
+                (let [[ox oy] (:offset this)
+                      [w h] (:bounds this)]
+                  ;; (.scissor *ctx* ox oy w h)
+                  (.clip *ctx* (doto (new js/Path2D)
+                                 (.rect ox oy w h)))
+                  (draw (:drawable this))))))
+
+(defn scrollview-draw [scrollview]
+  (draw
+   (ui/->ScissorView [0 0]
+                  (:bounds scrollview)
+                  (let [[mx my] (:offset scrollview)]
+                    (ui/translate mx my (:drawable scrollview))))))
 
 (extend-type membrane.ui.ScrollView
   IDraw
   (draw [this]
-    (draw-rect)))
+      (scrollview-draw this)))
 
 (extend-type membrane.ui.OnScroll
   IDraw
