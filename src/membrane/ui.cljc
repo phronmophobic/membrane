@@ -1744,7 +1744,9 @@
 
     IBounds
     (-bounds [this]
-        (bounds drawable))
+        (mapv +
+              (origin drawable)
+              (bounds drawable)))
 
   IChildren
   (-children [this]
