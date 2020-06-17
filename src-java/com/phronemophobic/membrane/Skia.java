@@ -26,7 +26,7 @@ public class Skia {
     public static native void skia_clip_rect(Pointer resource, float ox, float oy, float width, float height);
 
     public static native Pointer skia_load_image(String path);
-    public static native Pointer skia_load_image_from_memory(Pointer buffer,int buffer_length);
+    public static native Pointer skia_load_image_from_memory(byte[] buf,int buffer_length);
     public static native void skia_draw_image(Pointer resource, Pointer image);
     public static native void skia_draw_image_rect(Pointer resource, Pointer image, float w, float h);
 
