@@ -528,10 +528,10 @@
   (get-image-texture [image-url]
     (if-let [image (get @*image-cache* image-url)]
       image
-      (let [bytes (slurp-bytes image-url)]
-        (let [image (Skia/skia_load_image_from_memory bytes (alength ^bytes bytes))]
-          (swap! *image-cache* assoc image-url image)
-          image)))))
+      (let [bytes (slurp-bytes image-url)
+            image (Skia/skia_load_image_from_memory bytes (alength ^bytes bytes))]
+        (swap! *image-cache* assoc image-url image)
+        image))))
 
 
 
