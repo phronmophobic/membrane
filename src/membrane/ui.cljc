@@ -528,6 +528,7 @@
   `image-path`: using the skia backend, `image-path` can be one of
   - a string filename
   - a java.net.URL
+  - a byte array containing the bytes of supported image format
   This is useful for drawing images included in a jar. Simply put your image in your resources folder, typically resources.
   Draw the images in the jar with `(ui/image (clojure.java.io/resource \"filename.png\"))`
 
