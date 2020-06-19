@@ -35,6 +35,16 @@ Leiningen dependency:
 ```
 [com.phronemophobic/membrane "0.9.8-beta"]
 ```
+
+deps.edn dependency:
+
+```
+{:deps
+ {
+  com.phronemophobic/membrane {:mvn/version "0.9.8-beta"}
+  }
+}
+```
 ## Screenshots
 
 ![Overview](/docs/images/overview.gif?raw=true)
