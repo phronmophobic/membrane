@@ -40,6 +40,7 @@
 
   :source-paths ["src"]
   :java-source-paths ["src-java"]
+  :javac-options     ["-target" "1.8" "-source" "1.8"]
   ;; :java-cmd "/Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home/bin/java"
     ;; :java-cmd "/Library/Java/JavaVirtualMachines/jdk1.8.0_60.jdk/Contents/Home/bin/java"
   :jvm-opts [;;"-Dapple.awt.UIElement=false"
