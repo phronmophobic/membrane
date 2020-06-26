@@ -935,7 +935,7 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
          ;; use transform* over transform for graalvm.
          ;; since the specs are dynamic, I don't think there's any benefit to the
          ;; macro anyway
-         (spec/transform* (path->spec path)
+         (spec/transform* (path->spec [ATOM path])
                           (fn [& spec-args]
                             (apply f (concat spec-args
                                              args)))
@@ -945,14 +945,14 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
          ;; use setval* over setval for graalvm.
          ;; since the specs are dynamic, I don't think there's any benefit to the
          ;; macro anyway
-         (spec/setval* (path->spec path) v atm))
+         (spec/setval* (path->spec [ATOM path]) v atm))
 
        :delete
        (let [[path] args]
          ;; use setval* over setval for graalvm.
          ;; since the specs are dynamic, I don't think there's any benefit to the
          ;; macro anyway
-         (spec/setval* (path->spec path) spec/NONE atm))
+         (spec/setval* (path->spec [ATOM path]) spec/NONE atm))
 
        (let [effects @effects]
          (let [handler (get effects type)]
