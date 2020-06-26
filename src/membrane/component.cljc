@@ -825,19 +825,16 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
 
                          $kw
                          (into
-                          `[~'ATOM
-                            (~'keypath ~kw)]
+                          `[(~'keypath ~kw)]
                           (when (contains? defaults nm)
                             [(list 'nil->val (get defaults nm))]))]))
           main-view (apply
                      @body
                      :extra extra
-                     :$extra  ['ATOM $extra]
+                     :$extra  $extra
                      :context context
-                     :$context ['ATOM $context]
-                     args)
-          
-          ]
+                     :$context $context
+                     args)]
       (membrane.ui/on-scroll
        (fn [offset]
          (let [steps (membrane.ui/scroll main-view offset)]
@@ -856,7 +853,7 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
               (if (seq steps)
                 (run! #(apply handler %) steps)
                 (when mouse-down?
-                  (handler :set ['ATOM $context :focus] nil)
+                  (handler :set [$context :focus] nil)
                   nil))))
           (ui/on-key-press
            (fn [s]
@@ -909,18 +906,18 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
      (case type
        :update
        (let [[path f & args ] args]
-         (spec/transform (path->spec path)
+         (spec/transform (path->spec [ATOM path])
                          (fn [& spec-args]
                            (apply f (concat spec-args
                                             args)))
                          atm))
        :set
        (let [[path v] args]
-         (spec/setval (path->spec path) v atm))
+         (spec/setval (path->spec [ATOM path]) v atm))
 
        :delete
        (let [[path] args]
-         (spec/setval (path->spec path) spec/NONE atm))
+         (spec/setval (path->spec [ATOM path]) spec/NONE atm))
 
        (let [effects @effects]
          (let [handler (get effects type)]
