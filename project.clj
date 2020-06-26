@@ -16,7 +16,7 @@
                  ;; [figwheel-sidecar "0.5.0-2"]
                  [figwheel-sidecar "0.5.18" :exclusions [org.clojure/tools.nrepl]]
 
-                 [com.rpl/specter "1.1.1"]
+                 [com.rpl/specter "1.1.3"]
                  [org.apache.commons/commons-text "1.8"]
 
                  [com.googlecode.lanterna/lanterna "3.0.2"]
