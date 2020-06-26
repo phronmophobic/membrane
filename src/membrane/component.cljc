@@ -1,13 +1,28 @@
 (ns membrane.component
-  ;; #?(:cljs (:require-macros [membrane.component :refer [defui path-replace-macro]]))
+  #?(:cljs (:require-macros [membrane.component :refer [defui path-replace-macro]]))
   (:require ;; [clojure.core.async :refer [go put! chan <! timeout dropping-buffer promise-chan]
    ;;  :as async]
    [com.rpl.specter :as spec
     :refer [ATOM ALL FIRST LAST MAP-VALS META]]
+   #?(:cljs cljs.analyzer.api)
+   #?(:cljs [cljs.analyzer :as cljs])
+   #?(:cljs cljs.env)
    [membrane.ui :as ui :refer [defcomponent children bounds origin]]))
 
 (def ^:dynamic *root* nil)
 
+#?
+(:clj
+ (try
+   (def cljs-resolve (requiring-resolve 'cljs.analyzer.api/resolve))
+   (def cljs-resolve-var (requiring-resolve 'cljs/resolve-var))
+   (let [cljs-compiler (requiring-resolve 'cljs.env/*compiler*)]
+     (def cljs-env-compiler (fn [] @cljs-compiler)))
+
+   (catch Exception e
+     (def cljs-resolve (constantly nil))
+     (def cljs-resolve-var (constantly nil))
+     (def cljs-env-compiler (constantly nil)))))
 
 (def special-syms
   {'ATOM spec/ATOM
@@ -189,8 +204,11 @@
 
 (def ^:dynamic *env* nil)
 (defn fully-qualified [sym]
-  (if-let [v (resolve sym)]
-              (symbol (name (ns-name (.ns v))) (name (.sym v)))))
+  (if (cljs-env-compiler)
+    (if-let [result (cljs-resolve {:ns (get-in @(cljs-env-compiler) [:cljs.analyzer/namespaces (symbol (ns-name *ns*))])}  sym)]
+      (:name result))
+    #?(:clj (if-let [v (resolve sym)]
+              (symbol (name (ns-name (.ns v))) (name (.sym v)))))))
 
 
  (defn path-replace
@@ -380,7 +398,8 @@
           (let [full-sym (delay
                           (fully-qualified first-form))
                 special? (if (symbol? first-form)
-                           (if-let [m (or 
+                           (if-let [m (or (when (cljs-env-compiler)
+                                            (:meta (cljs-resolve-var *env* first-form)))
                                           #?(:clj (meta (resolve first-form)))
                                           (meta first-form))]
                              (::special? m)
@@ -903,25 +922,33 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
      (case type
        :update
        (let [[path f & args ] args]
+         ;; use transform* over transform for graalvm.
+         ;; since the specs are dynamic, I don't think there's any benefit to the
+         ;; macro anyway
          (spec/transform* (path->spec path)
-                         (fn [& spec-args]
-                           (apply f (concat spec-args
-                                            args)))
-                         atm))
+                          (fn [& spec-args]
+                            (apply f (concat spec-args
+                                             args)))
+                          atm))
        :set
        (let [[path v] args]
-         (let [the-spec-path (path->spec path)]
-           (spec/setval* the-spec-path v atm)))
+         ;; use setval* over setval for graalvm.
+         ;; since the specs are dynamic, I don't think there's any benefit to the
+         ;; macro anyway
+         (spec/setval* (path->spec path) v atm))
 
        :delete
        (let [[path] args]
+         ;; use setval* over setval for graalvm.
+         ;; since the specs are dynamic, I don't think there's any benefit to the
+         ;; macro anyway
          (spec/setval* (path->spec path) spec/NONE atm))
 
        (let [effects @effects]
          (let [handler (get effects type)]
            (if handler
              (apply handler dispatch! args)
-             #_(println "no handler for " type))))))))
+             (println "no handler for " type))))))))
 
 (defn run-ui
   "`ui-var` The var for a component
