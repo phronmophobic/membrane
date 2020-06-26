@@ -1,12 +1,9 @@
 (ns membrane.component
-  #?(:cljs (:require-macros [membrane.component :refer [defui path-replace-macro]]))
+  ;; #?(:cljs (:require-macros [membrane.component :refer [defui path-replace-macro]]))
   (:require ;; [clojure.core.async :refer [go put! chan <! timeout dropping-buffer promise-chan]
    ;;  :as async]
    [com.rpl.specter :as spec
     :refer [ATOM ALL FIRST LAST MAP-VALS META]]
-   cljs.analyzer.api
-   [cljs.analyzer :as cljs]
-   cljs.env
    [membrane.ui :as ui :refer [defcomponent children bounds origin]]))
 
 (def ^:dynamic *root* nil)
@@ -192,11 +189,8 @@
 
 (def ^:dynamic *env* nil)
 (defn fully-qualified [sym]
-  (if cljs.env/*compiler*
-    (if-let [result (cljs.analyzer.api/resolve {:ns (get-in @cljs.env/*compiler* [:cljs.analyzer/namespaces (symbol (ns-name *ns*))])}  sym)]
-      (:name result))
-    #?(:clj (if-let [v (resolve sym)]
-              (symbol (name (ns-name (.ns v))) (name (.sym v)))))))
+  (if-let [v (resolve sym)]
+              (symbol (name (ns-name (.ns v))) (name (.sym v)))))
 
 
  (defn path-replace
@@ -386,8 +380,7 @@
           (let [full-sym (delay
                           (fully-qualified first-form))
                 special? (if (symbol? first-form)
-                           (if-let [m (or (when cljs.env/*compiler*
-                                            (:meta (cljs/resolve-var *env* first-form)))
+                           (if-let [m (or 
                                           #?(:clj (meta (resolve first-form)))
                                           (meta first-form))]
                              (::special? m)
@@ -902,6 +895,7 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
      top-level)))
 
 
+
 (defn default-handler [atm]
   (fn dispatch!
     ([] nil)
@@ -909,24 +903,25 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
      (case type
        :update
        (let [[path f & args ] args]
-         (spec/transform (path->spec path)
+         (spec/transform* (path->spec path)
                          (fn [& spec-args]
                            (apply f (concat spec-args
                                             args)))
                          atm))
        :set
        (let [[path v] args]
-         (spec/setval (path->spec path) v atm))
+         (let [the-spec-path (path->spec path)]
+           (spec/setval* the-spec-path v atm)))
 
        :delete
        (let [[path] args]
-         (spec/setval (path->spec path) spec/NONE atm))
+         (spec/setval* (path->spec path) spec/NONE atm))
 
        (let [effects @effects]
          (let [handler (get effects type)]
            (if handler
              (apply handler dispatch! args)
-             (println "no handler for " type))))))))
+             #_(println "no handler for " type))))))))
 
 (defn run-ui
   "`ui-var` The var for a component
