@@ -10,6 +10,7 @@
                      maybe-key-press
                      defcomponent
                      on]]
+            [membrane.skia :as skia]
             [clojure.core.async :as async
              :refer [<!! >!!]]
             [com.rpl.specter :as spec]
@@ -24,7 +25,6 @@
    ;; import com.googlecode.lanterna.*;
    com.googlecode.lanterna.terminal.MouseCaptureMode
    com.googlecode.lanterna.input.MouseActionType
-   com.googlecode.lanterna.input.MouseAction
    com.googlecode.lanterna.terminal.ansi.UnixTerminal
    com.googlecode.lanterna.graphics.TextGraphics
    com.googlecode.lanterna.input.KeyStroke
@@ -44,8 +44,7 @@
 
 (defonce log-lines (atom []))
 (defn log [s]
-  #_(spit "/var/tmp/graal.log" (str s "\n")  :append true)
-  #_(swap! log-lines (fn [lines]
+  (swap! log-lines (fn [lines]
                      (let [lines (conj lines (str s))
                            c (count lines)]
                        (subvec lines (max 0 (- c 30)))))))
@@ -56,6 +55,8 @@
     (for [line @log-lines]
       (ui/label (subs line 0 (min 80 (count line))))))))
 
+(defn run-log []
+  (skia/run #'log-ui))
 
 
 ;; https://en.wikipedia.org/wiki/Block_Elements
@@ -68,7 +69,6 @@
 (defprotocol IDraw
   (draw [this]))
 
-
 (defn tp [col row]
   (TerminalPosition. col row))
 
@@ -77,14 +77,13 @@
 (defcomponent Label [lines]
     IBounds
     (-bounds [this]
-        [(apply max (map #(.length ^String %) lines))
+        [(apply max (map #(.length %) lines))
          (count lines)])
-
   IDraw
   (draw [this]
       (let [{:keys [x y]} (:translate *context*)]
         (doseq [[i line] (map-indexed vector lines)]
-          (.putString ^TextGraphics *tg* x (+ y i) line))))
+          (.putString *tg* x (+ y i) line))))
     IOrigin
     (-origin [_]
         [0 0]))
@@ -96,7 +95,7 @@
   label will use the default line spacing for newline."
   [text]
   (Label. (clojure.string/split (str text) #"\n")))
-(def label (identity -label))
+(def label (memoize -label))
 
 
 (defcomponent Rectangle [width height]
@@ -119,50 +118,50 @@
 
             (and (<= width 1)
                  (<= height 1))
-            (.setCharacter ^TextGraphics *tg*  ^TerminalPosition (tp x y) \☐)
+            (.setCharacter *tg*  (tp x y) \☐)
 
             :else
             (do
           
               (when (pos? (- height 2))
                 ;; left edge
-                (.drawLine ^TextGraphics *tg*
-                           ^TerminalPosition (tp x (inc y))
-                           ^TerminalPosition (tp x (dec (+ y dy)))
+                (.drawLine *tg*
+                           (tp x (inc y))
+                           (tp x (dec (+ y dy)))
                            \│)
                 ;; right edge
-                (.drawLine ^TextGraphics *tg*
-                           ^TerminalPosition (tp (+ x dx) (inc y))
-                           ^TerminalPosition (tp (+ x dx) (dec (+ y dy)))
+                (.drawLine *tg*
+                           (tp (+ x dx) (inc y))
+                           (tp (+ x dx) (dec (+ y dy)))
                            \│))
 
               (when (pos? (- width 2))
                 ;; top edge
-                (.drawLine ^TextGraphics *tg*
-                           ^TerminalPosition (tp (inc x) y)
-                           ^TerminalPosition (tp (dec (+ x dx)) y)
+                (.drawLine *tg*
+                           (tp (inc x) y)
+                           (tp (dec (+ x dx)) y)
                            \─)
                 ;; bottom edge
-                (.drawLine ^TextGraphics *tg*
-                           ^TerminalPosition (tp (inc x) (+ y dy))
-                           ^TerminalPosition (tp (dec (+ x dx)) (+ y dy))
+                (.drawLine *tg*
+                           (tp (inc x) (+ y dy))
+                           (tp (dec (+ x dx)) (+ y dy))
                            \─))
 
               ;; top left corner
-              (.setCharacter ^TextGraphics *tg*
-                             ^TerminalPosition (tp x y)
+              (.setCharacter *tg*
+                             (tp x y)
                              \┌)
               ;; bottom left corner
-              (.setCharacter ^TextGraphics *tg*
-                             ^TerminalPosition (tp x (+ y dy))
+              (.setCharacter *tg*
+                             (tp x (+ y dy))
                              \└)
               ;; top right corner
-              (.setCharacter ^TextGraphics *tg*
-                             ^TerminalPosition (tp (+ x dx)  y)
+              (.setCharacter *tg*
+                             (tp (+ x dx)  y)
                              \┐)
               ;; bottom right corner
-              (.setCharacter ^TextGraphics *tg*
-                             ^TerminalPosition (tp (+ x dx)  (+ y dy))
+              (.setCharacter *tg*
+                             (tp (+ x dx)  (+ y dy))
                              \┘))))))
 
 (defn rectangle [width height]
@@ -299,12 +298,12 @@
         ;; tried using ☐ and ☑, but I think this looks better
         (let [{:keys [x y]} (:translate *context*)
               ]
-          (.setCharacter ^TextGraphics *tg*  ^TerminalPosition (tp x y) \[)
-          (.setCharacter ^TextGraphics *tg*  ^TerminalPosition (tp (+ 2 x) y) \])
+          (.setCharacter *tg*  (tp x y) \[)
+          (.setCharacter *tg*  (tp (+ 2 x) y) \])
 
           (if checked?
             (let [{:keys [x y]} (:translate *context*)]
-              (.setCharacter ^TextGraphics *tg*  ^TerminalPosition (tp (inc x) y) \* )))))
+              (.setCharacter *tg*  (tp (inc x) y) \* )))))
 
     IBounds
     (-bounds [this]
@@ -332,20 +331,20 @@
         (bounds (label text)))
   IDraw
   (draw [this]
-      (let [old-bg (.getBackgroundColor ^TextGraphics *tg*)
+      (let [old-bg (.getBackgroundColor *tg*)
             {:keys [x y]} (:translate *context*)
             
             text (:text this)
             text-length (count text)
             [start end] selection]
-        (.setBackgroundColor ^TextGraphics *tg*
+        (.setBackgroundColor *tg*
                              (TextColor$Indexed/fromRGB 185
                                                         215
                                                         251))
         (doseq [cur (range start end)
-                :let [c (.charAt ^String text cur)]]
-          (.setCharacter ^TextGraphics *tg* ^TerminalPosition (tp (+ x cur) y) c))
-        (.setBackgroundColor ^TextGraphics *tg* old-bg)
+                :let [c (.charAt text cur)]]
+          (.setCharacter *tg* (tp (+ x cur) y) c))
+        (.setBackgroundColor *tg* old-bg)
         )
       )
     IOrigin
@@ -460,6 +459,24 @@
                   :mpos (:mpos textarea-state)
                   :select-cursor (:select-cursor textarea-state))))
 
+;; TODO: add some basic image support
+#_(extend-type membrane.ui.Image
+    IBounds
+    (-bounds [this]
+      (:size this))
+    IDraw
+    (draw [this]
+      (when-let [image-info (get @images (:image-path this))]
+        (let [[width height] (:size this)]
+          (push-state *ctx*
+                      (when-let [opacity (:opacity this)]
+                        (set! (.-globalAlpha *ctx*) opacity))
+                      (.drawImage *ctx*
+                                  (:image-obj image-info)
+                                  0 0
+                                  width height))))))
+
+
 (extend-type membrane.ui.Translate
   IDraw
   (draw [this]
@@ -468,8 +485,19 @@
                              (spec/transform [:translate :y] (partial + (:y this)))) ]
       (draw (:drawable this)))))
 
+;; (extend-type membrane.ui.TextSelection
+;;   IBounds
+;;   (-bounds [this]
+;;     (text-bounds (:font this) (:text this)))
 
-
+;;   IDraw
+;;   (draw [this]
+;;     (let [{:keys [text font]
+;;            [selection-start selection-end] :selection} this]
+;;       (render-selection (:font this) text selection-start selection-end
+;;                         [0.6980392156862745
+;;                          0.8431372549019608
+;;                          1]))))
 
 
 (extend-type membrane.ui.TextCursor
@@ -479,7 +507,7 @@
 
   IDraw
   (draw [this]
-    (let [old-bg (.getBackgroundColor ^TextGraphics *tg*)
+    (let [old-bg (.getBackgroundColor *tg*)
           {:keys [x y]} (:translate *context*)
           cur (:cursor this)
           row y
@@ -490,17 +518,17 @@
           pos (TerminalPosition. col row)
           c (if (>= cur text-length)
               \space
-              (.charAt ^String text cur))]
+              (.charAt text cur))]
       
       ;; (.setCursorPosition *screen* (TerminalPosition. col row))
-      (.setBackgroundColor ^TextGraphics *tg*
+      (.setBackgroundColor *tg*
                            ;; TextColor$ANSI/RED
                            (TextColor$Indexed/fromRGB 146
-                                                      146
-                                                      146))
+                                                        146
+                                                        146))
       
-      (.setCharacter ^TextGraphics *tg* pos ^Character c)
-      (.setBackgroundColor ^TextGraphics *tg* old-bg)
+      (.setCharacter *tg* pos c)
+      (.setBackgroundColor *tg* old-bg)
       )))
 
 
@@ -521,70 +549,99 @@
 
         (and (<= width 1)
              (<= height 1))
-        (.setCharacter ^TextGraphics *tg* ^Integer (int x) (int y) \O)
+        (.setCharacter *tg*  x y \O)
 
         :else
         (do
           
           (when (pos? (- height 2))
             ;; left edge
-            (.drawLine ^TextGraphics *tg*
-                       ^TerminalPosition (tp x (inc y))
-                       ^TerminalPosition (tp x (dec (+ y dy)))
+            (.drawLine *tg*
+                       (tp x (inc y))
+                       (tp x (dec (+ y dy)))
                        \│)
             ;; right edge
-            (.drawLine ^TextGraphics *tg*
-                       ^TerminalPosition (tp (+ x dx) (inc y))
-                       ^TerminalPosition (tp (+ x dx) (dec (+ y dy)))
+            (.drawLine *tg*
+                       (tp (+ x dx) (inc y))
+                       (tp (+ x dx) (dec (+ y dy)))
                        \│))
 
           (when (pos? (- width 2))
             ;; top edge
-            (.drawLine ^TextGraphics *tg*
-                       ^TerminalPosition (tp (inc x) y)
-                       ^TerminalPosition (tp (dec (+ x dx)) y)
+            (.drawLine *tg*
+                       (tp (inc x) y)
+                       (tp (dec (+ x dx)) y)
                        \─)
             ;; bottom edge
-            (.drawLine ^TextGraphics *tg*
-                       ^TerminalPosition (tp (inc x) (+ y dy))
-                       ^TerminalPosition (tp (dec (+ x dx)) (+ y dy))
+            (.drawLine *tg*
+                       (tp (inc x) (+ y dy))
+                       (tp (dec (+ x dx)) (+ y dy))
                        \─))
 
           ;; top left corner
-          (.setCharacter ^TextGraphics *tg*
-                         ^TerminalPosition (tp x y)
+          (.setCharacter *tg*
+                         (tp x y)
                          \╭)
           ;; bottom left corner
-          (.setCharacter ^TextGraphics *tg*
-                         ^TerminalPosition (tp x (+ y dy))
+          (.setCharacter *tg*
+                         (tp x (+ y dy))
                          \╰)
           ;; top right corner
-          (.setCharacter ^TextGraphics *tg*
-                         ^TerminalPosition (tp (+ x dx)  y)
+          (.setCharacter *tg*
+                         (tp (+ x dx)  y)
                          \╮)
           ;; bottom right corner
-          (.setCharacter ^TextGraphics *tg*
-                         ^TerminalPosition (tp (+ x dx)  (+ y dy))
+          (.setCharacter *tg*
+                         (tp (+ x dx)  (+ y dy))
                          \╯)))
 
-      #_(.putString ^TextGraphics *tg*  1 1 (pr-str *context*)))))
+      #_(.putString *tg*  1 1 (pr-str *context*)))))
 
+;; (extend-type membrane.ui.Path
+;;   IDraw
+;;   (draw [this]
+;;     (push-state *ctx*
+;;                 (.beginPath *ctx*)
+;;                 (let [[x y] (first (:points this))]
+;;                   (.moveTo *ctx* x y))
+;;                 (doseq [[x y] (rest (:points this))]
+;;                   (.lineTo *ctx* x y))
+;;                 (case *paint-style*
+;;                   :membrane.ui/style-fill (.fill *ctx*)
+;;                   :membrane.ui/style-stroke (.stroke *ctx*)
+;;                   :membrane.ui/style-stroke-and-fill (doto *ctx*
+;;                                                        (.stroke)
+;;                                                        (.fill))))))
 
 (extend-type membrane.ui.WithColor
   IDraw
   (draw [this]
     (let [[r g b] (:color this)
-          old-fg (.getForegroundColor ^TextGraphics *tg*)]
-      (.setForegroundColor ^TextGraphics *tg* (TextColor$Indexed/fromRGB (int (Math/round (* 255.0 r)))
+          old-fg (.getForegroundColor *tg*)]
+      (.setForegroundColor *tg* (TextColor$Indexed/fromRGB (int (Math/round (* 255.0 r)))
                                                            (int (Math/round (* 255.0 g)))
                                                            (int (Math/round (* 255.0 b))) ))
       (doseq [drawable (:drawables this)]
         (draw drawable))
-      (.setForegroundColor ^TextGraphics *tg* old-fg))))
+      (.setForegroundColor *tg* old-fg))))
 
 
 
-
+#_(extend-type membrane.ui.Image
+  IBounds
+  (-bounds [this]
+    (:size this))
+  IDraw
+  (draw [this]
+    (when-let [image-info (get @images (:image-path this))]
+      (let [[width height] (:size this)]
+        (push-state *ctx*
+                    (when-let [opacity (:opacity this)]
+                      (set! (.-globalAlpha *ctx*) opacity))
+                    (.drawImage *ctx*
+                                (:image-obj image-info)
+                                0 0
+                                width height))))))
 
 
 (defn run-helper [make-ui repaint-ch close-ch handler]
@@ -604,8 +661,7 @@
                            (log e))
                          (finally
                            (log "closing input")
-                           (async/close! close-ch))))
-        ]
+                           (async/close! close-ch))))]
 
     (.setCursorPosition screen nil)
     (.startScreen screen)
@@ -619,19 +675,17 @@
         (>!! repaint-ch (make-ui))
         (loop []
           (let [[ui port] (async/alts!! [close-ch repaint-ch]
-                                        :priority true)]
-
+                                         :priority true)]
             (when (= port repaint-ch)
               (binding [*tg* tg
                         *context* {:translate {:x 0 :y 0}}
                         *screen* screen]
-                (log "repainting")
+                ;; (log "repainting")
                 (.clear screen)
                 (.setCursorPosition screen nil)
                 (draw ui)
-
-                (.refresh screen)
-                )
+                
+                (.refresh screen))
               (recur))))
         (catch Exception e
           (log e)
@@ -652,41 +706,41 @@
                {:handler (fn [ui event]
                            (log event)
                            ;; (log (.getKeyType event))
-                           (condp = (.getKeyType ^KeyStroke event)
+                           (condp = (.getKeyType event)
 
 
                              KeyType/MouseEvent
                              ;; mouse
                              (do
-                               (let [pos (.getPosition ^MouseAction event)]
-                                 (log (pr-str [:mx [(.getColumn ^TerminalPosition pos)
-                                                    (.getRow ^TerminalPosition pos)]])))
-                               (condp = (.getActionType ^MouseAction event)
+                               (let [pos (.getPosition event)]
+                                 (log (pr-str [:mx [(.getColumn pos)
+                                                    (.getRow pos)]])))
+                               (condp = (.getActionType event)
                                  
                                  MouseActionType/CLICK_DOWN
-                                 (let [pos (.getPosition ^MouseAction event)]
-                                   (ui/mouse-down ui [(.getColumn ^TerminalPosition pos)
-                                                      (.getRow ^TerminalPosition pos)]))
+                                 (let [pos (.getPosition event)]
+                                   (ui/mouse-down ui [(.getColumn pos)
+                                                      (.getRow pos)]))
 
                                  MouseActionType/CLICK_RELEASE
-                                 (let [pos (.getPosition ^MouseAction event)]
-                                   (ui/mouse-up ui [(.getColumn ^TerminalPosition pos)
-                                                      (.getRow ^TerminalPosition pos)]))
+                                 (let [pos (.getPosition event)]
+                                   (ui/mouse-up ui [(.getColumn pos)
+                                                      (.getRow pos)]))
                                  MouseActionType/DRAG
-                                 (let [pos (.getPosition ^MouseAction event)]
-                                   (ui/mouse-move ui [(.getColumn ^TerminalPosition pos)
-                                                        (.getRow ^TerminalPosition pos)]))
+                                 (let [pos (.getPosition event)]
+                                   (ui/mouse-move ui [(.getColumn pos)
+                                                        (.getRow pos)]))
                                  MouseActionType/MOVE
-                                 (let [pos (.getPosition ^MouseAction event)]
-                                   (ui/mouse-move ui [(.getColumn ^TerminalPosition pos)
-                                                        (.getRow ^TerminalPosition pos)]))
+                                 (let [pos (.getPosition event)]
+                                   (ui/mouse-move ui [(.getColumn pos)
+                                                        (.getRow pos)]))
                                  MouseActionType/SCROLL_DOWN nil
                                  MouseActionType/SCROLL_UP nil))
 
                              KeyType/Character
                              (do
                                ;; (ui/key-event ui key scancode action mods)
-                               (when-let [c (.getCharacter ^KeyStroke event)]
+                               (when-let [c (.getCharacter event)]
                                  (ui/key-press ui (str c))))
 
                              KeyType/Backspace
@@ -737,6 +791,7 @@
    (on
     :mouse-down
     (fn [[mx my]]
+      (log (str "delete mx: " (pr-str [mx my])))
       [[:delete $todo]])
     (ui/with-color [1 0 0]
       (label "X")))
@@ -862,11 +917,10 @@
                          :description "third"}]
                        :next-todo-text ""}))
 
-(intern (the-ns 'membrane.ui) 'run run)
-(intern (the-ns 'membrane.ui) 'run-sync run-sync)
 (defn -main [& args]
-
-
+  (run-log)
+  (intern (the-ns 'membrane.ui) 'run run)
+  (intern (the-ns 'membrane.ui) 'run-sync run-sync)
 
   
 
@@ -877,13 +931,7 @@
                            (fn [& effect]
                              (log (pr-str effect))
                              (apply default effect))))
-  ;; (.close System/in)
-  ;; (shutdown-agents)
+  (.close System/in)
+  (shutdown-agents)
   )
 
-#_(defn -main [& args]
-  ;; (async/<!! (async/timeout 3000))
-  #_(println "hello world! " (bounds (textarea :text "hello")))
-  (run-sync #(label "adfadsf"))
-    
-  )
