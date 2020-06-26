@@ -334,13 +334,7 @@
 (extend-type membrane.ui.Checkbox
   IRender
   (render [this]
-    [:input (merge
-             {:type "checkbox"
-              :style {:pointer-events "none"
-                      :padding 0
-                      :margin 0}}
-             (when (:checked? this)
-               {:checked "on"}))]))
+    (render (ui/draw-checkbox (:checked? this)))))
 
 
 (defn checkbox
@@ -367,12 +361,12 @@
 
   IRender
   (render [this]
-      [:button {} text]))
+      (render (ui/button-draw this))))
 
 (extend-type membrane.ui.Button
   IRender
   (render [this]
-    [:button {} (:text this)]))
+    (render (ui/button-draw this))))
 
 
 (extend-type membrane.ui.Rectangle
