@@ -11,18 +11,31 @@
 
 (def ^:dynamic *root* nil)
 
+(defmacro building-graalvm-image? []
+  (try
+    (import 'org.graalvm.nativeimage.ImageInfo)
+    `(org.graalvm.nativeimage.ImageInfo/inImageBuildtimeCode)
+    (catch ClassNotFoundException e
+      false)))
+
+;; clojurescript is an optional dependency
+;; also, graalvm chokes on cljs requires
 #?
 (:clj
- (try
-   (def cljs-resolve (requiring-resolve 'cljs.analyzer.api/resolve))
-   (def cljs-resolve-var (requiring-resolve 'cljs/resolve-var))
-   (let [cljs-compiler (requiring-resolve 'cljs.env/*compiler*)]
-     (def cljs-env-compiler (fn [] @cljs-compiler)))
-
-   (catch Exception e
-     (def cljs-resolve (constantly nil))
-     (def cljs-resolve-var (constantly nil))
-     (def cljs-env-compiler (constantly nil)))))
+ (let [mock-cljs-env
+       (fn []
+         (def cljs-resolve (constantly nil))
+         (def cljs-resolve-var (constantly nil))
+         (def cljs-env-compiler (constantly nil)))]
+   (if (building-graalvm-image?)
+     (mock-cljs-env)
+     (try
+       (def cljs-resolve (requiring-resolve 'cljs.analyzer.api/resolve))
+       (def cljs-resolve-var (requiring-resolve 'cljs/resolve-var))
+       (let [cljs-compiler (requiring-resolve 'cljs.env/*compiler*)]
+         (def cljs-env-compiler (fn [] @cljs-compiler)))
+       (catch Exception e
+         (mock-cljs-env))))))
 
 (def special-syms
   {'ATOM spec/ATOM
