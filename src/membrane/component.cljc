@@ -37,7 +37,12 @@
        (let [cljs-compiler (requiring-resolve 'cljs.env/*compiler*)]
          (def cljs-env-compiler (fn [] @cljs-compiler)))
        (catch Exception e
-         (mock-cljs-env))))))
+         (mock-cljs-env)))))
+ :cljs
+ (do
+   (def cljs-resolve cljs.analyzer.api/resolve)
+   (def cljs-resolve-var cljs/resolve-var)
+   (def cljs-env-compiler (fn [] cljs.env/*compiler*))))
 
 (def special-syms
   {'ATOM spec/ATOM
