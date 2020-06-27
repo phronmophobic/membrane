@@ -11,12 +11,14 @@
 
 (def ^:dynamic *root* nil)
 
-(defmacro building-graalvm-image? []
-  (try
-    (import 'org.graalvm.nativeimage.ImageInfo)
-    `(org.graalvm.nativeimage.ImageInfo/inImageBuildtimeCode)
-    (catch ClassNotFoundException e
-      false)))
+#?
+(:clj
+ (defmacro building-graalvm-image? []
+   (try
+     (import 'org.graalvm.nativeimage.ImageInfo)
+     `(org.graalvm.nativeimage.ImageInfo/inImageBuildtimeCode)
+     (catch ClassNotFoundException e
+       false))))
 
 ;; clojurescript is an optional dependency
 ;; also, graalvm chokes on cljs requires
