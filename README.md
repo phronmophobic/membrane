@@ -16,7 +16,7 @@ While these three layers are made to work together, they can also be mixed and m
 - Linux
 - the web via WebGL
 
-### Experimental platforms
+#### Experimental platforms
 - Terminal (see [example project](https://github.com/phronmophobic/terminal-todo-mvc))
 - virtual dom
 
