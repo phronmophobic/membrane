@@ -33,7 +33,7 @@
      (mock-cljs-env)
      (try
        (def cljs-resolve (requiring-resolve 'cljs.analyzer.api/resolve))
-       (def cljs-resolve-var (requiring-resolve 'cljs/resolve-var))
+       (def cljs-resolve-var (requiring-resolve 'cljs.analyzer/resolve-var))
        (let [cljs-compiler (requiring-resolve 'cljs.env/*compiler*)]
          (def cljs-env-compiler (fn [] @cljs-compiler)))
        (catch Exception e
