@@ -912,23 +912,7 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
                main-view))))))))))))
 
 
-(defn make-top-level-ui
-  ([ui-var state-atom handler]
-   (let [arglist (-> ui-var
-                     meta
-                     :arglists
-                     first)
-         m (second arglist)
-         arg-names (disj (set (:keys m))
-                         'extra)
-         defaults (:or m)
-         top-level (fn []
-                     (top-level-ui :state @state-atom :$state []
-                                   :body ui-var
-                                   :arg-names arg-names
-                                   :defaults defaults
-                                   :handler handler))]
-     top-level)))
+
 
 
 
@@ -967,7 +951,8 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
              (apply handler dispatch! args)
              (println "no handler for " type))))))))
 
-(defn run-ui
+
+(defn make-app
   "`ui-var` The var for a component
   `initial-state` The initial state of the component to run or an atom that contains the initial state.
   `handler` The effect handler for your UI. The `handler` will be called with all effects returned by the event handlers of your ui.
@@ -983,18 +968,12 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
   `:delete` deletes value at $path
   example: `[:delete $path]`
 
-  return value: the state atom used by the ui.
-
-  The only difference between `run-ui` and `run-ui-sync` is that `run-ui-sync` will wait until the window is closed before returning.
-
-  `options` options is a map of options that get passed to the underlying graphics platform. see `membrane.skia/run` or `membrane.webgl/run` for more info."
+  return value: the state atom used by the ui."
   ([ui-var]
-   (run-ui ui-var {}))
+   (make-app ui-var {}))
   ([ui-var initial-state]
-   (run-ui ui-var initial-state nil))
+   (make-app ui-var initial-state nil))
   ([ui-var initial-state handler]
-   (run-ui ui-var initial-state handler nil))
-  ([ui-var initial-state handler options]
    (let [state-atom (if (instance? #?(:clj clojure.lang.Atom
                                       :cljs cljs.core.Atom)
                                    initial-state)
@@ -1003,52 +982,20 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
          handler (if handler
                    handler
                    (default-handler state-atom))
-         top-level (make-top-level-ui ui-var state-atom handler)
-         ]
-     (membrane.ui/run top-level options)
-     state-atom)))
-
-#?
-(:clj
- (defn run-ui-sync
-   "`ui-var` The var for a component
-  `initial-state` The initial state of the component to run or an atom that contains the initial state.
-  `handler` The effect handler for your UI. The `handler` will be called with all effects returned by the event handlers of your ui.
-
-  If `handler` is nil or an arity that doesn't specify `handler` is used, then a default handler using all of the globally defined effects from `defeffect` will be used. In addition to the globally defined effects the handler will provide 3 additional effects:
-
-  `:update` similar to `update` except instead of a keypath, takes a more generic path.
-  example: `[:update $path inc]`
-
-  `:set` sets the value given a $path
-  example: `[:set $path value]`
-
-  `:delete` deletes value at $path
-  example: `[:delete $path]`
-
-  return value: the state atom used by the ui.
-
-  The only difference between `run-ui` and `run-ui-sync` is that `run-ui-sync` will wait until the window is closed before returning.
-
-  `options` options is a map of options that get passed to the underlying graphics platform. see `membrane.skia/run` or `membrane.webgl/run` for more info."
-   ([ui-var]
-    (run-ui-sync ui-var {}))
-   ([ui-var initial-state]
-    (run-ui-sync ui-var initial-state nil))
-   ([ui-var initial-state handler]
-    (run-ui-sync ui-var initial-state handler nil))
-   ([ui-var initial-state handler options]
-    (let [state-atom (if (instance? #?(:clj clojure.lang.Atom
-                                       :cljs cljs.core.Atom)
-                                    initial-state)
-                       initial-state
-                       (atom initial-state))
-          handler (if handler
-                    handler
-                    (default-handler state-atom))
-          top-level (make-top-level-ui ui-var state-atom handler)]
-      (membrane.ui/run-sync top-level options)
-      state-atom))))
-
+         arglist (-> ui-var
+                     meta
+                     :arglists
+                     first)
+         m (second arglist)
+         arg-names (disj (set (:keys m))
+                         'extra)
+         defaults (:or m)
+         top-level (fn []
+                     (top-level-ui :state @state-atom :$state []
+                                   :body ui-var
+                                   :arg-names arg-names
+                                   :defaults defaults
+                                   :handler handler))]
+     top-level)))
 
 

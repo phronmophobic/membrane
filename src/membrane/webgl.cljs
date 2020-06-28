@@ -14,7 +14,7 @@
                      label
                      image]]
             [membrane.audio :as audio]
-            [membrane.component :refer [defui run-ui]]))
+            [membrane.component :refer [defui]]))
 
 
 (def ^:dynamic *ctx*)

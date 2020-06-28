@@ -2075,24 +2075,10 @@
   (TryDraw. body error-draw))
 
 
-(defn ^:dynamic run [& args]
-  (throw (#?(:clj Exception.
-             :cljs str) "No backend found. Have you required membrane.skia or membrane.webgl?")))
-
-#?(:clj
-   (defn ^:dynamic run-sync [& args]
-     (throw (#?(:clj Exception.
-                :cljs str) "No backend found. Have you required membrane.skia or membrane.webgl?"))))
-#_(defn run [make-ui]
-  (assert false "run should be replaced by implementation"))
-
-
-
 (defn index-for-position [font text x y]
   (assert false "image size should be replaced by implementation"))
 
 (defn copy-to-clipboard [s])
-
 
 
 #?(:clj

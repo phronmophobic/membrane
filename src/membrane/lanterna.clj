@@ -16,7 +16,7 @@
             ;; need effects
             [membrane.basic-components :as basic]
             [membrane.component :as component
-             :refer [defui run-ui run-ui-sync defeffect]])
+             :refer [defui defeffect]])
   
   (:import
 
@@ -720,7 +720,6 @@
    (async/thread
      (run-sync make-ui))))
 
-(intern (the-ns 'membrane.ui) 'run run)
-(intern (the-ns 'membrane.ui) 'run-sync run-sync)
+
 
 

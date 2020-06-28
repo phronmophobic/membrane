@@ -50,7 +50,7 @@ Add this dependency to your project:
 All examples below will use the following namespace requires. 
 
 ```
-(:require #?(:clj [membrane.skia :as skia])
+(:require   [membrane.skia :as skia]
             [membrane.ui :as ui
              :refer [vertical-layout
                      translate
@@ -62,7 +62,7 @@ All examples below will use the following namespace requires.
                      spacer
                      on]]
             [membrane.component :as component
-             :refer [defui run-ui run-ui-sync defeffect]]
+             :refer [defui defeffect]]
             [membrane.basic-components :as basic])
 ```
 
@@ -605,7 +605,7 @@ Let's see what this same ugly checkbox would look like with `membrane.component`
                     :y y
                     :z z})))))
 
-(comment (membrane.component/run-ui #'checkbox-test {:x false :y true :z false}))
+(comment (skia/run (component/make-app #'checkbox-test {:x false :y true :z false})))
 ```
 Here's what the above looks like
 
@@ -618,7 +618,6 @@ You'll notice a few differences in the code.
 3) The mouse down handler no longer has any side effects. Instead, it returns a value.
 4) The value returned by the mouse down handler includes a mysterious symbol, `$checked?`
 5) There is a `::toggle` effect defined by `defeffect` 
-5) The app is started with `membrane.component/run-ui` rather than `membrane.ui/run`
 
 The most interesting part of this example is the `:mouse-down` event handler which returns `[[::toggle $checked?]]`. Loosely translated, this means "when a `:mouse-down` event occurs, the checkbox proposes 1 effect which toggles the value of `checked?`." It does not specify _how_ the `::toggle` effect is implemented.
 
@@ -644,26 +643,8 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
 
 Every component can be run on its own. The goal is to build complex components and applications out of simpler components.
 
-To run a component, use `membrane.component/run-ui` or `membrane.component/run-ui-sync`. Both `run-ui` functions have the same arglist `([ui-var] [ui-var initial-state] [ui-var initial-state handler])`.
+To run a component, simply call your implementation's `run` function with `(component/make-app #'component-var initial-state)`
 
-`ui-var` The var for a component  
-`initial-state` The initial state of the component to run or an atom that contains the initial state.  
-`handler` The effect handler for your UI. The `handler` will be called with all effects returned by the event handlers of your ui.
-
-If `handler` is nil or an arity that doesn't specify `handler` is used, then a default handler using all of the globally defined effects from `defeffect` will be used. In addition to the globally defined effects the handler will provide 3 additional effects:
-
-`:update` similar to `update` except instead of a keypath, takes a more generic path.
-example: `[:update $path inc]`
-
-`:set` sets the value given a $path
-example: `[:set $path value]`
-
-`:delete` deletes value at $path
-example: `[:delete $path]`
-
-return value: The `run-ui*` functions both return the state atom used by the ui.
-
-The only difference between `run-ui` and `run-ui-sync` is that `run-ui-sync` will wait until the window is closed before returning.
 
 
 ### File Selector example
@@ -692,7 +673,7 @@ Let's create the component to display and select individual items.
 
 (comment
  ;; It's a very common workflow to work on sub components one piece at a time.
-  (component/run-ui #'item-row {:item-name "my item" :selected? false}))
+  (skia/run (component/make-app #'item-row {:item-name "my item" :selected? false})))
 ```
 
 Next, we'll build a generic item selector. For our item selector, we'll have a vertical list of items. Additionally, we'll have a textarea that let's us filter for only names that have the textarea's substring.
@@ -725,23 +706,25 @@ Next, we'll build a generic item selector. For our item selector, we'll have a v
            (item-row :item-name iname :selected? (get selected iname)))))))
 
 (comment
-  (run-ui #'item-selector {:item-names (->> (clojure.java.io/file ".")
-                                      (.listFiles)
-                                      (map #(.getName %)))} ))
+  (skia/run (component/make-app #'item-selector {:item-names (->> (clojure.java.io/file ".")
+                                (.listFiles)
+                                (map #(.getName %)))} )))
 ```
 
 Finally, we'll define a file-selector function using our `item-selector` ui.
 
 ```
 (defn file-selector [path]
-  (:selected
-   @(component/run-ui-sync #'item-selector {:item-names (->> (clojure.java.io/file path)
-                                                           (.listFiles)
-                                                           (map #(.getName %))
-                                                           sort)})))
+  (let [state (atom {:item-names
+                     (->> (clojure.java.io/file path)
+                          (.listFiles)
+                          (map #(.getName %))
+                          sort)})]
+    (skia/run-sync (component/make-app #'item-selector state))
+    (:selected @state)))
 ```
 
-Since `run-ui-sync` will wait until the window is closed and returns the app state atom. All we need to do is derefence the returned atom and grab the value for the `:selected` key.
+Since `run-sync` will wait until the window is closed, all we need to do is dereference the state atom and grab the value for the `:selected` key.
 
 
 <!-- ## Examples of form `defui` understands -->

@@ -25,7 +25,7 @@
             [cljs.js :as cljs]
             [cljs.env :as env]
             cljs.analyzer
-            [membrane.component :refer [defui run-ui]]
+            [membrane.component :refer [defui]]
             [membrane.eval :as eval]
             [cognitect.transit :as transit]
 

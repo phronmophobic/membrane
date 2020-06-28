@@ -4,7 +4,6 @@
                       [membrane.component :refer [defui defeffect]]))
   (:require [membrane.component :refer [#?(:clj defui)
                                         #?(:clj defeffect)
-                                        run-ui
                                         path->spec
                                         ] :as component]
             [com.rpl.specter :as spec
@@ -679,9 +678,9 @@
   (dispatch! :set $selected value))
 
 (comment
-  (run-ui #'dropdown {:options [[:this "This"]
-                                [:that "That "]
-                                [:the-other "The Other"]]}))
+  (skia/run (component/make-app #'dropdown {:options [[:this "This"]
+                                                      [:that "That "]
+                                                      [:the-other "The Other"]]})))
 
 (defeffect ::counter-dec [$num min]
   (if min
@@ -716,7 +715,7 @@
 
 
 (comment
-  (run-ui #'counter {:num 3}))
+  (skia/run (component/make-app #'counter {:num 3})))
 
 (defeffect ::update-slider [$num min max max-width integer? x]
   (let [ratio (/ x max-width)
@@ -763,12 +762,12 @@
 
 
 (comment
-  (run-ui #'number-slider {:num 3
-                           :min 0
-                           :max 20})
+  (skia/run (component/make-app #'number-slider {:num 3
+                                                 :min 0
+                                                 :max 20}))
 
-  (run-ui #'number-slider {:num 3
-                           :min 5
-                           :max 20
-                           :max-width 300
-                           :integer? true}))
+  (skia/run (component/make-app #'number-slider {:num 3
+                                                 :min 5
+                                                 :max 20
+                                                 :max-width 300
+                                                 :integer? true})))

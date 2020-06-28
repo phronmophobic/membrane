@@ -6,10 +6,11 @@
               on]]
             ;; need effects
             [membrane.lanterna
-             :refer [textarea checkbox label button]]
+             :refer [textarea checkbox label button]
+             :as lanterna]
             [membrane.basic-components :as basic]
             [membrane.component :as component
-             :refer [defui run-ui run-ui-sync defeffect]]))
+             :refer [defui defeffect]]))
 
 ;;; todo app
 (defui todo-item [ & {:keys [todo]}]
@@ -28,29 +29,11 @@
         (default-handler s)))
     (textarea :text (:description todo)))))
 
-(comment
-  (run-ui #'todo-item {:todo
-                       {:complete? false
-                        :description "fix me"}}))
-
-
 (defui todo-list [ & {:keys [todos]}]
   (apply
    vertical-layout
    (for [todo todos]
      (todo-item :todo todo))))
-
-
-
-(comment
-  (run-ui #'todo-list {:todos
-                       [{:complete? false
-                         :description "first"}
-                        {:complete? false
-                         :description "second"}
-                        {:complete? true
-                         :description "third"}]}))
-
 
 
 (def filter-fns
@@ -73,10 +56,6 @@
         (ui/with-color [0.8 0.8 0.8]
           (label (name option))))))))
 
-(comment
-  (run-ui #'toggle
-          {:options [:all :active :complete?]
-           :selected nil}))
 
 (defui todo-app [ & {:keys [todos next-todo-text selected-filter]
                      :or {selected-filter :all}}]
@@ -115,20 +94,6 @@
   (dispatch! :update $todos #(conj % {:description next-todo-text
                                       :complete? false})))
 
-(comment
-  (run-ui #'todo-app todo-state
-                        ))
-
-(comment
-  (def todo-state
-    (run-ui #'todo-app {:todos
-                        [{:complete? false
-                          :description "first"}
-                         {:complete? false
-                          :description "second"}
-                         {:complete? true
-                          :description "third"}]
-                        :next-todo-text ""})))
 
 
 
@@ -142,13 +107,9 @@
                        :next-todo-text ""}))
 
 (defn -main [& args]
-
   ;; (component/run-ui-sync #'term-test {:num 0 :s "hh"})
-  (component/run-ui-sync #'todo-app
-                         todo-state
-                         (let [default (component/default-handler todo-state)]
-                           (fn [& effect]
-                             (apply default effect))))
+  (lanterna/run-sync (component/make-app #'todo-app
+                                         todo-state))
   ;; (.close System/in)
   ;; (shutdown-agents)
   )
