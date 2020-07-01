@@ -13,8 +13,6 @@
              :as async]
             [membrane.ui :as ui
              :refer [IChildren
-                     IDraw
-                     draw
                      children
                      IBubble
                      -bubble
@@ -46,9 +44,9 @@
            com.sun.jna.IntegerType
            java.awt.image.BufferedImage)
   (:import java.nio.ByteBuffer
-           javax.imageio.ImageIO)
+           javax.imageio.ImageIO
+           com.phronemophobic.membrane.Skia)
   (:gen-class))
-
 
 (defmacro print-timing [& body]
   `(let [threadmx-bean# (java.lang.management.ManagementFactory/getThreadMXBean)
@@ -83,8 +81,14 @@
                        (catch java.lang.UnsatisfiedLinkError e
                          nil)))
 
+(def skia-buf (Memory. 4096))
 
 (def ^:dynamic *paint* {})
+
+(defprotocol IDraw
+  (draw [this]))
+
+(ui/add-default-draw-impls! IDraw #'draw)
 
 (defmacro defc
   ([fn-name lib ret]
@@ -99,6 +103,18 @@
                      ~ret (to-array [~@args]))))
         (defn ~fn-name [~@args]
           (throw (Exception. (str ~(name fn-name) " not loaded."))))))))
+
+(defmacro if-class
+  ([class-name then]
+   `(if-class ~class-name
+      ~then
+      nil))
+  ([class-name then else?]
+   `(try
+      (Class/forName ~(name class-name))
+      ~then
+      (catch ClassNotFoundException e#
+        ~else?))))
 
 (defmacro defgl
   ([fn-name ret]
@@ -240,11 +256,31 @@
 (def GL_STENCIL_BUFFER_BIT (int 0x00000400))
 (def GLFW_VISIBLE (int 0x00020004))
 
+
+(def GLFW_MOD_SHIFT 0x0001)
+(def GLFW_MOD_CONTROL 0x0002)
+(def GLFW_MOD_ALT 0x0004)
+(def GLFW_MOD_SUPER 0x0008)
+(def GLFW_MOD_CAPS_LOCK 0x0010)
+(def GLFW_MOD_NUM_LOCK 0x0020)
+
+
 ;; (defc demo_main freetype Integer/TYPE [argc argv])
 (defc skia_load_image membraneskialib Pointer [path])
 (defc skia_load_image_from_memory membraneskialib Pointer [buf buf-length])
 (defc skia_draw_image membraneskialib void [skia-resource image-texture])
 (defc skia_draw_image_rect membraneskialib void [skia-resource image-texture w h])
+
+(defc skia_fork_pty membraneskialib Integer/TYPE [rows columns])
+(defn fork-pty [rows columns]
+  (let [rows (short rows)
+        columns (short columns)
+        _ (assert (> rows 0) (str "invalid rows: " rows))
+        _ (assert (> columns 0) (str "invalid columns: " columns))
+        pty (Skia/skia_fork_pty rows columns)]
+    (when (= -1 pty)
+      (throw (Exception. "Unable to create pty.")))
+    pty))
 
 (def ^:dynamic *image-cache* nil)
 (def ^:dynamic *font-cache* (atom {}))
@@ -289,19 +325,19 @@
 
 (defmacro save-canvas [& args]
   `(try
-     (skia_save *skia-resource*)
+     (Skia/skia_save *skia-resource*)
      ~@args
      (finally
-       (skia_restore *skia-resource*))))
+       (Skia/skia_restore *skia-resource*))))
 
 (defc skia_push_paint membraneskialib Void/TYPE [skia-resource])
 (defc skia_pop_paint membraneskialib Void/TYPE [skia-resource])
 (defmacro push-paint [& args]
   `(try
-     (skia_push_paint *skia-resource*)
+     (Skia/skia_push_paint *skia-resource*)
      ~@args
      (finally
-       (skia_pop_paint *skia-resource*))))
+       (Skia/skia_pop_paint *skia-resource*))))
 
 (def skia-style {:membrane.ui/style-fill (byte 0)
                  :membrane.ui/style-stroke (byte 1)
@@ -311,11 +347,11 @@
 (defn skia-set-style [skia-resource style]
   (let [style-arg (skia-style style)]
     (assert style-arg (str "Invalid Style: " style "."))
-    (skia_set_style skia-resource style-arg)))
+    (Skia/skia_set_style skia-resource style-arg)))
 
 (defc skia_set_stroke_width membraneskialib Void/TYPE [skia-resource width])
 (defn skia-set-stroke-width [skia-resource width]
-  (skia_set_stroke_width skia-resource (float width)))
+  (Skia/skia_set_stroke_width skia-resource (float width)))
 
 (extend-type membrane.ui.WithStrokeWidth
     IDraw
@@ -341,13 +377,13 @@
 
 (defc skia_set_color membraneskialib Void/TYPE [skia-resource r g b a])
 (defn skia-set-color [skia-resource [r g b a]]
-  (skia_set_color skia-resource (float r) (float g) (float b) (if a
+  (Skia/skia_set_color skia-resource (float r) (float g) (float b) (if a
                                                                 (float a)
                                                                 (float 1))))
 
 (defc skia_set_alpha membraneskialib Void/TYPE [skia-resource alpha])
 (defn skia-set-alpha [skia-resource alpha]
-  (skia_set_alpha skia-resource (unchecked-byte (* alpha 255))))
+  (Skia/skia_set_alpha skia-resource (unchecked-byte (* alpha 255))))
 
 
 (def font-dir "/System/Library/Fonts/")
@@ -378,19 +414,13 @@
 (def byte-array-class (type (byte-array 0)))
 (defn label-draw [{:keys [text font] :as label}]
   (let [lines (clojure.string/split-lines text)
-        lines-arr (into-array byte-array-class
-                              (for [line lines]
-                                (.getBytes text "utf-8")))
-        cnts-arr (into-array Integer
-                             (for [arr lines-arr]
-                               (alength arr)))
-        font-ptr (get-font font)
-        ;; text-bytes (.getBytes text "utf-8")
-        ]
+        font-ptr (get-font font)]
     (save-canvas
-     (doseq [line lines]
-       (skia_next_line *skia-resource* font-ptr)
-       (skia_render_line *skia-resource* font-ptr line (count line) (float 0) (float 0))))))
+     (doseq [line lines
+             :let [line-bytes (.getBytes ^String line "utf-8")]]
+       (.write ^Memory skia-buf 0 line-bytes 0 (alength ^bytes line-bytes))
+       (Skia/skia_next_line *skia-resource* font-ptr)
+       (Skia/skia_render_line *skia-resource* font-ptr skia-buf (alength line-bytes) (float 0) (float 0))))))
 
 
 
@@ -455,8 +485,8 @@
       [maxx maxy]))
   IDraw
   (draw [this]
-    (ui/draw (->Cached (LabelRaw. (:text this)
-                                  (:font this))))))
+    (draw (->Cached (LabelRaw. (:text this)
+                               (:font this))))))
 
 
 
@@ -474,7 +504,7 @@
     (if-let [image (get @*image-cache* image-path)]
       image
       (if (.exists (clojure.java.io/file image-path))
-        (let [image (skia_load_image image-path)]
+        (let [image (Skia/skia_load_image image-path)]
           (swap! *image-cache* assoc image-path image)
           image)
         (do
@@ -498,11 +528,20 @@
   (get-image-texture [image-url]
     (if-let [image (get @*image-cache* image-url)]
       image
-      (let [bytes (slurp-bytes image-url)]
-        (let [image (skia_load_image_from_memory bytes (alength bytes))]
-          (swap! *image-cache* assoc image-url image)
-          image)))))
+      (let [bytes (slurp-bytes image-url)
+            image (Skia/skia_load_image_from_memory bytes (alength ^bytes bytes))]
+        (swap! *image-cache* assoc image-url image)
+        image))))
 
+
+(extend-protocol ImageFactory
+  (Class/forName "[B")
+  (get-image-texture [bytes]
+    (if-let [image (get @*image-cache* bytes)]
+        image
+        (let [image (Skia/skia_load_image_from_memory bytes (alength ^bytes bytes))]
+          (swap! *image-cache* assoc bytes image)
+          image))))
 
 
 (defn image-size-raw [image-path]
@@ -529,7 +568,7 @@
       (push-paint
        (when opacity
          (skia-set-alpha *skia-resource* opacity))
-       (skia_draw_image_rect *skia-resource* image-texture (float w) (float h))))))
+       (Skia/skia_draw_image_rect *skia-resource* image-texture (float w) (float h))))))
 
 
 (extend-type membrane.ui.Image
@@ -544,7 +583,7 @@
   IDraw
   (draw [this]
     (save-canvas
-     (skia_translate *skia-resource* (float (:x this)) (float (:y this)))
+     (Skia/skia_translate *skia-resource* (float (:x this)) (float (:y this)))
      (draw (:drawable this)))))
 
 
@@ -565,12 +604,13 @@
             selection-end selection-end]
        (if (and lines (>= selection-end 0))
          (let [line (first lines)
-               line-bytes (.getBytes line "utf-8")
+               line-bytes (.getBytes ^String line "utf-8")
                line-count (count line)]
            (when (< selection-start line-count)
-             (skia_render_selection *skia-resource* font-ptr line-bytes (alength line-bytes) (int (max 0 selection-start)) (int (min selection-end
-                                                                                                                                 line-count))))
-           (skia_next_line *skia-resource* font-ptr)
+             (.write ^Memory skia-buf 0 line-bytes 0 (alength ^bytes line-bytes))
+             (Skia/skia_render_selection *skia-resource* font-ptr skia-buf (alength line-bytes) (int (max 0 selection-start)) (int (min selection-end
+                                                                                                                                        line-count))))
+           (Skia/skia_next_line *skia-resource* font-ptr)
            (recur (next lines) (- selection-start line-count 1) (- selection-end line-count 1))))))))
 
 (extend-type membrane.ui.TextSelection
@@ -598,11 +638,12 @@
             cursor cursor]
        (if (and lines (>= cursor 0))
          (let [line (first lines)
-               line-bytes (.getBytes line "utf-8")
+               line-bytes (.getBytes ^String line "utf-8")
                line-count (count line)]
+           (.write ^Memory skia-buf 0 line-bytes 0 (alength ^bytes line-bytes))
            (when (< cursor (inc line-count))
-             (skia_render_cursor *skia-resource* font-ptr line-bytes (alength line-bytes) (int (max 0 cursor))))
-           (skia_next_line *skia-resource* font-ptr)
+             (Skia/skia_render_cursor *skia-resource* font-ptr skia-buf (alength line-bytes) (int (max 0 cursor))))
+           (Skia/skia_next_line *skia-resource* font-ptr)
 
            (recur (next lines) (- cursor line-count 1))))))))
 
@@ -623,15 +664,23 @@
 (extend-type membrane.ui.Path
   IDraw
   (draw [this]
-    (let [points (into-array Float/TYPE (apply concat (:points this)))]
+    (let [points (:points this)]
+      (loop [i 0
+             points (seq points)]
+        (when points
+          (let [pt (first points)]
+            (.setFloat ^Memory skia-buf i (first pt))
+            (.setFloat ^Memory skia-buf (+ i 4) (second pt))
+            (recur (+ i 8)
+                   (next points)))))
       (push-paint
-       (skia_draw_path *skia-resource* points (alength points))))))
+       (Skia/skia_draw_path *skia-resource* skia-buf (* 2 (count points)))))))
 
 (defc skia_draw_rounded_rect membraneskialib Void/TYPE [skia-resource w h radius])
 (extend-type membrane.ui.RoundedRectangle
   IDraw
   (draw [this]
-    (skia_draw_rounded_rect *skia-resource*
+    (Skia/skia_draw_rounded_rect *skia-resource*
                             (float (:width this))
                             (float (:height this))
                             (float (:border-radius this)))))
@@ -654,7 +703,7 @@
   (draw [this]
     (let [[sx sy] (:scalars this)]
       (save-canvas
-       (skia_set_scale *skia-resource* (float sx) (float sy))
+       (Skia/skia_set_scale *skia-resource* (float sx) (float sy))
        (doseq [drawable (:drawables this)]
          (draw drawable))))))
 
@@ -681,7 +730,7 @@
   (save-canvas
    (let [[ox oy] (:offset scissor-view)
          [w h] (:bounds scissor-view)]
-     (skia_clip_rect *skia-resource* (float ox) (float oy) (float w) (float h))
+     (Skia/skia_clip_rect *skia-resource* (float ox) (float oy) (float w) (float h))
      (draw (:drawable scissor-view)))))
 
 (extend-type membrane.ui.ScissorView
@@ -765,17 +814,7 @@
     ;; now that we're done
     (com.sun.jna.Native/detach true)))
 
-(defmacro if-class
-  ([class-name then]
-   `(if-class ~class-name
-      ~then
-      nil))
-  ([class-name then else?]
-   `(try
-      (Class/forName ~(name class-name))
-      ~then
-      (catch ClassNotFoundException e#
-        ~else?))))
+
 
 (defn dispatch-sync! [f]
   (if-class com.apple.concurrent.Dispatch
@@ -858,7 +897,8 @@
 
 
 
-
+(defn getpid []
+  (jna/invoke Integer/TYPE c/getpid))
 
 (defmacro glfw-call [ret fn-name & args]
   `(.invoke ^com.sun.jna.Function
@@ -883,12 +923,12 @@
   (assert (instance? Pointer font-ptr))
   (assert text "Can't get font size of nil text")
   
-  (let [text-bytes (.getBytes text "utf-8")
+  (let [text-bytes (.getBytes ^String text "utf-8")
         x (FloatByReference.)
         y (FloatByReference.)
         width (FloatByReference.)
         height (FloatByReference.)]
-    (skia_text_bounds font-ptr text-bytes (alength text-bytes) x y width height)
+    (skia_text_bounds font-ptr text-bytes (alength ^bytes text-bytes) x y width height)
     [(.getValue x)
      (.getValue y)
      (.getValue width)
@@ -900,7 +940,7 @@
 (defn index-for-position [font text px py]
   (assert (some? text) "can't find index for nil text")
   (let [font-ptr (get-font font)
-        line-height (skia_line_height font-ptr)
+        line-height (Skia/skia_line_height font-ptr)
         line-no (loop [py py
                        line-no 0]
                (if (> py line-height)
@@ -910,10 +950,10 @@
         lines (clojure.string/split-lines text)]
     (if (>= line-no (count lines))
       (count text)
-      (let [line (.getBytes (nth lines line-no) "utf-8")]
+      (let [line (.getBytes ^String (nth lines line-no) "utf-8")]
         (apply +
                line-no
-               (skia_index_for_position font-ptr line (int (alength line)) (float px))
+               (skia_index_for_position font-ptr line (int (alength ^bytes line)) (float px))
                (map count (take line-no lines)))))))
 
 
@@ -930,7 +970,7 @@
 (defc skia_load_font membraneskialib Pointer [font-path font-size])
 (defn load-font [font-path font-size]
   (assert (string? font-path))
-  (let [font-ptr (skia_load_font font-path (float font-size))]
+  (let [font-ptr (Skia/skia_load_font font-path (float font-size))]
     (assert font-ptr (str "unable to load font: " font-path " " font-size))
     font-ptr))
 
@@ -952,26 +992,24 @@
                 (let [[w h] (bounds drawable)
                       img-width (int (+ (* 2 padding) (max 0 w)))
                       img-height (int (+ (* 2 padding) (max 0 h)))
-                      resource (skia_offscreen_buffer *skia-resource*
-                                                      (int (* xscale img-width))
-                                                      (int (* yscale img-height))
-                                                      (float xscale)
-                                                      (float yscale))
+                      resource (Skia/skia_offscreen_buffer *skia-resource*
+                                                           (int (* xscale img-width))
+                                                           (int (* yscale img-height)))
                       img (binding [*skia-resource* resource
                                     *already-drawing* true]
                             (when (and (not= xscale 1)
                                        (not= yscale 1))
-                              (skia_set_scale *skia-resource* (float xscale) (float yscale)))
-                            (skia_translate *skia-resource* padding padding)
+                              (Skia/skia_set_scale *skia-resource* (float xscale) (float yscale)))
+                            (Skia/skia_translate *skia-resource* padding padding)
                             (draw drawable)
                             ;; todo: fix memory leak!
-                            (skia_offscreen_image *skia-resource*))
+                            (Skia/skia_offscreen_image *skia-resource*))
                       img-info [img img-width img-height]]
                   (swap! *draw-cache* assoc [drawable content-scale *paint*] img-info)
                   img-info)))]
         (save-canvas
-         (skia_translate *skia-resource* (float (- padding)) (float (- padding)))
-         (skia_draw_image_rect *skia-resource* img (float img-width) (float img-height)))))))
+         (Skia/skia_translate *skia-resource* (float (- padding)) (float (- padding)))
+         (Skia/skia_draw_image_rect *skia-resource* img (float img-width) (float img-height)))))))
 
 (defcomponent Cached [drawable]
     IOrigin
@@ -1279,11 +1317,11 @@
 
 (defmacro with-cpu-skia-resource [resource-sym size & body]
   `(let [size# ~size
-         ~resource-sym (skia_init_cpu (int (first size#)) (int (second size#)))]
+         ~resource-sym (Skia/skia_init_cpu (int (first size#)) (int (second size#)))]
      (try
        ~@body
        (finally
-         (skia_cleanup ~resource-sym)))))
+         (Skia/skia_cleanup ~resource-sym)))))
 
 (def image-formats
   ;; need to recompile skia to include other formats
@@ -1301,7 +1339,7 @@
    ;; ::image-format-heif (int 12)
    })
 (defn guess-image-format [path]
-  (let [period-index (.lastIndexOf path ".")]
+  (let [period-index (.lastIndexOf ^String path ".")]
     (if (= -1 period-index)
       (get image-formats ::image-format-png)
       (let [suffix (clojure.string/lower-case (subs path (inc period-index)))]
@@ -1367,11 +1405,12 @@
                                  (str "Image format must be one of " (keys image-formats)))))]
     (with-cpu-skia-resource skia-resource size
       (binding [*skia-resource* skia-resource
+                *image-cache* (atom {})
                 *already-drawing* true]
         (when clear?
-          (skia_clear skia-resource))
+          (Skia/skia_clear skia-resource))
         (draw elem))
-      (skia_save_image skia-resource
+      (Skia/skia_save_image skia-resource
                        image-format-native
                        quality
                        path)))))
@@ -1405,7 +1444,7 @@
                  :ui (atom nil)
                  :mouse-position (atom [0 0])
                  :window-content-scale (atom [1 1])
-                 :skia-resource (skia_init))
+                 :skia-resource (Skia/skia_init))
           key-callback (make-key-callback this (get handlers :key -key-callback))
           character-callback (make-character-callback this (get handlers :char -character-callback))
           mouse-button-callback (make-mouse-button-callback this (get handlers :mouse-button -mouse-button-callback))
@@ -1462,11 +1501,21 @@
     (glClear (bit-or GL_COLOR_BUFFER_BIT
                      GL_STENCIL_BUFFER_BIT))
 
+    ;; there's some issue with caching when drawing text that's offscreen
+    ;; when using gpu renderer in skia.cpp.
+    ;; currently using cpu renderer which fixes the issue.
+    ;; it's unclear which method should be preferred or what the
+    ;; performance implications are.
+    ;;
+    ;; simply resetting cache on reshape also fixes the issue,
+    ;; but causes the window to be drawn black while a window
+    ;; is being resized.
+    ;; (reset! draw-cache {})
 
     (let [[xscale yscale :as content-scale] (get-window-content-scale-size window)
           [fb-width fb-height] (get-framebuffer-size window)]
       (reset! window-content-scale content-scale)
-      (skia_reshape skia-resource fb-width fb-height xscale yscale))
+      (Skia/skia_reshape skia-resource fb-width fb-height xscale yscale))
 
     nil)
   
@@ -1474,7 +1523,7 @@
     (when window
       (glfw-call Boolean/TYPE glfwWindowShouldClose window)))
   (cleanup! [this]
-    (skia_cleanup skia-resource)
+    (Skia/skia_cleanup skia-resource)
     (glfw-call void glfwDestroyWindow window)
     (assoc this
            :window nil
@@ -1493,7 +1542,7 @@
 
     (glfw-call Void/TYPE glfwMakeContextCurrent window)
 
-    (skia_clear skia-resource)
+    (Skia/skia_clear skia-resource)
 
     (binding [*image-cache* image-cache
               *font-cache* font-cache
@@ -1502,9 +1551,12 @@
               *skia-resource* skia-resource]
       (let [to-render (swap! ui (fn [_]
                                   (render)))]
+        ;; TODO: should try to implement
+        ;; Yes, that's fine.  Another common approach is to record the entire scene normally as an SkPicture, and just play it back into each tile, clipped and translated as appropriate.
+;; This approach works best if you use SkRTreeFactory when calling beginRecording()... that'll build an R-tree to help us skip issuing draws that fall outside each tile.
         (do
           (draw to-render))))
-    (skia_flush skia-resource)
+    (Skia/skia_flush skia-resource)
     (glfw-call Void/TYPE glfwSwapBuffers window)))
 
 (declare run-helper)
@@ -1609,9 +1661,6 @@
 
    (async/thread
      (run-sync make-ui options))))
-
-(intern (the-ns 'membrane.ui) 'run run)
-(intern (the-ns 'membrane.ui) 'run-sync run-sync)
 
 (defn run-helper [window-chan]
   (with-local-vars [windows #{}]

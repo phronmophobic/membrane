@@ -2,20 +2,29 @@
 
 ### Membrane is a platform agnostic library for creating user interfaces.
 
-Membrane provides 3 layers:
+Membrane provides three layers:
 
 1. A UI framework, `membrane.component`, that deals with state management for GUIs
 2. A platform agnostic model for graphics and events
 3. Multiple graphics backends that provide concrete implementations for #2
 
-While these 3 layers are made to work together, they can also be mixed and matched with other implementations. For example, you could use your favorite UI framework and the other layers to reach another platform. Alternatively, you could provide your own ncurses graphics backend and leverage the ui framework and graphics model.
+While these three layers are made to work together, they can also be mixed and matched with other implementations. For example, you could use your favorite UI framework and the other layers to reach another platform. Alternatively, you could provide your own ncurses graphics backend and leverage the ui framework and graphics model.
 
-The currently supported platforms are Mac OSX, Linux, and the Web via WebGL. Support for Windows and other platforms is coming soon!
+
+#### Supported platforms:
+- Mac OSX
+- Linux
+- the web via WebGL
+
+Support for Windows and other platforms is coming soon!
+
+#### Links
 
 [Tutorial](/docs/tutorial.md)  
 [Docs](https://phronmophobic.github.io/membrane/api)  
 [Examples](https://github.com/phronmophobic/membrane/tree/master/src/membrane/example)  
-[Distributing your app](/docs/distribution.md)  
+[Distributing your desktop app](/docs/distribution.md)  
+[Targeting WebGL](/docs/webgl.md)  
 <!-- Guides   -->
 <!-- Design Philosophy   -->
 <!-- FAQ   -->
@@ -24,11 +33,13 @@ The currently supported platforms are Mac OSX, Linux, and the Web via WebGL. Sup
 Leiningen dependency:
 
 ```
-[com.phronemophobic/membrane "0.9.6-beta-SNAPSHOT"]
+[com.phronemophobic/membrane "0.9.8-beta"]
 ```
+## Screenshots
 
+![Overview](/docs/images/overview.gif?raw=true)
 
-## A Simple Example without the UI Framework
+### A Simple Example without the UI Framework
 
 Screenshot:
 ![simple counter](/docs/images/counter1.gif?raw=true)
@@ -61,7 +72,7 @@ Screenshot:
 
 ```
 
-## Simple Example using `membrane.component` UI Framework
+### Simple Example using `membrane.component` UI Framework
 
 Screenshot:
 ![simple counter](/docs/images/counter2.gif?raw=true)
@@ -99,7 +110,7 @@ Screenshot:
   (run-ui #'counter {:num 10}))
 ```
 
-Here's an exmaple of how you can use your `counter` component.
+Here's an example of how you can use your `counter` component.
 
 Screenshot:
 ![couning counter](/docs/images/counter3.gif?raw=true)
@@ -186,12 +197,13 @@ Screenshot:
 ```
 
 
-That's it! For more in-depth info, check out the documentation.
+That's it! For more in-depth info, check out the [tutorial](/docs/tutorial.md).
 
 [Tutorial](/docs/tutorial.md)  
 [Docs](https://phronmophobic.github.io/membrane/api)  
 [Examples](https://github.com/phronmophobic/membrane/tree/master/src/membrane/example)  
-[Distributing your app](/docs/distribution.md)  
+[Distributing your desktop app](/docs/distribution.md)  
+[Targeting WebGL](/docs/webgl.md)  
 <!-- Guides   -->
 <!-- Design Philosophy   -->
 <!-- FAQ   -->

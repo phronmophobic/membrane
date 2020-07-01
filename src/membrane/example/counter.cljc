@@ -11,9 +11,9 @@
                      spacer
                      on]]
             [membrane.component :as component
-             :refer [defui run-ui run-ui-sync defeffect]]
+             :refer [defui defeffect]]
             [membrane.basic-components :as basic])
-  (:gen-class))
+  #?(:clj (:gen-class)))
 
 
 ;; Display a "more!" button next to label showing num
@@ -31,7 +31,7 @@
 (comment
   ;; pop up a window showing our counter with
   ;; num initially set to 10
-  (run-ui #'counter {:num 10}))
+  (skia/run (component/make-app #'counter {:num 10})))
 
 ;; Display an "Add Counter" button
 ;; on top of a stack of counters
@@ -56,10 +56,11 @@
 (comment
   ;; pop up a window showing our counter-counter
   ;; with nums initially set to [0 1 2]
-  (run-ui #'counter-counter {:nums [0 1 2]}))
+  (skia/run (component/make-app #'counter-counter {:nums [0 1 2]})))
 
-(defn -main [ & args]
-  (run-ui-sync #'counter-counter {:nums [0 1 2]}))
+#?(:clj
+   (defn -main [ & args]
+     (skia/run-sync (component/make-app #'counter-counter {:nums [0 1 2]}))))
 
 
 

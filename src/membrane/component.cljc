@@ -4,11 +4,45 @@
    ;;  :as async]
    [com.rpl.specter :as spec
     :refer [ATOM ALL FIRST LAST MAP-VALS META]]
-   cljs.analyzer.api
-   [membrane.ui :as ui :refer [defcomponent draw children bounds]]))
+   #?(:cljs cljs.analyzer.api)
+   #?(:cljs [cljs.analyzer :as cljs])
+   #?(:cljs cljs.env)
+   [membrane.ui :as ui :refer [defcomponent children bounds origin]]))
 
 (def ^:dynamic *root* nil)
 
+#?
+(:clj
+ (defmacro building-graalvm-image? []
+   (try
+     (import 'org.graalvm.nativeimage.ImageInfo)
+     `(org.graalvm.nativeimage.ImageInfo/inImageBuildtimeCode)
+     (catch ClassNotFoundException e
+       false))))
+
+;; clojurescript is an optional dependency
+;; also, graalvm chokes on cljs requires
+#?
+(:clj
+ (let [mock-cljs-env
+       (fn []
+         (def cljs-resolve (constantly nil))
+         (def cljs-resolve-var (constantly nil))
+         (def cljs-env-compiler (constantly nil)))]
+   (if (building-graalvm-image?)
+     (mock-cljs-env)
+     (try
+       (def cljs-resolve (requiring-resolve 'cljs.analyzer.api/resolve))
+       (def cljs-resolve-var (requiring-resolve 'cljs/resolve-var))
+       (let [cljs-compiler (requiring-resolve 'cljs.env/*compiler*)]
+         (def cljs-env-compiler (fn [] @cljs-compiler)))
+       (catch Exception e
+         (mock-cljs-env)))))
+ :cljs
+ (do
+   (def cljs-resolve cljs.analyzer.api/resolve)
+   (def cljs-resolve-var cljs/resolve-var)
+   (def cljs-env-compiler (fn [] cljs.env/*compiler*))))
 
 (def special-syms
   {'ATOM spec/ATOM
@@ -42,6 +76,9 @@
 
         keypath
         (spec/keypath arg)
+
+        keypath-list
+        (apply spec/keypath arg)
 
         filter
         (spec/filterer (if (keyword? arg)
@@ -97,6 +134,16 @@
            [(second form)
             `[(list (quote ~'keypath) ~(nth form 2))
               (list (quote ~'nil->val) ~(nth form 3))]])
+
+         (clojure.core/get-in get-in)
+         (case (count form)
+           3
+           [(second form)
+            `(list (quote ~'keypath-list) ~(nth form 2))]
+           4
+           [(second form)
+            `[(list (quote ~'keypath-list) ~(nth form 2))
+              (list (quote ~'nil->val) ~(nth form 3))]])
          
          (spec/select-one)
          [(nth form 2)
@@ -145,44 +192,46 @@
      )))
 
 (defn calculate-path [deps k]
-  (loop [deps deps
-         k k
-         path []]
-    (if-let [[new-deps get-path] (get deps k)]
-      (let [[new-k step] @get-path]
-        (recur new-deps
-               new-k
-               (if (some? step)
-                 (conj path step)
-                 path)))
-      (vec (reverse (if k
-                      (conj path `(list (quote ~'keypath) (quote ~k)))
-                      path))))))
+  (let [path
+        (loop [deps deps
+               k k
+               path []]
+          (if-let [[new-deps get-path] (get deps k)]
+            (let [[new-k step] @get-path]
+              (recur new-deps
+                     new-k
+                     (if (some? step)
+                       (conj path step)
+                       path)))
+            (vec (reverse (if k
+                            (conj path `(list (quote ~'keypath) (quote ~k)))
+                            path)))))]
+    ;; special case to reduce nesting
+    (if (and (symbol? (first path))
+             (::flatten? (meta (first path))))
+      `(into ~(first path)
+             ~(vec (rest path)))
+      path)))
 
 
 
 
-#?(:clj
-    ;; we would like to just identify defui methods with metadata,
-   ;; but since macros in clojure script won't have access to that metadata
-   ;; we have to keep track elsewhere
-   ;; this is the elsewhere
-   (defonce special-fns (atom {})))
+;; we would like to just identify defui methods with metadata,
+;; but since macros in clojure script won't have access to that metadata
+;; we have to keep track elsewhere
+;; this is the elsewhere
+(defonce special-fns (atom {}))
+
+(def ^:dynamic *env* nil)
+(defn fully-qualified [sym]
+  (if (cljs-env-compiler)
+    (if-let [result (cljs-resolve {:ns (get-in @(cljs-env-compiler) [:cljs.analyzer/namespaces (symbol (ns-name *ns*))])}  sym)]
+      (:name result))
+    #?(:clj (if-let [v (resolve sym)]
+              (symbol (name (ns-name (.ns v))) (name (.sym v)))))))
 
 
-#?
-(:clj
- (defn fully-qualified [sym]
-   (if cljs.env/*compiler*
-     (if-let [result (cljs.analyzer.api/resolve {:ns (get-in @cljs.env/*compiler* [:cljs.analyzer/namespaces (symbol (ns-name *ns*))])}  sym)]
-       (:name result))
-     (if-let [v (resolve sym)]
-       (symbol (name (ns-name (.ns v))) (name (.sym v)))))))
-
-#?
-(:clj
-
- (defn- path-replace
+ (defn path-replace
    "Given a form, walk and replace all $syms with the lens (or path) for the sym with the same name."
    ([form]
     (path-replace form {}))
@@ -369,14 +418,16 @@
           (let [full-sym (delay
                           (fully-qualified first-form))
                 special? (if (symbol? first-form)
-                           (if-let [m (or (meta (resolve first-form))
+                           (if-let [m (or (when (cljs-env-compiler)
+                                            (:meta (cljs-resolve-var *env* first-form)))
+                                          #?(:clj (meta (resolve first-form)))
                                           (meta first-form))]
                              (::special? m)
                              (contains? @special-fns @full-sym)))]
             (if special?
               (let [args (into {} (map vec (partition 2 (rest form))))
                     fn-meta (get @special-fns @full-sym
-                                 (or (meta (resolve first-form))
+                                 (or #?(:clj (meta (resolve first-form)))
                                      (meta first-form)
                                      ))
 
@@ -487,7 +538,8 @@
       
       
       (seqable? form) (let [empty-form (empty form)
-                            empty-form (if (instance? clojure.lang.IObj empty-form)
+                            empty-form (if #?(:clj (instance? clojure.lang.IObj empty-form)
+                                              :cljs (satisfies? IMeta empty-form))
                                          (with-meta empty-form (meta form))
                                          empty-form)]
                         (into empty-form
@@ -500,14 +552,9 @@
 
 
 
- )
 
 
-
-
-#?
-(:clj
- (defmacro path-replace-macro
+(defmacro path-replace-macro
    ([deps form]
     (let [deps (into {}
                      (for [[sym dep] deps]
@@ -518,19 +565,17 @@
    ([form]
     (let [new-form (path-replace form)]
       ;; (clojure.pprint/pprint new-form)
-      new-form))))
+      new-form)))
 
 
+(defn doall* [s] (dorun (tree-seq seqable? seq s)) s)
 
 
-#?(:clj
-   (defn doall* [s] (dorun (tree-seq seqable? seq s)) s))
 
 (def component-cache (atom {}))
-#?
-(:clj
- (defmacro defui
-   "Define a component.
+
+(defmacro defui
+ "Define a component.
 
   The arguments for a component must take the form (defui my-component [ & {:keys [arg1 arg2 ...]}])
 
@@ -595,7 +640,8 @@
                       [arg-name
                        [{}
                         (delay
-                         [nil path-sym])]]))
+                         [nil (with-meta path-sym
+                                {::flatten? true})])]]))
          ui-arg-map
          (merge {:keys arg-keys
                  :as args-map-sym}
@@ -624,7 +670,8 @@
                   ;; correctly. we need to know the *ns* for clojurescript
                   ;; so we can correctly replace calls to other ui components
                   ;; with their provenance info
-                  ~@(doall* (map #(path-replace % deps) body))))
+                  ~@(binding [*env* &env]
+                      (doall* (map #(path-replace % deps) body)))))
 
               (defcomponent ~component-name [~@arg-keys]
                   membrane.ui/IOrigin
@@ -671,11 +718,7 @@
                  (::children this#)
                  )
                 
-                membrane.ui/IDraw
-                (~'draw [this#]
-                 ;; (draw (~draw-fn-name this#))
-                 (draw (::rendered this#))
-                 ))
+                )
               (alter-meta! (var ~ui-name) (fn [old-meta#]
                                             (merge old-meta# (quote ~ui-name-meta))))
 
@@ -694,7 +737,10 @@
                                  `(~(keyword (str "$" (name k))) ~elem-sym))]]
                       rendered# (~draw-fn-name ~elem-sym)
                       ~elem-sym (-> ~elem-sym
-                                    (assoc ::bounds (bounds rendered#))
+                                    (assoc ::bounds (let [[w# h#] (bounds rendered#)
+                                                          [ox# oy#] (origin rendered#)]
+                                                      [(+ ox# w#)
+                                                       (+ oy# h#)]))
                                     (assoc ::children [rendered#])
                                     (assoc ::rendered rendered#)
                                     (assoc ::has-key-event (membrane.ui/has-key-event rendered#))
@@ -707,7 +753,9 @@
 
               (let [
                     ret#
-                    (defn ~ui-name [ ~'& ~ui-arg-map]
+                    (defn ~ui-name ~(dissoc ui-name-meta
+                                            :arglists)
+                      [ ~'& ~ui-arg-map]
 
                       (let [key# [~ui-name-kw
                                   [~@arg-keys
@@ -735,14 +783,19 @@
                                         elem#))]
                         elem#))]
                 (reset! component-cache {})
-                
+
+                ;; needed for bootstrapped cljs
+                (swap! special-fns
+                       assoc
+                       (quote ~(symbol (name (ns-name *ns*)) (name ui-name)))
+                       (quote ~ui-name-meta))
                 (alter-meta! (var ~ui-name) (fn [old-meta#]
                                               (merge old-meta# (quote ~ui-name-meta))))
                 ret#)
               
               )]
        (swap! special-fns assoc (symbol (name (ns-name *ns*)) (name ui-name)) ui-name-meta)
-       result))))
+       result)))
 
 
 (defonce effects (atom {}))
@@ -784,41 +837,6 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
 
 
 
-(defn db-effects
-  "Effects for updating state in an atom.
-
-  The effects are:
-
-  `:update` similar to `update` except instead of a keypath, takes a more generic path.
-  example: `[:update $path inc]`
-  `:set` sets the value given a $path
-  example: `[:set $path value]`
-  `:delete` deletes value at $path
-  example: `[:delete $path]`
-  "
-  [atm]
-  {:update
-   (fn [_ path f & args ]
-     (swap! atm
-            (fn [old-state]
-              (spec/transform (path->spec path)
-                              (fn [& spec-args]
-                                (apply f (concat spec-args
-                                                 args)))
-                              old-state))))
-   :set
-   (fn [_ path v]
-     (swap! atm
-            (fn [old-state]
-              old-state
-              (spec/transform (path->spec path) (constantly v) old-state))))
-   :delete
-   (fn [_ path]
-     (swap! atm
-            (fn [old-state]
-              (spec/transform (path->spec path) (constantly spec/NONE) old-state))))})
-
-
 (defui top-level-ui [& {:keys [extra
                                state
                                body
@@ -845,12 +863,10 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
           main-view (apply
                      @body
                      :extra extra
-                     :$extra $extra
+                     :$extra  $extra
                      :context context
                      :$context $context
-                     args)
-          
-          ]
+                     args)]
       (membrane.ui/on-scroll
        (fn [offset]
          (let [steps (membrane.ui/scroll main-view offset)]
@@ -869,7 +885,8 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
               (if (seq steps)
                 (run! #(apply handler %) steps)
                 (when mouse-down?
-                  (handler :set [:context :focus] nil)))))
+                  (handler :set [$context :focus] nil)
+                  nil))))
           (ui/on-key-press
            (fn [s]
              (let [steps (membrane.ui/key-press main-view s)]
@@ -895,60 +912,67 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
                main-view))))))))))))
 
 
-(defn make-top-level-ui
-  ([ui-var state-atom handler]
-   (let [arglist (-> ui-var
-                     meta
-                     :arglists
-                     first)
-         m (second arglist)
-         arg-names (disj (set (:keys m))
-                         'extra)
-         defaults (:or m)
-         top-level (fn []
-                     (top-level-ui :state @state-atom :$state nil
-                                   :body ui-var
-                                   :arg-names arg-names
-                                   :defaults defaults
-                                   :handler handler))]
-     top-level)))
 
 
-(defn- default-handler [atm]
-  (fn dispatch! [type & args]
-    (case type
-      :update
-      (let [[path f & args ] args]
-        (swap! atm
-               (fn [old-state]
-                 (spec/transform (path->spec path)
-                                 (fn [& spec-args]
-                                   (apply f (concat spec-args
-                                                    args)))
-                                 old-state))))
-      :set
-      (let [[path v] args]
-        (swap! atm
-                   (fn [old-state]
-                     old-state
-                     (spec/transform (path->spec path) (constantly v) old-state))))
-      :delete
-      (let [[path] args]
-        (swap! atm
-                   (fn [old-state]
-                     (spec/transform (path->spec path) (constantly spec/NONE) old-state))))
 
-      (let [effects @effects]
-        (let [handler (get effects type)]
-          (if handler
-            (apply handler dispatch! args)
-            (println "no handler for " type)))))))
 
-(defn run-ui
+(defn default-handler [atm]
+  (fn dispatch!
+    ([] nil)
+    ([type & args]
+     (case type
+       :update
+       (let [[path f & args ] args]
+         ;; use transform* over transform for graalvm.
+         ;; since the specs are dynamic, I don't think there's any benefit to the
+         ;; macro anyway
+         (spec/transform* (path->spec [ATOM path])
+                          (fn [& spec-args]
+                            (apply f (concat spec-args
+                                             args)))
+                          atm))
+       :set
+       (let [[path v] args]
+         ;; use setval* over setval for graalvm.
+         ;; since the specs are dynamic, I don't think there's any benefit to the
+         ;; macro anyway
+         (spec/setval* (path->spec [ATOM path]) v atm))
+
+       :delete
+       (let [[path] args]
+         ;; use setval* over setval for graalvm.
+         ;; since the specs are dynamic, I don't think there's any benefit to the
+         ;; macro anyway
+         (spec/setval* (path->spec [ATOM path]) spec/NONE atm))
+
+       (let [effects @effects]
+         (let [handler (get effects type)]
+           (if handler
+             (apply handler dispatch! args)
+             (println "no handler for " type))))))))
+
+
+(defn make-app
+  "`ui-var` The var for a component
+  `initial-state` The initial state of the component to run or an atom that contains the initial state.
+  `handler` The effect handler for your UI. The `handler` will be called with all effects returned by the event handlers of your ui.
+
+  If `handler` is nil or an arity that doesn't specify `handler` is used, then a default handler using all of the globally defined effects from `defeffect` will be used. In addition to the globally defined effects the handler will provide 3 additional effects:
+
+  `:update` similar to `update` except instead of a keypath, takes a more generic path.
+  example: `[:update $path inc]`
+
+  `:set` sets the value given a $path
+  example: `[:set $path value]`
+
+  `:delete` deletes value at $path
+  example: `[:delete $path]`
+
+  return value: the state atom used by the ui."
   ([ui-var]
-   (run-ui ui-var {}))
+   (make-app ui-var {}))
   ([ui-var initial-state]
-   (run-ui ui-var initial-state nil))
+   (make-app ui-var initial-state nil))
   ([ui-var initial-state handler]
    (let [state-atom (if (instance? #?(:clj clojure.lang.Atom
                                       :cljs cljs.core.Atom)
@@ -958,30 +982,20 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
          handler (if handler
                    handler
                    (default-handler state-atom))
-         top-level (make-top-level-ui ui-var state-atom handler)
-         ]
-     (membrane.ui/run top-level)
-     state-atom)))
-
-#?
-(:clj
- (defn run-ui-sync
-   ([ui-var]
-    (run-ui-sync ui-var {}))
-   ([ui-var initial-state]
-    (run-ui-sync ui-var initial-state nil))
-   ([ui-var initial-state handler]
-    (let [state-atom (if (instance? #?(:clj clojure.lang.Atom
-                                       :cljs cljs.core.Atom)
-                                    initial-state)
-                       initial-state
-                       (atom initial-state))
-          handler (if handler
-                    handler
-                    (default-handler state-atom))
-          top-level (make-top-level-ui ui-var state-atom handler)]
-      (membrane.ui/run-sync top-level)
-      state-atom))))
-
+         arglist (-> ui-var
+                     meta
+                     :arglists
+                     first)
+         m (second arglist)
+         arg-names (disj (set (:keys m))
+                         'extra)
+         defaults (:or m)
+         top-level (fn []
+                     (top-level-ui :state @state-atom :$state []
+                                   :body ui-var
+                                   :arg-names arg-names
+                                   :defaults defaults
+                                   :handler handler))]
+     top-level)))
 
 

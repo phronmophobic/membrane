@@ -1,7 +1,11 @@
 (ns membrane.basic-components
   #?(:cljs
-     (:require-macros [membrane.ui :refer [maybe-key-event]]))
-  (:require [membrane.component :refer [defui run-ui path->spec defeffect] :as component]
+     (:require-macros [membrane.ui :refer [maybe-key-event]]
+                      [membrane.component :refer [defui defeffect]]))
+  (:require [membrane.component :refer [#?(:clj defui)
+                                        #?(:clj defeffect)
+                                        path->spec
+                                        ] :as component]
             [com.rpl.specter :as spec
              :refer [ATOM ALL FIRST LAST MAP-VALS META]]
             [membrane.ui :as ui
@@ -21,15 +25,13 @@
                      defcomponent
                      IBounds
                      IKeyPress
-                     IDraw
                      origin
                      origin-x
                      origin-y
-                     draw
                      on-key-press
                      bordered
                      children
-                     maybe-key-event
+                     maybe-key-press
                      on
                      IHandleEvent
                      index-for-position]]))
@@ -184,54 +186,65 @@
 
 
 (def double-click-threshold 500)
-#?
-(:clj
- (defeffect ::text-double-click [$last-click $select-cursor $cursor pos text font]
-   (let [now (java.util.Date.)
-         [mx my] pos]
-     (run! #(apply dispatch! %)
-           [
-            [:update [(spec/collect-one (path->spec $last-click))
-                      $select-cursor]
-             (fn [[last-click [dx dy]] select-cursor]
-               (if last-click
-                 (let [diff (- (.getTime ^java.util.Date now) (.getTime ^java.util.Date last-click))]
-                   (if (and (< diff double-click-threshold)
-                            (< (+ (Math/pow (- mx dx) 2)
-                                  (Math/pow (- my dy) 2))
-                               100))
-                     (let [index (index-for-position font
-                                                     text mx my)
-                           matcher (doto (re-matcher  #"\s" text)
-                                     (.region index (count text)))]
-                       (if (.find matcher)
-                         (.start matcher)
-                         (count text)))
-                     select-cursor))
-                 select-cursor))]
-            [:update [(spec/collect-one (path->spec $last-click))
-                      $cursor]
-             (fn [[last-click [dx dy]] cursor]
-               (if last-click
-                 (let [diff (- (.getTime now) (.getTime ^java.util.Date last-click))]
-                   (if (and (< diff double-click-threshold)
-                            (< (+ (Math/pow (- mx dx) 2)
-                                  (Math/pow (- my dy) 2))
-                               100))
-                     (let [index (index-for-position font
-                                                     text mx my)
-                           text-backwards (clojure.string/reverse text)
-                           matcher (doto (re-matcher  #"\s" text-backwards)
-                                     (.region (- (count text) index) (count text)))
-                           ]
-                       (if (.find matcher)
-                         (- (count text) (.start matcher))
-                         0))
-                     cursor))
-                 cursor))]
-           
-            [:set $last-click [now pos]]]))
-   ))
+(let [getTimeMillis #?(:clj (fn [] (.getTime ^java.util.Date (java.util.Date.)))
+                       :cljs (fn [] (.getTime (js/Date.))))
+      pow #?(:clj (fn [n x] (Math/pow n x))
+             :cljs (fn [n x] (js/Math.pow n x)))
+      find-white-space #?(:clj (fn [text start]
+                                 (let [matcher (doto (re-matcher  #"\s" text)
+                                                 (.region start (count text)))]
+                                   (when (.find matcher)
+                                     (.start matcher))))
+                          :cljs (fn [text start]
+                                  (let [regexp (js/RegExp. "\\s" "g")]
+                                    (set! (.-lastIndex regexp) start)
+                                    (let [result (.exec regexp text)]
+                                      (when result
+                                        (.-index result))))))]
+  (defeffect ::text-double-click [$last-click $select-cursor $cursor pos text font]
+    (let [now (getTimeMillis)
+          [mx my] pos]
+      (run! #(apply dispatch! %)
+            [
+             [:update [(spec/collect-one (path->spec $last-click))
+                       $select-cursor]
+              (fn [[last-click [dx dy]] select-cursor]
+                (if last-click
+                  (let [diff (- now last-click)]
+                    (if (and (< diff double-click-threshold)
+                             (< (+ (pow (- mx dx) 2)
+                                   (pow (- my dy) 2))
+                                100))
+                      (let [index (index-for-position font
+                                                      text mx my)]
+                        (if-let [start (find-white-space text index)]
+                          start
+                          (count text)))
+                      select-cursor))
+                  select-cursor))]
+             [:update [(spec/collect-one (path->spec $last-click))
+                       $cursor]
+              (fn [[last-click [dx dy]] cursor]
+                (if last-click
+                  (let [diff (- now last-click)]
+                    (if (and (< diff double-click-threshold)
+                             (< (+ (pow (- mx dx) 2)
+                                   (pow (- my dy) 2))
+                                100))
+                      (let [index (index-for-position font
+                                                      text mx my)
+                            text-backwards (clojure.string/reverse text)]
+                        (if-let [start (find-white-space text-backwards
+                                                         (- (count text) index))]
+                          (- (count text) start)
+                          0)
+                        )
+                      cursor))
+                  cursor))]
+
+             [:set $last-click [now pos]]]))
+    ))
+
 
 (defeffect ::delete-backward [$cursor $select-cursor $text]
   (run!
@@ -276,7 +289,7 @@
            text ""
            border? true}}]
   (let [text (or text "")]
-    (maybe-key-event
+    (maybe-key-press
      focus?
      (on
       :key-press
@@ -444,13 +457,10 @@
   (let [offset-x (nth offset 0)
         offset-y (nth offset 1)
         [width height] scroll-bounds
-        scroll-button-width 7
-        scroll-button-height 10
+        scroll-button-size 7
         [total-width total-height] (bounds body)
 
-        scroll-elem (ui/scrollview
-                     scroll-bounds [(- offset-x) (- offset-y)]
-                     body)
+
 
         max-offset-x (max 0
                           (- total-width width))
@@ -464,6 +474,11 @@
                  (max 0
                       (min max-offset-y
                            old-offset)))
+
+        scroll-elem (ui/scrollview
+                     scroll-bounds [(- (clampx offset-x))
+                                    (- (clampy offset-y))]
+                     body)
 
         div0 (fn [a b]
              (if (zero? b)
@@ -488,8 +503,10 @@
       (ui/on-mouse-event
        (fn [[mx my :as mpos] button mouse-down? mods]
          (if mouse-down?
-           (let [new-mdownx? (> my (- height scroll-button-height))
-                 new-mdowny? (> mx (- width scroll-button-width))]
+           (let [new-mdownx? (and (> my height)
+                                  (> total-width width))
+                 new-mdowny? (and (> mx width)
+                                  (> total-height height))]
              (into
               [[:set $mdownx? new-mdownx?]
                [:set $mdowny? new-mdowny?]]
@@ -511,7 +528,7 @@
         (when (> total-height height)
           (translate width 0
                      [(filled-rectangle [0.941 0.941 0.941]
-                                        scroll-button-width height)
+                                        scroll-button-size height)
                       (let [top (/ offset-y total-height)
                             bottom (/ (+ offset-y height)
                                       total-height)]
@@ -519,28 +536,28 @@
                         (translate 0 (* height top)
                                    (with-color
                                     [0.73 0.73 0.73]
-                                    (ui/rounded-rectangle scroll-button-width (* height (- bottom top)) (/ scroll-button-width 2)))
+                                    (ui/rounded-rectangle scroll-button-size (* height (- bottom top)) (/ scroll-button-size 2)))
                                    ))
 
                       (with-color [0.89 0.89 0.89]
                         (with-style :membrane.ui/style-stroke
-                          (rectangle scroll-button-width height)))]))
+                          (rectangle scroll-button-size height)))]))
         (when (> total-width width)
           (translate 0 height
                      [(filled-rectangle [0.941 0.941 0.941]
-                                        width scroll-button-width)
+                                        width scroll-button-size)
                       (let [left (/ offset-x total-width)
                             right (/ (+ offset-x width)
                                      total-width)]
                         (translate (* width left) 0
                                    (with-color
                                     [0.73 0.73 0.73]
-                                    (ui/rounded-rectangle (* width (- right left)) scroll-button-width  (/ scroll-button-width 2)))
+                                    (ui/rounded-rectangle (* width (- right left)) scroll-button-size  (/ scroll-button-size 2)))
                                    )
                         )
                       (with-color [0.89 0.89 0.89]
                         (with-style :membrane.ui/style-stroke
-                          (rectangle width scroll-button-width )))]))
+                          (rectangle width scroll-button-size )))]))
 
         ])))))
 
@@ -554,6 +571,8 @@
                              " jumped over the lazy dog"
                              ))))))
 
+(defeffect ::toggle [$bool]
+  (dispatch! :update $bool not))
 
 (defui checkbox
   "Checkbox component."
@@ -561,7 +580,7 @@
   (on
    :mouse-down
    (fn [_]
-     [[:update $checked? not]])
+     [[::toggle $checked?]])
    (ui/checkbox checked?)))
 
 
@@ -615,13 +634,19 @@
         [rows-width rows-height] (bounds rows)
         ]
     [(ui/with-style
-      ::ui/style-stroke
-      (ui/with-color [0.831
-                     0.831
-                     0.831]
-       (ui/rounded-rectangle rows-width
-                             (+ rows-height (* 2 padding-y))
-                             4)))
+       ::ui/style-stroke
+       (ui/with-color [0.831
+                       0.831
+                       0.831]
+         (ui/rounded-rectangle rows-width
+                               (+ rows-height (* 2 padding-y))
+                               4)))
+     (ui/with-style
+       ::ui/style-fill
+       (ui/with-color [1 1 1]
+         (ui/rounded-rectangle rows-width
+                               (+ rows-height (* 2 padding-y))
+                               4)))
      (translate 0 (- padding-y 2)
                 rows)])
   )
@@ -653,4 +678,96 @@
   (dispatch! :set $selected value))
 
 (comment
-  (run-ui #'dropdown {:options ["This" "That " "The Other"]}))
+  (skia/run (component/make-app #'dropdown {:options [[:this "This"]
+                                                      [:that "That "]
+                                                      [:the-other "The Other"]]})))
+
+(defeffect ::counter-dec [$num min]
+  (if min
+    (dispatch! :update $num #(max min (dec %)))
+    (dispatch! :update $num dec)))
+
+(defeffect ::counter-inc [$num max]
+  (if max
+    (dispatch! :update $num #(min max (inc %)))
+    (dispatch! :update $num inc)))
+
+(defui counter [ & {:keys [num min max]
+                    :or {num 0}}]
+  (horizontal-layout
+   (button :text "-"
+           :on-click
+           (fn []
+             [[::counter-dec $num min]]))
+   (ui/spacer 5 0)
+   (let [lbl (ui/label num)
+         w (ui/width lbl)
+         padding (/ (clojure.core/max 0 (- 20 w)) 2)]
+     (horizontal-layout
+      (spacer padding 0)
+      lbl
+      (spacer padding 0)))
+   (ui/spacer 5 0)
+   (button :text "+"
+           :on-click
+           (fn []
+             [[::counter-inc $num max]]))))
+
+
+(comment
+  (skia/run (component/make-app #'counter {:num 3})))
+
+(defeffect ::update-slider [$num min max max-width integer? x]
+  (let [ratio (/ x max-width)
+        num (+ min (* ratio (- max min)))
+        num (if integer?
+              (int num)
+              (double num))]
+   (dispatch! :set $num num)))
+
+(defui number-slider [& {:keys [num max-width min max integer? mdown?]
+                         :or {max-width 100}}]
+  (let [ratio (/ (- num min)
+                 (- max min))
+        width (* max-width (double ratio))
+        tint 0.85
+        gray [tint tint tint]]
+    (on
+     :mouse-down
+     (fn [[x y]]
+       [[:set $mdown? true]
+        [::update-slider $num min max max-width integer? x]])
+     :mouse-up
+     (fn [[x y]]
+       [[:set $mdown? false]
+        [::update-slider $num min max max-width integer? x]])
+     :mouse-move
+     (fn [[x y]]
+       (when mdown?
+         [[::update-slider $num min max max-width integer? x]]))
+     (ui/translate 1 1
+                   (let [height 20
+                         lbl (ui/label (if integer?
+                                         num
+                                         #?(:clj (format "%.2f" (double num))
+                                            :cljs (.toFixed (double num) 2))))]
+                     [(ui/with-style :membrane.ui/style-fill
+                        (ui/with-color gray
+                          (rectangle width height)))
+                      lbl
+                      (ui/with-style :membrane.ui/style-stroke
+                        (rectangle max-width height))
+                      ]))))
+  )
+
+
+(comment
+  (skia/run (component/make-app #'number-slider {:num 3
+                                                 :min 0
+                                                 :max 20}))
+
+  (skia/run (component/make-app #'number-slider {:num 3
+                                                 :min 5
+                                                 :max 20
+                                                 :max-width 300
+                                                 :integer? true})))

@@ -1,4 +1,7 @@
 (ns membrane.example.todo
+  #?(:cljs
+     (:require-macros [membrane.component
+                       :refer [defui defeffect]]))
   (:require #?(:clj [membrane.skia :as skia])
             [membrane.ui :as ui
              :refer [vertical-layout
@@ -10,9 +13,10 @@
                      spacer
                      on]]
             [membrane.component :as component
-             :refer [defui run-ui run-ui-sync defeffect]]
+             :refer [#?(:clj defui)
+                     #?(:clj defeffect)]]
             [membrane.basic-components :as basic])
-  (:gen-class))
+  #?(:clj (:gen-class)))
 
 ;; Draw a red X that we'll use to display a delete button
 ;; No interactivity, so `defui` not needed
@@ -139,31 +143,35 @@
                                       :complete? false})))
 
 (comment
-  (run-ui #'todo-app todo-state
-                        ))
+  (skia/run (component/make-app #'todo-app todo-state)))
+
 
 (comment
   (def todo-state
-    (run-ui #'todo-app {:todos
-                        [{:complete? false
-                          :description "first"}
-                         {:complete? false
-                          :description "second"}
-                         {:complete? true
-                          :description "third"}]
-                        :next-todo-text ""})))
+    (skia/run (component/make-app #'todo-app
+                                  {:todos
+                                   [{:complete? false
+                                     :description "first"}
+                                    {:complete? false
+                                     :description "second"}
+                                    {:complete? true
+                                     :description "third"}]
+                                   :next-todo-text ""}))))
 
 
-(defn -main [& args]
-  (run-ui-sync #'todo-app {:todos
-                           [{:complete? false
-                             :description "first"}
-                            {:complete? false
-                             :description "second"}
-                            {:complete? true
-                             :description "third"}]
-                           :next-todo-text ""})
-  )
+#?
+(:clj
+ (defn -main [& args]
+   (skia/run-sync (component/make-app #'todo-app
+                                      {:todos
+                                       [{:complete? false
+                                         :description "first"}
+                                        {:complete? false
+                                         :description "second"}
+                                        {:complete? true
+                                         :description "third"}]
+                                       :next-todo-text ""}))
+   ))
 
 
 

@@ -22,14 +22,22 @@
 
 
 
-(defmacro add-image! [url-base image-path]
-  (let [size (image-size-raw image-path)
-        fname (.getName (clojure.java.io/file image-path))
-        url-path (str url-base fname)]
+(defmacro add-image! [url-path image-path-or-bounds]
+  (let [size (cond
+               (and (vector? image-path-or-bounds)
+                    (= (count image-path-or-bounds) 2))
+               image-path-or-bounds
+
+               (string? image-path-or-bounds)
+               (image-size-raw image-path-or-bounds)
+
+               :else
+               (throw (Exception. "image-path-or size should either be a vector with [width height] or a path to an image on the local filesystem.")))]
     `(swap! ~'membrane.webgl/images assoc ~url-path
             {:image-obj (let [img# (js/Image.)]
                           (set! (.-src img#) ~url-path)
                           img#)
+             :url ~url-path
              :size ~size}
            )))
 

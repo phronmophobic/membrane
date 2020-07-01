@@ -11,7 +11,7 @@
                        spacer
                        on]]
               [membrane.component :as component
-               :refer [defui run-ui run-ui-sync defeffect]]
+               :refer [defui defeffect]]
               [membrane.basic-components :as basic]))
 
 (defui item-row [ & {:keys [item-name selected?]}]
@@ -29,7 +29,7 @@
 
 (comment
  ;; It's a very common workflow to work on sub components one piece at a time.
-  (component/run-ui #'item-row {:item-name "my item" :selected? false}))
+  (skia/run (component/make-app #'item-row {:item-name "my item" :selected? false})))
 
 (defui item-selector
   "`item-names` a vector of choices to select from
@@ -55,17 +55,19 @@
            (item-row :item-name iname :selected? (get selected iname)))))))
 
 (comment
-  (run-ui #'item-selector {:item-names
-                           (->> (clojure.java.io/file ".")
-                                            (.listFiles)
-                                            (map #(.getName %)))}))
+  (skia/run (component/make-app #'item-selector {:item-names
+                                                 (->> (clojure.java.io/file ".")
+                                                      (.listFiles)
+                                                      (map #(.getName %)))})))
 
 (defn file-selector [path]
-  (:selected
-   @(component/run-ui-sync #'item-selector {:item-names (->> (clojure.java.io/file path)
-                                                           (.listFiles)
-                                                           (map #(.getName %))
-                                                           sort)})))
+  (let [state (atom {:item-names
+                     (->> (clojure.java.io/file path)
+                          (.listFiles)
+                          (map #(.getName %))
+                          sort)})]
+    (skia/run-sync (component/make-app #'item-selector state))
+    (:selected @state)))
 
 (defn -main
   ([]

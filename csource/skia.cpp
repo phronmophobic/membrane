@@ -10,6 +10,22 @@
 #include "src/core/SkStrikeSpec.h"
 #include "src/utils/SkUTF.h"
 
+// pty stufff
+#define DEFAULT_TERMINAL "screen-bce"
+#define DEFAULT_256_COLOR_TERMINAL "xterm-256color"
+#include <fcntl.h>
+#ifndef FORKPTY_INCLUDE_H
+    #if defined(__APPLE__)
+        #define FORKPTY_INCLUDE_H <util.h>
+    #elif defined(__FreeBSD__)
+        #define FORKPTY_INCLUDE_H <libutil.h>
+    #else
+        #define FORKPTY_INCLUDE_H <pty.h>
+    #endif
+#endif
+#include FORKPTY_INCLUDE_H
+
+
 #if defined(__APPLE__)
 #import <CoreFoundation/CoreFoundation.h>
 #endif
@@ -503,13 +519,18 @@ extern "C" {
     SkiaResource* skia_offscreen_buffer(SkiaResource* resource, int width, int height){
 
         SkImageInfo info = SkImageInfo:: MakeN32Premul(width, height);
-        sk_sp<SkSurface> gpuSurface(
-            SkSurface::MakeRenderTarget(resource->grContext.get(), SkBudgeted::kNo, info));
-        if (!gpuSurface) {
+
+
+        sk_sp<SkSurface> cpuSurface(SkSurface::MakeRaster(info));
+
+        // gpu surface won't draw if offscreen originally
+        // sk_sp<SkSurface> gpuSurface(
+        //     SkSurface::MakeRenderTarget(resource->grContext.get(), SkBudgeted::kNo, info));
+        if (!cpuSurface) {
             SkDebugf("SkSurface::MakeRenderTarget returned null\n");
         }
 
-        SkiaResource* gpuResource = new SkiaResource(resource->grContext, gpuSurface);
+        SkiaResource* gpuResource = new SkiaResource(resource->grContext, cpuSurface);
 
         gpuResource->paints.pop();
         gpuResource->paints.emplace(SkPaint(resource->getPaint()));
@@ -553,6 +574,30 @@ extern "C" {
         if (!img_data) { return 0; }
         SkFILEWStream out(path);
         return out.write(img_data->data(), img_data->size());
+
+    }
+
+
+    int skia_fork_pty(unsigned short rows, unsigned short columns){
+        struct winsize ws = {.ws_row = rows, .ws_col = columns};
+        int pt;
+        pid_t pid = forkpty(&pt, NULL, NULL, &ws);
+
+        if (pid < 0){
+            return -1;
+        } else if (pid == 0){
+
+            setsid();
+            // setenv("MTM", buf, 1);
+            setenv("TERM", DEFAULT_256_COLOR_TERMINAL
+                   , 1);
+            // signal(SIGCHLD, SIG_DFL);
+            execl("/bin/bash", "/bin/bash", NULL);
+            return 0;
+        }
+
+        // fcntl(pt, F_SETFL, O_NONBLOCK);
+        return pt;
 
     }
 
