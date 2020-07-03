@@ -11,7 +11,7 @@
                      on]]
             [clojure.core.async :as async]
             [membrane.component :as component
-             :refer [defui run-ui run-ui-sync defeffect]]
+             :refer [defui defeffect]]
             [membrane.basic-components :as basic])
   (:gen-class))
 
@@ -339,11 +339,11 @@ with values from 0 - 1 inclusive"
 
 (defn run-examples []
   (async/go
-    (let [atm (run-ui #'show-examples {:examples @examples})]
+    (let [atm (skia/run (component/make-app #'show-examples {:examples @examples}))]
 
       (add-watch examples :run-examples
                  (fn [k r o new-examples]
                    [swap! atm assoc :examples new-examples])))))
 
 (defn -main [ & args]
-  (run-ui-sync #'show-examples {:examples @examples}))
+  (skia/run-sync (component/make-app #'show-examples {:examples @examples})))

@@ -27,9 +27,7 @@
 
             [membrane.component :as component
              :refer [#?(:clj defui)
-                     #?(:clj defeffect)
-                     run-ui
-                     run-ui-sync ]]
+                     #?(:clj defeffect)]]
             #?(:clj [clojure.data.json :as json])
             [membrane.basic-components :as basic
              :refer [button
@@ -1389,13 +1387,15 @@
 
 (comment (let [obj blades-json
                ge (best-gen obj)]
-           (def editor-state (run-ui #'gen-editor-editor {:ge ge
-                                                          :obj obj}))))
+           (def editor-state (skia/run (component/make-app
+                                        #'gen-editor-editor
+                                        {:ge ge
+                                         :obj obj})))))
 (defn start-blades []
   (let [obj blades-json
         ge (best-gen obj)]
-    (def editor-state (run-ui #'gen-editor-editor {:ge ge
-                                                          :obj obj}))))
+    (def editor-state (skia/run (component/make-app #'gen-editor-editor {:ge ge
+                                                                         :obj obj})))))
 
 #_(defui blades-scroll [ & {:keys [obj]}]
     (basic/scrollview

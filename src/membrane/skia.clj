@@ -1662,9 +1662,6 @@
    (async/thread
      (run-sync make-ui options))))
 
-(intern (the-ns 'membrane.ui) 'run run)
-(intern (the-ns 'membrane.ui) 'run-sync run-sync)
-
 (defn run-helper [window-chan]
   (with-local-vars [windows #{}]
     (letfn [(init []

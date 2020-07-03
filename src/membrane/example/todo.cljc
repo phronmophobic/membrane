@@ -14,9 +14,7 @@
                      on]]
             [membrane.component :as component
              :refer [#?(:clj defui)
-                     #?(:clj defeffect)
-                     run-ui
-                     run-ui-sync ]]
+                     #?(:clj defeffect)]]
             [membrane.basic-components :as basic])
   #?(:clj (:gen-class)))
 
@@ -145,32 +143,34 @@
                                       :complete? false})))
 
 (comment
-  (run-ui #'todo-app todo-state
-                        ))
+  (skia/run (component/make-app #'todo-app todo-state)))
+
 
 (comment
   (def todo-state
-    (run-ui #'todo-app {:todos
-                        [{:complete? false
-                          :description "first"}
-                         {:complete? false
-                          :description "second"}
-                         {:complete? true
-                          :description "third"}]
-                        :next-todo-text ""})))
+    (skia/run (component/make-app #'todo-app
+                                  {:todos
+                                   [{:complete? false
+                                     :description "first"}
+                                    {:complete? false
+                                     :description "second"}
+                                    {:complete? true
+                                     :description "third"}]
+                                   :next-todo-text ""}))))
 
 
 #?
 (:clj
  (defn -main [& args]
-   (run-ui-sync #'todo-app {:todos
-                            [{:complete? false
-                              :description "first"}
-                             {:complete? false
-                              :description "second"}
-                             {:complete? true
-                              :description "third"}]
-                            :next-todo-text ""})
+   (skia/run-sync (component/make-app #'todo-app
+                                      {:todos
+                                       [{:complete? false
+                                         :description "first"}
+                                        {:complete? false
+                                         :description "second"}
+                                        {:complete? true
+                                         :description "third"}]
+                                       :next-todo-text ""}))
    ))
 
 

@@ -4,13 +4,45 @@
    ;;  :as async]
    [com.rpl.specter :as spec
     :refer [ATOM ALL FIRST LAST MAP-VALS META]]
-   cljs.analyzer.api
-   [cljs.analyzer :as cljs]
-   cljs.env
+   #?(:cljs cljs.analyzer.api)
+   #?(:cljs [cljs.analyzer :as cljs])
+   #?(:cljs cljs.env)
    [membrane.ui :as ui :refer [defcomponent children bounds origin]]))
 
 (def ^:dynamic *root* nil)
 
+#?
+(:clj
+ (defmacro building-graalvm-image? []
+   (try
+     (import 'org.graalvm.nativeimage.ImageInfo)
+     `(org.graalvm.nativeimage.ImageInfo/inImageBuildtimeCode)
+     (catch ClassNotFoundException e
+       false))))
+
+;; clojurescript is an optional dependency
+;; also, graalvm chokes on cljs requires
+#?
+(:clj
+ (let [mock-cljs-env
+       (fn []
+         (def cljs-resolve (constantly nil))
+         (def cljs-resolve-var (constantly nil))
+         (def cljs-env-compiler (constantly nil)))]
+   (if (building-graalvm-image?)
+     (mock-cljs-env)
+     (try
+       (def cljs-resolve (requiring-resolve 'cljs.analyzer.api/resolve))
+       (def cljs-resolve-var (requiring-resolve 'cljs/resolve-var))
+       (let [cljs-compiler (requiring-resolve 'cljs.env/*compiler*)]
+         (def cljs-env-compiler (fn [] @cljs-compiler)))
+       (catch Exception e
+         (mock-cljs-env)))))
+ :cljs
+ (do
+   (def cljs-resolve cljs.analyzer.api/resolve)
+   (def cljs-resolve-var cljs/resolve-var)
+   (def cljs-env-compiler (fn [] cljs.env/*compiler*))))
 
 (def special-syms
   {'ATOM spec/ATOM
@@ -192,8 +224,8 @@
 
 (def ^:dynamic *env* nil)
 (defn fully-qualified [sym]
-  (if cljs.env/*compiler*
-    (if-let [result (cljs.analyzer.api/resolve {:ns (get-in @cljs.env/*compiler* [:cljs.analyzer/namespaces (symbol (ns-name *ns*))])}  sym)]
+  (if (cljs-env-compiler)
+    (if-let [result (cljs-resolve {:ns (get-in @(cljs-env-compiler) [:cljs.analyzer/namespaces (symbol (ns-name *ns*))])}  sym)]
       (:name result))
     #?(:clj (if-let [v (resolve sym)]
               (symbol (name (ns-name (.ns v))) (name (.sym v)))))))
@@ -386,8 +418,8 @@
           (let [full-sym (delay
                           (fully-qualified first-form))
                 special? (if (symbol? first-form)
-                           (if-let [m (or (when cljs.env/*compiler*
-                                            (:meta (cljs/resolve-var *env* first-form)))
+                           (if-let [m (or (when (cljs-env-compiler)
+                                            (:meta (cljs-resolve-var *env* first-form)))
                                           #?(:clj (meta (resolve first-form)))
                                           (meta first-form))]
                              (::special? m)
@@ -825,19 +857,16 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
 
                          $kw
                          (into
-                          `[~'ATOM
-                            (~'keypath ~kw)]
+                          `[(~'keypath ~kw)]
                           (when (contains? defaults nm)
                             [(list 'nil->val (get defaults nm))]))]))
           main-view (apply
                      @body
                      :extra extra
-                     :$extra  ['ATOM $extra]
+                     :$extra  $extra
                      :context context
-                     :$context ['ATOM $context]
-                     args)
-          
-          ]
+                     :$context $context
+                     args)]
       (membrane.ui/on-scroll
        (fn [offset]
          (let [steps (membrane.ui/scroll main-view offset)]
@@ -856,7 +885,7 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
               (if (seq steps)
                 (run! #(apply handler %) steps)
                 (when mouse-down?
-                  (handler :set ['ATOM $context :focus] nil)
+                  (handler :set [$context :focus] nil)
                   nil))))
           (ui/on-key-press
            (fn [s]
@@ -883,23 +912,8 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
                main-view))))))))))))
 
 
-(defn make-top-level-ui
-  ([ui-var state-atom handler]
-   (let [arglist (-> ui-var
-                     meta
-                     :arglists
-                     first)
-         m (second arglist)
-         arg-names (disj (set (:keys m))
-                         'extra)
-         defaults (:or m)
-         top-level (fn []
-                     (top-level-ui :state @state-atom :$state []
-                                   :body ui-var
-                                   :arg-names arg-names
-                                   :defaults defaults
-                                   :handler handler))]
-     top-level)))
+
+
 
 
 (defn default-handler [atm]
@@ -909,18 +923,27 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
      (case type
        :update
        (let [[path f & args ] args]
-         (spec/transform (path->spec path)
-                         (fn [& spec-args]
-                           (apply f (concat spec-args
-                                            args)))
-                         atm))
+         ;; use transform* over transform for graalvm.
+         ;; since the specs are dynamic, I don't think there's any benefit to the
+         ;; macro anyway
+         (spec/transform* (path->spec [ATOM path])
+                          (fn [& spec-args]
+                            (apply f (concat spec-args
+                                             args)))
+                          atm))
        :set
        (let [[path v] args]
-         (spec/setval (path->spec path) v atm))
+         ;; use setval* over setval for graalvm.
+         ;; since the specs are dynamic, I don't think there's any benefit to the
+         ;; macro anyway
+         (spec/setval* (path->spec [ATOM path]) v atm))
 
        :delete
        (let [[path] args]
-         (spec/setval (path->spec path) spec/NONE atm))
+         ;; use setval* over setval for graalvm.
+         ;; since the specs are dynamic, I don't think there's any benefit to the
+         ;; macro anyway
+         (spec/setval* (path->spec [ATOM path]) spec/NONE atm))
 
        (let [effects @effects]
          (let [handler (get effects type)]
@@ -928,7 +951,8 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
              (apply handler dispatch! args)
              (println "no handler for " type))))))))
 
-(defn run-ui
+
+(defn make-app
   "`ui-var` The var for a component
   `initial-state` The initial state of the component to run or an atom that contains the initial state.
   `handler` The effect handler for your UI. The `handler` will be called with all effects returned by the event handlers of your ui.
@@ -944,18 +968,12 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
   `:delete` deletes value at $path
   example: `[:delete $path]`
 
-  return value: the state atom used by the ui.
-
-  The only difference between `run-ui` and `run-ui-sync` is that `run-ui-sync` will wait until the window is closed before returning.
-
-  `options` options is a map of options that get passed to the underlying graphics platform. see `membrane.skia/run` or `membrane.webgl/run` for more info."
+  return value: the state atom used by the ui."
   ([ui-var]
-   (run-ui ui-var {}))
+   (make-app ui-var {}))
   ([ui-var initial-state]
-   (run-ui ui-var initial-state nil))
+   (make-app ui-var initial-state nil))
   ([ui-var initial-state handler]
-   (run-ui ui-var initial-state handler nil))
-  ([ui-var initial-state handler options]
    (let [state-atom (if (instance? #?(:clj clojure.lang.Atom
                                       :cljs cljs.core.Atom)
                                    initial-state)
@@ -964,52 +982,20 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
          handler (if handler
                    handler
                    (default-handler state-atom))
-         top-level (make-top-level-ui ui-var state-atom handler)
-         ]
-     (membrane.ui/run top-level options)
-     state-atom)))
-
-#?
-(:clj
- (defn run-ui-sync
-   "`ui-var` The var for a component
-  `initial-state` The initial state of the component to run or an atom that contains the initial state.
-  `handler` The effect handler for your UI. The `handler` will be called with all effects returned by the event handlers of your ui.
-
-  If `handler` is nil or an arity that doesn't specify `handler` is used, then a default handler using all of the globally defined effects from `defeffect` will be used. In addition to the globally defined effects the handler will provide 3 additional effects:
-
-  `:update` similar to `update` except instead of a keypath, takes a more generic path.
-  example: `[:update $path inc]`
-
-  `:set` sets the value given a $path
-  example: `[:set $path value]`
-
-  `:delete` deletes value at $path
-  example: `[:delete $path]`
-
-  return value: the state atom used by the ui.
-
-  The only difference between `run-ui` and `run-ui-sync` is that `run-ui-sync` will wait until the window is closed before returning.
-
-  `options` options is a map of options that get passed to the underlying graphics platform. see `membrane.skia/run` or `membrane.webgl/run` for more info."
-   ([ui-var]
-    (run-ui-sync ui-var {}))
-   ([ui-var initial-state]
-    (run-ui-sync ui-var initial-state nil))
-   ([ui-var initial-state handler]
-    (run-ui-sync ui-var initial-state handler nil))
-   ([ui-var initial-state handler options]
-    (let [state-atom (if (instance? #?(:clj clojure.lang.Atom
-                                       :cljs cljs.core.Atom)
-                                    initial-state)
-                       initial-state
-                       (atom initial-state))
-          handler (if handler
-                    handler
-                    (default-handler state-atom))
-          top-level (make-top-level-ui ui-var state-atom handler)]
-      (membrane.ui/run-sync top-level options)
-      state-atom))))
-
+         arglist (-> ui-var
+                     meta
+                     :arglists
+                     first)
+         m (second arglist)
+         arg-names (disj (set (:keys m))
+                         'extra)
+         defaults (:or m)
+         top-level (fn []
+                     (top-level-ui :state @state-atom :$state []
+                                   :body ui-var
+                                   :arg-names arg-names
+                                   :defaults defaults
+                                   :handler handler))]
+     top-level)))
 
 
