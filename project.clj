@@ -44,6 +44,8 @@
              ;; "-Djdk.attach.allowAttachSelf"
              ;; "-XX:+UnlockDiagnosticVMOptions"
              ;; "-XX:+DebugNonSafepoints"
+             ; this prevents JVM from doing optimizations which can remove stack traces from NPE and other exceptions
+             "-XX:-OmitStackTraceInFastThrow"
              ]
 
   :clean-targets ^{:protect false} ["resources/public/js/compiled" "target"]
