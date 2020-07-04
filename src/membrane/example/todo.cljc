@@ -18,6 +18,11 @@
             [membrane.basic-components :as basic])
   #?(:clj (:gen-class)))
 
+#?
+(:clj
+ (defn run-ui [ui-var initial-state]
+   (skia/run (component/make-app ui-var initial-state))))
+
 ;; Draw a red X that we'll use to display a delete button
 ;; No interactivity, so `defui` not needed
 (defn delete-X []

@@ -1111,8 +1111,11 @@
    :hindex nil})
 (defonce test-term-state (atom (initial-term-state)))
 
+(defn run-ui [ui-var initial-state]
+   (skia/run (component/make-app ui-var initial-state)))
+
 (defn run-test-term-ui []
-  (component/run-ui #'test-term-ui test-term-state)
+  (run-ui #'test-term-ui test-term-state)
   nil)
 
 (defn cursor-check! [term]
