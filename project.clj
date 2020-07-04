@@ -1,4 +1,4 @@
-(defproject com.phronemophobic/membrane "0.9.9-beta"
+(defproject com.phronemophobic/membrane "0.9.9-beta-SNAPSHOT"
   :description "A platform agnostic library for creating user interfaces"
   :url "http://example.com/FIXME"
   :license {:name "Apache License, Version 2.0"
@@ -68,7 +68,7 @@
                              [com.phronemophobic/vdom "0.2.2"]
                              [com.googlecode.lanterna/lanterna "3.0.2"]
                              [spec-provider "0.4.14"]
-                             [re-frame "0.11.0"]
+                             [re-frame "1.0.0-rc3"]
                              [com.cognitect/transit-cljs "0.8.264"]]}}
 
   :deploy-repositories [["releases" :clojars]

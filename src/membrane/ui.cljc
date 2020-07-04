@@ -406,19 +406,19 @@
              (-bubble elem steps)
              steps)))))))
 
-(def mouse-event -mouse-event)
+(defn mouse-event [elem pos button mouse-down? mods]
+  (when-let [local-pos (within-bounds? elem pos)]
+    (-mouse-event elem local-pos button mouse-down? mods)))
 
 (defn mouse-down
   "Returns the effects of a mouse down event on elem. Will only call -mouse-event or -mouse-down if the position is in the element's bounds."
   [elem [mx my :as pos]]
-  (when-let [local-pos (within-bounds? elem pos)]
-    (mouse-event elem local-pos 0 true 0)))
+  (mouse-event elem pos 0 true 0))
 
 (defn mouse-up
   "Returns the effects of a mouse up event on elem. Will only call -mouse-event or -mouse-down if the position is in the element's bounds."
   [elem [mx my :as pos]]
-  (when-let [local-pos (within-bounds? elem pos)]
-    (mouse-event elem local-pos 0 false 0)))
+  (mouse-event elem pos 0 false 0))
 
 
 (defn make-event-handler [protocol-name protocol protocol-fn]
