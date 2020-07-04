@@ -964,7 +964,10 @@
        "keyup" -on-key-up)
 
 
-#_(defonce start-todo-app (membrane.component/run-ui #'todo/todo-app todo/todo-state nil {:root (js/document.getElementById "app")}))
+#_(defonce start-todo-app
+  (run
+    (membrane.component/make-app #'todo/todo-app todo/todo-state)
+    {:root (js/document.getElementById "app")}))
 
 (def state (atom {}))
 
