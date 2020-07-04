@@ -499,8 +499,6 @@
          (.then (fn []
                   (let [canvas (webgl-canvas (:canvas options) make-ui)]
                     (redraw canvas))))))))
-(set! membrane.ui/run run)
-
 
 (defn get-client-pos [e]
   (if-let [touches (.-targetTouches e)]

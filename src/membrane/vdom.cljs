@@ -803,8 +803,6 @@
                     (set! (.-position root-style) "relative")
                     
                     (rerender root))))))))
-(set! membrane.ui/run run)
-
 
 (defn get-client-pos [e]
   (if-let [touches (.-targetTouches e)]
@@ -964,9 +962,6 @@
 (swap! event-handlers
        assoc
        "keyup" -on-key-up)
-
-
-(set! membrane.ui/run run)
 
 
 #_(defonce start-todo-app (membrane.component/run-ui #'todo/todo-app todo/todo-state nil {:root (js/document.getElementById "app")}))
