@@ -298,17 +298,7 @@
 (extend-type membrane.ui.Bordered
   IRender
   (render [this]
-    (let [px (:padding-x this)
-          py (:padding-y this)]
-      [:div {:style {:padding-x (str px "px")
-                     :padding-y (str py "px")
-                     :border-color (:color *ctx*)
-                     :border-width (:stroke-width *ctx*)
-                     :position "absolute"
-                     :left 0
-                     :top 0}
-             :className "bordered"}
-       (render (:drawable this))])))
+    (render (ui/bordered-draw this))))
 
 
 
