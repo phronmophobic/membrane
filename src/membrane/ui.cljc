@@ -881,8 +881,8 @@
 
 (defcomponent Bordered [padding-x padding-y drawable]
     IOrigin
-    (-origin [_]
-        [0 0])
+    (-origin [this]
+        (origin (bordered-draw this)))
 
   IChildren
   (-children [this]
