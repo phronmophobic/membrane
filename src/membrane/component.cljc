@@ -938,6 +938,11 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
          ;; macro anyway
          (spec/setval* (path->spec [ATOM path]) v atm))
 
+       :get
+       (let [path (first args)]
+         (spec/select-one (component/path->spec [ATOM path])
+                          atm))
+
        :delete
        (let [[path] args]
          ;; use setval* over setval for graalvm.
