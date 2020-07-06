@@ -940,8 +940,8 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
 
        :get
        (let [path (first args)]
-         (spec/select-one (component/path->spec [ATOM path])
-                          atm))
+         (spec/select-one* (path->spec [ATOM path])
+                           atm))
 
        :delete
        (let [[path] args]
