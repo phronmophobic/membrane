@@ -1,6 +1,6 @@
 # Membrane
 
-### Membrane is a platform agnostic library for creating user interfaces.
+### Membrane is a platform agnostic clojure library for creating user interfaces.
 
 Membrane provides three layers:
 
