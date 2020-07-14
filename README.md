@@ -49,9 +49,7 @@ deps.edn dependency:
   }
 }
 ```
-## Screenshots
-
-![Overview](/docs/images/overview.gif?raw=true)
+## Examples
 
 ### A Simple Example without the UI Framework
 
@@ -209,7 +207,11 @@ Screenshot:
                         (todo-app :todos todo-list :selected-filter :all))))
 
 ```
+## Screenshots
 
+![Overview](/docs/images/overview.gif?raw=true)
+
+## More Info
 
 That's it! For more in-depth info, check out the [tutorial](/docs/tutorial.md).
 
