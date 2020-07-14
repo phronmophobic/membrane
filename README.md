@@ -4,9 +4,9 @@
 
 Membrane provides three layers:
 
-1. A UI framework, `membrane.component`, that deals with state management for GUIs
-2. A platform agnostic model for graphics and events
-3. Multiple graphics backends that provide concrete implementations for #2
+1. A **UI framework**, `membrane.component`, that deals with state management for GUIs
+2. A platform agnostic **model** for graphics and events
+3. Multiple **graphics backends** that provide concrete implementations for #2
 
 While these three layers are made to work together, they can also be mixed and matched with other implementations. For example, you could use your favorite UI framework and the other layers to reach another platform. Alternatively, you could provide your own ncurses graphics backend and leverage the ui framework and graphics model.
 
