@@ -14,6 +14,7 @@ public class Skia {
     public static native void skia_render_line(Pointer resource, Pointer font, Pointer text, int text_length, float x, float y);
     public static native void skia_next_line(Pointer resource, Pointer font);
     public static native float skia_line_height(Pointer font);
+    public static native float skia_advance_x(Pointer font, Pointer text, int text_length);
     public static native void skia_render_cursor(Pointer resource, Pointer font, Pointer text, int text_length , int cursor);
     public static native void skia_render_selection(Pointer resource, Pointer font, Pointer text, int text_length , int selection_start, int selection_end);
 
