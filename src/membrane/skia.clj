@@ -591,6 +591,9 @@
 
 (defc skia_render_selection membraneskialib Void/TYPE [skia-resource font-ptr text text-length selection-start selection-end])
 (defc skia_line_height membraneskialib Float/TYPE [font-ptr])
+(defn skia-line-height [font]
+  (skia_line_height (get-font font)))
+
 (defc skia_advance_x membraneskialib Float/TYPE [font-ptr text text-length])
 (defn skia-advance-x [font text]
   (let [line-bytes (.getBytes ^String text "utf-8")]
