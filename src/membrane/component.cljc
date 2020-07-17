@@ -844,8 +844,7 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
                                defaults
                                handler]}]
   (binding [*root* state]
-    (let [[focus-paths focus-fn :as focus] (::focus state)
-          extra (::extra state)
+    (let [extra (::extra state)
           context (::context state)
           args (apply concat
                       (for [nm arg-names
