@@ -181,7 +181,7 @@
    :world_2 162
    :escape 256
    :enter 257
-   "\t" 258
+   :tab 258
    :backspace 259
    :insert 260
    :delete 261
