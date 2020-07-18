@@ -93,7 +93,8 @@
                            :output-dir "resources/public/js/compiled/out.vdomtest"
                            :source-map-timestamp true
                            :aot-cache true
-                           ;; :optimizations :whitespace
+                           :optimizations :simple
+                           :infer-externs true
                            }}
                {:id "buildertest"
                 :source-paths ["src"]
