@@ -1165,6 +1165,35 @@
   (WindowRefreshCallback. window handler))
 
 
+(defn -drop-callback [window window-handle paths]
+  (try
+    (ui/drop @(:ui window) (vec paths) @(:mouse-position window))
+    (catch Exception e
+      (println e)))
+
+  (repaint! window))
+
+(deftype DropCallback [window handler]
+  com.sun.jna.CallbackProxy
+  (getParameterTypes [_]
+    (into-array Class  [Pointer Integer Pointer]))
+  (getReturnType [_]
+    void)
+  (callback ^void [_ args]
+    (try
+      (binding [*image-cache* (:image-cache window)
+                *font-cache* (:font-cache window)
+                *draw-cache* (:draw-cache window)]
+        (let [num-paths (aget args 1)
+              string-pointers (aget args 2)
+              paths (.getStringArray string-pointers  0 num-paths "utf-8")]
+          (handler window (aget args 0) paths)))
+      (catch Exception e
+        (println e)))))
+
+(defn make-drop-callback [window handler]
+  (DropCallback. window handler))
+
 
 (defn -cursor-pos-callback [window window-handle x y]
   (try
@@ -1453,6 +1482,7 @@
                  :mouse-position (atom [0 0])
                  :window-content-scale (atom [1 1])
                  :skia-resource (Skia/skia_init))
+          drop-callback (make-drop-callback this (get handlers :drop -drop-callback))
           key-callback (make-key-callback this (get handlers :key -key-callback))
           character-callback (make-character-callback this (get handlers :char -character-callback))
           mouse-button-callback (make-mouse-button-callback this (get handlers :mouse-button -mouse-button-callback))
@@ -1475,6 +1505,7 @@
       ;; the event thread messes everything up.
       ;; (glfw-call void glfwSwapInterval 1)
 
+      (glfw-call Pointer glfwSetDropCallback window, drop-callback)
       (glfw-call Pointer glfwSetCursorPosCallback window, cursor-pos-callback)
       (glfw-call Pointer glfwSetKeyCallback window key-callback)
       (glfw-call Pointer glfwSetCharCallback window character-callback)
@@ -1494,6 +1525,7 @@
                    ;; need to hang on to callbacks so they don't get garbage collected!
                    :callbacks
                    [key-callback
+                    drop-callback
                     character-callback
                     mouse-button-callback
                     reshape-callback

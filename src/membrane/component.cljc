@@ -906,7 +906,11 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
              (fn [s]
                (let [steps (membrane.ui/clipboard-paste main-view s)]
                  (run! #(apply handler %) steps)))
-             main-view)))))))))))
+             (membrane.ui/on-drop
+              (fn [paths pos]
+                (let [steps (membrane.ui/drop main-view paths pos)]
+                  (run! #(apply handler %) steps)))
+              main-view))))))))))))
 
 
 

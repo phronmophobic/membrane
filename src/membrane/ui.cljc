@@ -1,4 +1,5 @@
 (ns membrane.ui
+  (:refer-clojure :exclude [drop])
   #?(:cljs
      (:require-macros [membrane.ui :refer [defcomponent]])))
 
@@ -40,6 +41,7 @@
 (defprotocol IMouseDown (-mouse-down [this info]))
 (defprotocol IMouseMoveGlobal (-mouse-move-global [this info]))
 (defprotocol IMouseEvent (-mouse-event [this pos button mouse-down? mods]))
+(defprotocol IDrop (-drop [this paths pos]))
 (defprotocol IScroll (-scroll [this info]))
 (defprotocol IMouseUp (-mouse-up [this info]))
 (defprotocol IMouseWheel (-mouse-wheel [this info]))
@@ -119,6 +121,9 @@
     nil)
   IMouseEvent
   (-mouse-event [elem local-pos button mouse-down? mods]
+    nil)
+  IDrop
+  (-drop [elem paths local-pos]
     nil))
 
 (defprotocol IBubble
@@ -197,6 +202,15 @@
   IMouseUp
   (-mouse-up [elem mpos]
     nil)
+
+  IDrop
+  (-drop [elem paths local-pos]
+    (let [steps
+          ;; use seq to make sure we don't stop for empty sequences
+          (some #(when-let [local-pos (within-bounds? % local-pos)]
+                   (seq (-drop % paths local-pos)))
+                (reverse (children elem)))]
+      (-bubble elem steps)))
 
   IKeyPress
   (-key-press [this info]
@@ -419,6 +433,10 @@
   "Returns the effects of a mouse up event on elem. Will only call -mouse-event or -mouse-down if the position is in the element's bounds."
   [elem [mx my :as pos]]
   (mouse-event elem pos 0 false 0))
+
+(defn drop [elem paths pos]
+  (when-let [local-pos (within-bounds? elem pos)]
+    (-drop elem paths local-pos)))
 
 
 (defn make-event-handler [protocol-name protocol protocol-fn]
@@ -1310,6 +1328,45 @@
   (OnMouseEvent. on-mouse-event drawables))
 
 
+(defcomponent OnDrop [on-drop drawables]
+    IOrigin
+    (-origin [_]
+        [0 0])
+
+    IBounds
+    (-bounds [this]
+        (reduce
+         (fn [[max-width max-height] elem]
+           (let [[ox oy] (origin elem)
+                 [w h] (bounds elem)]
+             [(max max-width (+ ox w))
+              (max max-height (+ oy h))]))
+         [0 0]
+         drawables))
+
+    IChildren
+    (-children [this]
+        drawables)
+
+    IDrop
+    (-drop [this paths pos]
+        (when on-drop
+          (on-drop paths pos))))
+
+(swap! default-draw-impls
+       assoc OnDrop
+       (fn [draw]
+         (fn [this]
+           (doseq [drawable (:drawables this)]
+             (draw drawable)))))
+
+(defn on-drop
+  "Wraps drawables and adds an event handler for drop events.
+
+  on-drop-event should take 4 arguments [pos button drop-down? mods] and return a sequence of effects."
+  [on-drop & drawables]
+  (OnDrop. on-drop drawables))
+
 (defcomponent OnKeyPress [on-key-press drawables]
     IOrigin
     (-origin [_]
@@ -1711,6 +1768,13 @@
       (mouse-event drawable [(- mx (nth offset 0))
                              (- my (nth offset 1))] button mouse-down? mods))
 
+  IDrop
+  (-drop [this paths [mx my :as pos]]
+      (drop drawable
+            paths
+            [(- mx (nth offset 0))
+             (- my (nth offset 1))]))
+
   IMouseMove
   (-mouse-move [this [mx my :as pos]]
       (mouse-move drawable [(- mx (nth offset 0))
@@ -1802,6 +1866,10 @@
                  :mouse-event
                  (on-mouse-event handler
                                  body)
+
+                 :drop
+                 (on-drop handler
+                          body)
 
                  :key-event
                  (on-key-event handler
