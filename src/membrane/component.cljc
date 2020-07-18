@@ -9,8 +9,6 @@
    #?(:cljs cljs.env)
    [membrane.ui :as ui :refer [defcomponent children bounds origin]]))
 
-(def ^:dynamic *root* nil)
-
 #?
 (:clj
  (defmacro building-graalvm-image? []
@@ -843,73 +841,76 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
                                arg-names
                                defaults
                                handler]}]
-  (binding [*root* state]
-    (let [[focus-paths focus-fn :as focus] (::focus state)
-          extra (::extra state)
-          context (::context state)
-          args (apply concat
-                      (for [nm arg-names
-                            :let [kw (keyword nm)
-                                  $kw (keyword (str "$" (name kw)))]]
-                        [kw
-                         (get state kw
-                              (get defaults nm))
 
-                         $kw
-                         (into
-                          `[(~'keypath ~kw)]
-                          (when (contains? defaults nm)
-                            [(list 'nil->val (get defaults nm))]))]))
-          main-view (apply
-                     @body
-                     :extra extra
-                     :$extra  $extra
-                     :context context
-                     :$context $context
-                     args)]
-      (membrane.ui/on-scroll
-       (fn [offset]
-         (let [steps (membrane.ui/scroll main-view offset)]
+  (let [extra (::extra state)
+        context (::context state)
+        args (apply concat
+                    (for [nm arg-names
+                          :let [kw (keyword nm)
+                                $kw (keyword (str "$" (name kw)))]]
+                      [kw
+                       (get state kw
+                            (get defaults nm))
+
+                       $kw
+                       (into
+                        `[(~'keypath ~kw)]
+                        (when (contains? defaults nm)
+                          [(list 'nil->val (get defaults nm))]))]))
+        main-view (apply
+                   @body
+                   :extra extra
+                   :$extra  $extra
+                   :context context
+                   :$context $context
+                   args)]
+    (membrane.ui/on-scroll
+     (fn [offset]
+       (let [steps (membrane.ui/scroll main-view offset)]
+         (run! #(apply handler %) steps)))
+     (membrane.ui/on-mouse-move-global
+      (fn [pos]
+        (let [steps (membrane.ui/mouse-move-global main-view pos)]
+          (run! #(apply handler %) steps)))
+      (membrane.ui/on-mouse-move
+       (fn [pos]
+         (let [steps (membrane.ui/mouse-move main-view pos)]
            (run! #(apply handler %) steps)))
-       (membrane.ui/on-mouse-move-global
-        (fn [pos]
-          (let [steps (membrane.ui/mouse-move-global main-view pos)]
-            (run! #(apply handler %) steps)))
-        (membrane.ui/on-mouse-move
-         (fn [pos]
-           (let [steps (membrane.ui/mouse-move main-view pos)]
-             (run! #(apply handler %) steps)))
-         (membrane.ui/on-mouse-event
-          (fn [pos button mouse-down? mods]
-            (let [steps (membrane.ui/mouse-event main-view pos button mouse-down? mods)]
-              (if (seq steps)
-                (run! #(apply handler %) steps)
-                (when mouse-down?
-                  (handler :set [$context :focus] nil)
-                  nil))))
-          (ui/on-key-press
-           (fn [s]
-             (let [steps (membrane.ui/key-press main-view s)]
-               (run! #(apply handler %) steps))
-             )
-           (membrane.ui/on-key-event
-            (fn [key scancode action mods]
-              (let [steps (membrane.ui/key-event main-view key scancode action mods)]
-                (run! #(apply handler %) steps))
-              )
-            (membrane.ui/on-clipboard-cut
-             (fn []
-               (let [steps (membrane.ui/clipboard-cut main-view)]
+       (membrane.ui/on-mouse-event
+        (fn [pos button mouse-down? mods]
+          (let [steps (membrane.ui/mouse-event main-view pos button mouse-down? mods)]
+            (if (seq steps)
+              (run! #(apply handler %) steps)
+              (when mouse-down?
+                (handler :set [$context :focus] nil)
+                nil))))
+        (ui/on-key-press
+         (fn [s]
+           (let [steps (membrane.ui/key-press main-view s)]
+             (run! #(apply handler %) steps))
+           )
+         (membrane.ui/on-key-event
+          (fn [key scancode action mods]
+            (let [steps (membrane.ui/key-event main-view key scancode action mods)]
+              (run! #(apply handler %) steps))
+            )
+          (membrane.ui/on-clipboard-cut
+           (fn []
+             (let [steps (membrane.ui/clipboard-cut main-view)]
+               (run! #(apply handler %) steps)))
+           (membrane.ui/on-clipboard-copy
+            (fn []
+              (let [steps (membrane.ui/clipboard-copy main-view)]
+                (run! #(apply handler %) steps)))
+            (membrane.ui/on-clipboard-paste
+             (fn [s]
+               (let [steps (membrane.ui/clipboard-paste main-view s)]
                  (run! #(apply handler %) steps)))
-             (membrane.ui/on-clipboard-copy
-              (fn []
-                (let [steps (membrane.ui/clipboard-copy main-view)]
+             (membrane.ui/on-drop
+              (fn [paths pos]
+                (let [steps (membrane.ui/drop main-view paths pos)]
                   (run! #(apply handler %) steps)))
-              (membrane.ui/on-clipboard-paste
-               (fn [s]
-                 (let [steps (membrane.ui/clipboard-paste main-view s)]
-                   (run! #(apply handler %) steps)))
-               main-view))))))))))))
+              main-view))))))))))))
 
 
 
@@ -993,7 +994,8 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
                      first)
          m (second arglist)
          arg-names (disj (set (:keys m))
-                         'extra)
+                         'extra
+                         'context)
          defaults (:or m)
          top-level (fn []
                      (top-level-ui :state @state-atom :$state []

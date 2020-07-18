@@ -217,6 +217,23 @@ extern "C" {
         return font->getSpacing();
     }
 
+    float skia_advance_x(SkFont* font, const char* text, int text_length){
+        SkAutoToGlyphs atg(*font, text, text_length, SkTextEncoding::kUTF8);
+        const int glyphCount = atg.count();
+        const SkGlyphID* glyphIDs = atg.glyphs();
+
+        SkStrikeSpec strikeSpec = SkStrikeSpec::MakeCanonicalized(*font, nullptr);
+        SkBulkGlyphMetrics metrics{strikeSpec};
+        SkSpan<const SkGlyph*> glyphs = metrics.glyphs(SkMakeSpan(glyphIDs, glyphCount));
+
+        if ( glyphCount ){
+            return glyphs[0]->advanceX();
+        }else{
+            return 0;
+        }
+
+    }
+
     void skia_text_bounds(SkFont* font, const char* text, int text_length, float* ox, float* oy, float* width, float* height){
         *ox = 0;
         *oy = 0;
