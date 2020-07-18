@@ -68,6 +68,7 @@
                              [com.phronemophobic/vdom "0.2.2"]
                              [com.googlecode.lanterna/lanterna "3.0.2"]
                              [spec-provider "0.4.14"]
+                             [mogenslund/liquid "2.0.3"]
                              [re-frame "1.0.0-rc3"]
                              [com.cognitect/transit-cljs "0.8.264"]]}}
 
