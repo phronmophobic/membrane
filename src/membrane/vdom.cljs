@@ -197,12 +197,14 @@
                                        (:name ui/default-font)))}))
              
              :className "label"}
-       
-       (interpose
-        [:br]
-        (clojure.string/split-lines
-         (:text this)))
-       ])
+       (let [line-height (font-line-height (:font this)) ]
+         (map-indexed (fn [i line]
+                        [:div {:style {:position "absolute"
+                                       :top (str (* i (dec line-height))
+                                                 "px")
+                                       :left 0}}
+                         line])
+                      (clojure.string/split-lines (:text this))))])
     #_(let [lines (clojure.string/split (:text this) #"\n" -1)
           font (:font this)
           line-height (font-line-height font)]
