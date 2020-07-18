@@ -992,7 +992,8 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
                      first)
          m (second arglist)
          arg-names (disj (set (:keys m))
-                         'extra)
+                         'extra
+                         'context)
          defaults (:or m)
          top-level (fn []
                      (top-level-ui :state @state-atom :$state []
