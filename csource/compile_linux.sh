@@ -29,18 +29,18 @@ clang++ \
 #     $(pkg-config --static --libs glfw3) -lgl
 
 
-clang++ \
-    $(pkg-config --cflags glfw3) \
-    -I ./libs/skia \
-    -I ./libs/skia/include/gpu \
-    -I ./libs/skia/include/gpu/gl \
-    -I ./libs/skia/include/core \
-    -I ./libs/skia/include/utils \
-    -I ./libs/skia/include/private \
-    -L ./libs/skia/out/Static/ \
-    -std=c++17 \
-    -o testglfw \
-    testglfw.cpp skia.cpp $(pkg-config --static --libs glfw3) -lskia -lfontconfig -lfreetype -lGL
+# clang++ \
+#     $(pkg-config --cflags glfw3) \
+#     -I ./libs/skia \
+#     -I ./libs/skia/include/gpu \
+#     -I ./libs/skia/include/gpu/gl \
+#     -I ./libs/skia/include/core \
+#     -I ./libs/skia/include/utils \
+#     -I ./libs/skia/include/private \
+#     -L ./libs/skia/out/Static/ \
+#     -std=c++17 \
+#     -o testglfw \
+#     testglfw.cpp skia.cpp $(pkg-config --static --libs glfw3) -lskia -lfontconfig -lfreetype -lGL
 
 cp libmembraneskia.so ../resources/linux-x86-64
 
