@@ -116,9 +116,6 @@
                 (count lines))]
     [maxx maxy]))
 
-(set! membrane.ui/text-bounds text-bounds)
-
-
 
 
 (defn render-rect []

@@ -98,9 +98,6 @@
                 (count lines))]
     [maxx maxy]))
 
-(set! membrane.ui/text-bounds text-bounds)
-
-
 
 (defn draw-rect []
   (set! (.-fillStyle *ctx*)  "green")
