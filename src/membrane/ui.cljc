@@ -1030,7 +1030,6 @@
        (<= py (+ y height))
        (>= py y)))
 
-(declare text-bounds)
 (defn button-draw [this]
   (let [text (:text this)
         [text-width text-height] (bounds (label text))
