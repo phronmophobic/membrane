@@ -60,6 +60,7 @@
 
 ;; https://en.wikipedia.org/wiki/Block_Elements
 ;; https://en.wikipedia.org/wiki/Box-drawing_character
+;; https://github.com/eliukblau/pixterm
 
 (def ^:dynamic *context* {})
 (def ^:dynamic *tg* nil)
