@@ -40,6 +40,9 @@
              ;; "-Djna.debug_load.jna=true"
              ;; "-Xmx14g"
 
+             ;; for testing graalvm
+             ;; "-Dclojure.compiler.direct-linking=true"
+
              ;; useful for clj-async-profiler
              ;; "-Djdk.attach.allowAttachSelf"
              ;; "-XX:+UnlockDiagnosticVMOptions"
