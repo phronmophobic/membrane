@@ -20,6 +20,9 @@ While these three layers are made to work together, they can also be mixed and m
 - Terminal (see [example project](https://github.com/phronmophobic/terminal-todo-mvc))
 - virtual dom
 
+#### Experimental UI framework integrations
+- re-frame (see [example project](https://github.com/phronmophobic/membrane-re-frame-example))
+
 Support for Windows and other platforms is coming soon!
 
 #### Links
