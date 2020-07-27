@@ -8,7 +8,7 @@ Membrane provides three layers:
 2. A platform agnostic **model** for graphics and events
 3. Multiple **graphics backends** that provide concrete implementations for #2
 
-While these three layers are made to work together, they can also be mixed and matched with other implementations. For example, you could use your favorite UI framework and the other layers to reach another platform. Alternatively, you could provide your own ncurses graphics backend and leverage the ui framework and graphics model.
+While these three layers are made to work together, they can also be mixed and matched with other implementations. For example, you could use [your favorite UI framework](https://github.com/phronmophobic/membrane-re-frame-example) and the other layers to reach another platform. Alternatively, you could provide your own ncurses graphics backend and leverage the ui framework and graphics model.
 
 
 #### Supported platforms:
