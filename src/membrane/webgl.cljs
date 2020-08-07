@@ -5,6 +5,12 @@
                    [membrane.ui :refer [add-default-draw-impls-cljs!]])
   (:require [membrane.ui :as ui
              :refer [IBounds
+                     bounds
+                     IOrigin
+                     origin
+                     -origin
+                     IChildren
+                     -children
                      vertical-layout
                      horizontal-layout
                      rectangle
@@ -14,11 +20,13 @@
                      label
                      image]]
             [membrane.audio :as audio]
+            goog.object
             [membrane.component :refer [defui]]))
 
 
 (def ^:dynamic *ctx*)
 (def ^:dynamic *paint-style* :membrane.ui/style-fill)
+(def ^:dynamic *already-drawing* nil)
 (defonce event-handlers (atom {}))
 (def freetype-font)
 
@@ -26,6 +34,95 @@
   (draw [this]))
 
 (add-default-draw-impls-cljs! IDraw draw)
+
+(defonce ^:dynamic *draw-cache* nil)
+
+(def canvas-copy-props
+  ["direction"
+   "fillStyle"
+   "filter"
+   "font"
+   "globalAlpha"
+   "globalCompositeOperation"
+   "imageSmoothingEnabled"
+   "imageSmoothingQuality"
+   "lineCap"
+   "lineDashOffset"
+   "lineJoin"
+   "lineWidth"
+   "miterLimit"
+   "shadowBlur"
+   "shadowColor"
+   "shadowOffsetX"
+   "shadowOffsetY"
+   "strokeStyle"
+   "textAlign"
+   "textBaseline"
+
+   ;; These don't make sense to copy
+   ;; "getTransform"
+   ;; "canvas"
+   ;; "currentTransform"
+   ])
+(defn copy-canvas-properties! [from to]
+  (doseq [p canvas-copy-props]
+    (goog.object/set to p (goog.object/get from p))))
+
+(declare create-canvas)
+
+(defn cached-draw [drawable]
+  #_(draw drawable)
+  (let [padding (float 5)]
+    (if *already-drawing*
+      (draw drawable)
+      (let [[xscale yscale :as content-scale] [(.-devicePixelRatio js/window)
+                                               (.-devicePixelRatio js/window)]
+            [img img-width img-height]
+            (if-let [img-info (get @*draw-cache* [drawable content-scale *paint-style*])]
+              img-info
+              (do
+                (let [[w h] (bounds drawable)
+                      img-width (int (+ (* 2 padding) (max 0 w)))
+                      img-height (int (+ (* 2 padding) (max 0 h)))
+                      offscreen-canvas (create-canvas (* xscale img-width) (* yscale img-height))
+
+                      offscreen-context (.getContext offscreen-canvas "2d")
+                      _ (copy-canvas-properties! *ctx* offscreen-context)
+
+                      _ (binding [*ctx* offscreen-context
+                                  *already-drawing* true]
+                          (when (and (not= xscale 1)
+                                     (not= yscale 1))
+                            (.scale *ctx* xscale yscale))
+
+                          (.translate *ctx* padding padding)
+                          (draw drawable))
+                      img offscreen-canvas
+                      img-info [img img-width img-height]]
+                  (swap! *draw-cache* assoc [drawable content-scale *paint-style*] img-info)
+                  img-info)))]
+        (push-state *ctx*
+                    (.drawImage *ctx* img (- padding) (- padding) img-width img-height))))))
+
+(ui/defcomponent Cached [drawable]
+    IOrigin
+    (-origin [_]
+        (origin drawable))
+
+    IBounds
+    (-bounds [_]
+        (bounds drawable))
+
+  IChildren
+  (-children [this]
+      [drawable])
+
+  IDraw
+  (draw [this]
+    (cached-draw drawable)
+
+    )
+  )
 
 (defonce freetype-callbacks (atom []))
 (defn on-freetype-loaded [callback]
@@ -420,7 +517,7 @@
     (.setAttribute "height" height)
     (.setAttribute "tabindex" "0")))
 
-(defrecord WebglCanvas [ui make-ui last-touch touch-check? canvas-elem ctx])
+(defrecord WebglCanvas [ui make-ui last-touch touch-check? canvas-elem draw-cache ctx])
 
 (defn update-scale [canvas]
   (let [content-scale (.-devicePixelRatio js/window)]
@@ -449,6 +546,7 @@
                 (atom nil)
                 (atom false)
                 canvas-elem
+                (atom {})
                 ctx)]
     (update-scale canvas-elem)
     (doseq [[event handler] @event-handlers]
@@ -457,7 +555,8 @@
 
 (let [content-scale (.-devicePixelRatio js/window)]
   (defn redraw [canvas]
-    (binding [*ctx* (:ctx canvas)]
+    (binding [*ctx* (:ctx canvas)
+              *draw-cache* (:draw-cache canvas)]
       (let [ui (:ui canvas)
             canvas-elem (:canvas-elem canvas)]
         (.clearRect *ctx*
