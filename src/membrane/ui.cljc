@@ -497,6 +497,18 @@
   ([text font]
    (Label. (str text) font)))
 
+(defn pr-label
+  ([x]
+   (pr-label x 30))
+  ([x max-length]
+   (pr-label x max-length nil))
+  ([x max-length font]
+   (let [s (pr-str x)
+         s (if max-length
+             (subs s 0 (min max-length (count s)))
+             s)]
+    (label s (or font default-font)))))
+
 (defcomponent TextSelection [text selection font]
     IOrigin
     (-origin [_]
