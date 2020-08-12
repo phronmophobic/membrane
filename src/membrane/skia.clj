@@ -1078,7 +1078,8 @@
                 *draw-cache* (:draw-cache window)]
         (handler window (aget args 0) (aget args 1) (aget args 2) ))
       (catch Exception e
-        (println e)))))
+        (println e)))
+    nil))
 
 (defn make-reshape-callback [window handler]
   (->ReshapeCallback window handler))
@@ -1107,7 +1108,7 @@
         (handler window (aget args 0) (aget args 1) (aget args 2) (aget args 3)))
       (catch Exception e
         (println e)))
-    ))
+    nil))
 
 (defn make-mouse-button-callback [window handler]
   (MouseButtonCallback. window handler))
@@ -1159,7 +1160,7 @@
         (handler window (aget args 0)))
       (catch Exception e
         (println e)))
-    ))
+    nil))
 
 (defn make-window-refresh-callback [window handler]
   (WindowRefreshCallback. window handler))
@@ -1189,7 +1190,8 @@
               paths (.getStringArray string-pointers  0 num-paths "utf-8")]
           (handler window (aget args 0) paths)))
       (catch Exception e
-        (println e)))))
+        (println e)))
+    nil))
 
 (defn make-drop-callback [window handler]
   (DropCallback. window handler))
@@ -1305,7 +1307,7 @@
         (handler window (aget args 0) (aget args 1) (aget args 2) (aget args 3) (aget args 4)))
       (catch Exception e
         (println e)))
-    ))
+    nil))
 
 (defn make-key-callback [window handler]
   (KeyCallback. window handler))
@@ -1339,7 +1341,7 @@
         (handler window (aget args 0) (aget args 1) ))
       (catch Exception e
         (println e)))
-    ))
+    nil))
 
 (defn make-character-callback [window handler]
   (CharacterCallback. window handler))
