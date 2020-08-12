@@ -57,6 +57,26 @@
        [[:set $hover? true]])
      body)))
 
+(defui on-mouse-out [& {:keys [mouse-out body hover?]}]
+  (if hover?
+    (ui/on-mouse-move-global
+       (fn [[x y]]
+         (let [[w h] (ui/bounds body)]
+           (when (or (neg? x)
+                     (> x w)
+                     (neg? y)
+                     (> y h))
+             (into
+              [[:set $hover? false]]
+              (mouse-out)))))
+       body)
+    (ui/wrap-on
+     :mouse-move
+     (fn [handler [x y :as pos]]
+       (into [[:set $hover? true]]
+             (handler pos)))
+     body)))
+
 (defui button
   "Button component with hover state."
   [& {:keys [hover? text on-click]}]
