@@ -583,18 +583,19 @@
 
 
 (defn run [make-ui options]
-  (on-freetype-loaded
-   (fn [_]
-     (-> (.-fonts js/document)
-         (.load (str (when-let [weight (:weight ui/default-font)]
-                       (str weight " "))
-                     (:size ui/default-font) "px"
-                     " "
-                     (:name ui/default-font)
-                     ))
-         (.then (fn []
-                  (let [canvas (webgl-canvas (:canvas options) make-ui)]
-                    (redraw canvas))))))))
+  (let [canvas (webgl-canvas (:canvas options) make-ui)]
+    (on-freetype-loaded
+     (fn [_]
+       (-> (.-fonts js/document)
+           (.load (str (when-let [weight (:weight ui/default-font)]
+                         (str weight " "))
+                       (:size ui/default-font) "px"
+                       " "
+                       (:name ui/default-font)
+                       ))
+           (.then (fn []
+                    (redraw canvas))))))
+    canvas))
 
 (defn get-client-pos [e]
   (if-let [touches (.-targetTouches e)]
