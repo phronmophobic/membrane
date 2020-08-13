@@ -423,44 +423,6 @@
        (Skia/skia_render_line *skia-resource* font-ptr skia-buf (alength line-bytes) (float 0) (float 0))))))
 
 
-
-
-(defn draw-button [text hover?]
-  (let [btn-text (ui/label text)
-        [tw th] (bounds btn-text)
-        padding-x 13
-        padding-y 2]
-    (translate 0 0.5
-               [(when hover?
-                  (let [gray 0.94]
-                    (ui/with-color [gray gray gray]
-                                  (ui/rounded-rectangle (+ (* 2 padding-x) tw) (+ (* 2 padding-y) th) 3))))
-                (ui/with-style ::ui/style-stroke
-                              (let [gray 0.75]
-                                (ui/with-color [gray gray gray]
-                                              [(ui/rounded-rectangle (+ (* 2 padding-x) tw) (+ (* 2 padding-y) th 1) 3 )
-                                               (ui/rounded-rectangle (+ (* 2 padding-x) tw) (+ (* 2 padding-y) th) 3)])))
-                (translate (- padding-x 1) (- padding-y 0)
-                           btn-text)])))
-(defcomponent Button [text hover?]
-    IOrigin
-    (-origin [_]
-        [0 0])
-
-    IBounds
-    (-bounds [this]
-        (bounds (draw-button text hover?)))
-
-    IDraw
-    (draw [this]
-        (draw (draw-button text hover?)))
-    IChildren
-    (-children [this]
-        [(draw-button text hover?)]))
-(defn button [text hover?]
-  (Button. text hover?))
-
-
 (defcomponent LabelRaw [text font]
     IBounds
     (-bounds [_]
