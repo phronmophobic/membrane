@@ -20,6 +20,7 @@
                      label
                      image]]
             [membrane.audio :as audio]
+            ["opentype.js" :as opentype]
             goog.object
             [membrane.component :refer [defui]]))
 
@@ -130,7 +131,7 @@
     (callback freetype-font)
     (swap! freetype-callbacks conj callback)))
 
-(js/opentype.load
+(.load opentype
  "https://fonts.gstatic.com/s/ubuntu/v10/4iCs6KVjbNBYlgo6eA.ttf"
  (fn [err font]
    (if err
@@ -215,7 +216,7 @@
       (let [line (nth lines line-index)
             font-size (get font :size (:size ui/default-font))
             options (js-obj {:kerning true})
-            glyphs (.stringToGlyphs freetype-font line options)
+            glyphs (.stringToGlyphs freetype-font line)
             position  (aget freetype-font "position")
             script (.getDefaultScriptName position)
             kerning-lookups (.getKerningTables position
@@ -317,7 +318,7 @@
   (let [font-size (get font :size (:size ui/default-font))
         options (js-obj {:kerning true})
         text (str text "8")
-        glyphs (.stringToGlyphs freetype-font text options)
+        glyphs (.stringToGlyphs freetype-font text)
         position  (aget freetype-font "position")
         script (.getDefaultScriptName position)
         kerning-lookups (.getKerningTables position

@@ -67,7 +67,10 @@
                            (set! (.-width style) (str (int (+ cw 200)) "px")))
                          ))))
 
-(defonce start-todo-app (webgl/run
-                          (membrane.component/make-app #'todo/todo-app todo/todo-state)
-                          {:canvas canvas}))
 
+
+(defn -main []
+  (defonce start-todo-app (webgl/run
+                            (membrane.component/make-app #'todo/todo-app todo/todo-state)
+                              {:canvas canvas}))
+  )
