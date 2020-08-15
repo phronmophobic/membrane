@@ -1,8 +1,6 @@
 (ns membrane.ui
-  (:refer-clojure :exclude [drop])
-  #?(:cljs
-     (:require-macros [membrane.ui :refer [defcomponent]])))
-
+  #?(:cljs (:require-macros [membrane.ui :refer [make-event-handler]]))
+  (:refer-clojure :exclude [drop]))
 
 (defrecord Font [name size weight])
 
@@ -424,22 +422,22 @@
     (-drop elem paths local-pos)))
 
 
-(defn make-event-handler [protocol-name protocol protocol-fn]
-  (fn handler [elem & args]
-    #_(when-not (or (satisfies? protocol elem) (satisfies? IComponent elem))
-        (throw (Exception. (str "Expecting " protocol-name " or IComponent, got " (type elem) " " elem))))
-    (cond
-      (satisfies? protocol elem)
-      (apply protocol-fn elem args)
-      (satisfies? IChildren elem)
-      (let [steps (transduce
-                   (map #(apply handler % args))
-                   into
-                   []
-                   (children elem))]
-        (if (satisfies? IBubble elem)
-          (-bubble elem steps)
-          steps)))))
+(defmacro make-event-handler [protocol-name protocol protocol-fn]
+  `(fn handler# [elem# & args#]
+     #_(when-not (or (satisfies? protocol elem#) (satisfies? IComponent elem#))
+         (throw (Exception. (str "Expecting " protocol-name " or IComponent, got " (type elem#) " " elem#))))
+     (cond
+       (satisfies? ~protocol elem#)
+       (apply ~protocol-fn elem# args#)
+       (satisfies? IChildren elem#)
+       (let [steps# (transduce
+                    (map #(apply handler# % args#))
+                    into
+                    []
+                    (children elem#))]
+         (if (satisfies? IBubble elem#)
+           (-bubble elem# steps#)
+           steps#)))))
 
 (def
   ^{:arglists '([elem key]),
