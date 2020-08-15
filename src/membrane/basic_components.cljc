@@ -22,7 +22,6 @@
                      spacer
                      filled-rectangle
                      rectangle
-                     defcomponent
                      IBounds
                      IKeyPress
                      origin

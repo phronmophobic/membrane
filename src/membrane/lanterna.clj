@@ -8,7 +8,6 @@
                      vertical-layout
                      horizontal-layout
                      maybe-key-press
-                     defcomponent
                      on]]
             [clojure.core.async :as async
              :refer [<!! >!!]]
@@ -75,7 +74,7 @@
 
 (ui/add-default-draw-impls! IDraw #'draw)
 
-(defcomponent Label [lines]
+(defrecord Label [lines]
     IBounds
     (-bounds [this]
         [(apply max (map #(.length ^String %) lines))
@@ -100,7 +99,7 @@
 (def label (identity -label))
 
 
-(defcomponent Rectangle [width height]
+(defrecord Rectangle [width height]
     IOrigin
     (-origin [_]
         [0 0])
@@ -169,7 +168,7 @@
 (defn rectangle [width height]
   (Rectangle. width height))
 
-(ui/defcomponent Button [text on-click hover?]
+(defrecord Button [text on-click hover?]
     ui/IOrigin
     (-origin [_]
         [0 0])
@@ -287,7 +286,7 @@
              [:set $last-click [now pos]]]))
     ))
 
-(defcomponent CheckboxView [checked?]
+(defrecord CheckboxView [checked?]
     IOrigin
     (-origin [_]
         [0 0])
@@ -326,7 +325,7 @@
    (checkbox-view checked?)))
 
 
-(defcomponent TextSelection [text selection]
+(defrecord TextSelection [text selection]
     
     IBounds
     (-bounds [this]

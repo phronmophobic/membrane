@@ -1,5 +1,5 @@
 (ns membrane.vdom
-  (:require-macros [membrane.ui :refer [add-default-draw-impls-cljs! defcomponent]]
+  (:require-macros [membrane.ui :refer [add-default-draw-impls-cljs! ]]
                    [membrane.component :refer [defui]]
                    [cljs.tools.reader.reader-types])
   
@@ -16,7 +16,6 @@
                      rectangle
                      bordered
                      filled-rectangle
-                     defcomponent
                      label
                      children
                      image]]
@@ -301,7 +300,7 @@
 
 
 
-(defcomponent Checkbox [checked?]
+(defrecord Checkbox [checked?]
     IOrigin
     (-origin [_]
         [0 0])
@@ -331,7 +330,7 @@
   [checked?]
   (Checkbox. checked?))
 
-(defcomponent Button [text on-click hover?]
+(defrecord Button [text on-click hover?]
     IOrigin
     (-origin [_]
         [0 0])

@@ -2,8 +2,7 @@
   (:require [membrane.ui :as ui
              :refer [IBounds
                      bounds
-                     origin
-                     defcomponent]])
+                     origin]])
   (:import java.awt.BasicStroke
            java.awt.image.BufferedImage
            javax.imageio.ImageIO
@@ -170,7 +169,7 @@
     [maxx maxy]))
 
 
-(defcomponent LabelRaw [text font]
+(defrecord LabelRaw [text font]
     IBounds
     (-bounds [_]
         (let [[maxx maxy] (text-bounds (get-java-font font)
@@ -406,7 +405,7 @@
 
 
 
-#_(defcomponent Cached [drawable]
+#_(defrecord Cached [drawable]
     IOrigin
     (-origin [_]
         (origin drawable))

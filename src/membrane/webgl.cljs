@@ -104,7 +104,7 @@
         (push-state *ctx*
                     (.drawImage *ctx* img (- padding) (- padding) img-width img-height))))))
 
-(ui/defcomponent Cached [drawable]
+(defrecord Cached [drawable]
     IOrigin
     (-origin [_]
         (origin drawable))

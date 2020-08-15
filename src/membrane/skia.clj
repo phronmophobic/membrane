@@ -26,7 +26,6 @@
                      -clipboard-copy
                      IClipboardPaste
                      -clipboard-paste
-                     defcomponent
                      IBounds
                      bounds
                      IOrigin
@@ -423,7 +422,7 @@
        (Skia/skia_render_line *skia-resource* font-ptr skia-buf (alength line-bytes) (float 0) (float 0))))))
 
 
-(defcomponent LabelRaw [text font]
+(defrecord LabelRaw [text font]
     IBounds
     (-bounds [_]
         (let [[minx miny maxx maxy] (text-bounds (get-font font)
@@ -981,7 +980,7 @@
          (Skia/skia_translate *skia-resource* (float (- padding)) (float (- padding)))
          (Skia/skia_draw_image_rect *skia-resource* img (float img-width) (float img-height)))))))
 
-(defcomponent Cached [drawable]
+(defrecord Cached [drawable]
     IOrigin
     (-origin [_]
         (origin drawable))
