@@ -5,14 +5,11 @@
 (defrecord Font [name size weight])
 
 
-(def default-font (Font. #? (:clj (if (.exists (clojure.java.io/file "/System/Library/Fonts/HelveticaNeueDeskInterface.ttc"))
-                                    "/System/Library/Fonts/HelveticaNeueDeskInterface.ttc"
-                                    "/usr/share/fonts/truetype/ubuntu/Ubuntu-R.ttf")
-                             :cljs "Ubuntu"
-                             )
-                            14
-                            #?(:clj nil
-                               :cljs nil)))
+(def default-font (Font. nil
+                         14
+                         nil))
+
+
 
 (defn font
   "Creates a font.

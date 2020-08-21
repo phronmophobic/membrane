@@ -433,14 +433,18 @@ extern "C" {
     }
 
     SkFont* skia_load_font(const char* fontfilename, float fontsize){
-        sk_sp<SkTypeface> typeface = SkTypeface::MakeFromFile(fontfilename);
-        if ( typeface ){
-            SkFont* font = new SkFont(typeface, fontsize);
+        if ( fontfilename ){
+            sk_sp<SkTypeface> typeface = SkTypeface::MakeFromFile(fontfilename);
+            if ( typeface ){
+                SkFont* font = new SkFont(typeface, fontsize);
 
-            return font;
+                return font;
 
-        } else {
-            return NULL;
+            } else {
+                return NULL;
+            }
+        } else{
+            return new SkFont(nullptr, fontsize);
         }
     }
 

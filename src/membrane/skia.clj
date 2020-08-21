@@ -392,14 +392,16 @@
           font-ptr
           (let [font-name (or (:name font)
                               (:name ui/default-font))
-                font-path (if (.startsWith ^String font-name "/")
-                            font-name
-                            (str font-dir font-name))
-                font-path (if (.exists (clojure.java.io/file font-path))
-                            font-path
-                            (do
-                              (println font-path " does not exist!")
-                              (:name ui/default-font)))]
+                font-path (when font-name
+                            (if (.startsWith ^String font-name "/")
+                              font-name
+                              (str font-dir font-name)))
+                font-path (when font-path
+                            (if (.exists (clojure.java.io/file font-path))
+                              font-path
+                              (do
+                                (println font-path " does not exist!")
+                                (:name ui/default-font))))]
             (let [font-size (or (:size font)
                                 (:size ui/default-font))
                   font-ptr (load-font font-path font-size)]
