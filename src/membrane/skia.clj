@@ -97,10 +97,10 @@
      `(if ~lib
         (let [~cfn-sym (.getFunction ~(with-meta lib {:tag 'com.sun.jna.NativeLibrary})
                                      ~(name fn-name))]
-          (defn ~fn-name [~@args]
+          (defn- ~fn-name [~@args]
             (.invoke ~cfn-sym
                      ~ret (to-array [~@args]))))
-        (defn ~fn-name [~@args]
+        (defn- ~fn-name [~@args]
           (throw (Exception. (str ~(name fn-name) " not loaded."))))))))
 
 (defmacro if-class
@@ -271,7 +271,7 @@
 (defc skia_draw_image_rect membraneskialib void [skia-resource image-texture w h])
 
 (defc skia_fork_pty membraneskialib Integer/TYPE [rows columns])
-(defn fork-pty [rows columns]
+(defn- fork-pty [rows columns]
   (let [rows (short rows)
         columns (short columns)
         _ (assert (> rows 0) (str "invalid rows: " rows))
@@ -304,7 +304,7 @@
 (defc skia_restore membraneskialib Void/TYPE [skia-resource])
 (defc skia_translate membraneskialib Void/TYPE [skia-resource x y])
 
-(defn test-skia []
+(defn- test-skia []
   [(translate 0 10
               (ui/label "whoo "))
 
@@ -343,13 +343,13 @@
                  :membrane.ui/style-stroke-and-fill (byte 2)})
 
 (defc skia_set_style membraneskialib Void/TYPE [skia-resource style])
-(defn skia-set-style [skia-resource style]
+(defn- skia-set-style [skia-resource style]
   (let [style-arg (skia-style style)]
     (assert style-arg (str "Invalid Style: " style "."))
     (Skia/skia_set_style skia-resource style-arg)))
 
 (defc skia_set_stroke_width membraneskialib Void/TYPE [skia-resource width])
-(defn skia-set-stroke-width [skia-resource width]
+(defn- skia-set-stroke-width [skia-resource width]
   (Skia/skia_set_stroke_width skia-resource (float width)))
 
 (extend-type membrane.ui.WithStrokeWidth
@@ -375,18 +375,18 @@
 
 
 (defc skia_set_color membraneskialib Void/TYPE [skia-resource r g b a])
-(defn skia-set-color [skia-resource [r g b a]]
+(defn- skia-set-color [skia-resource [r g b a]]
   (Skia/skia_set_color skia-resource (float r) (float g) (float b) (if a
                                                                 (float a)
                                                                 (float 1))))
 
 (defc skia_set_alpha membraneskialib Void/TYPE [skia-resource alpha])
-(defn skia-set-alpha [skia-resource alpha]
+(defn- skia-set-alpha [skia-resource alpha]
   (Skia/skia_set_alpha skia-resource (unchecked-byte (* alpha 255))))
 
 
 (def font-dir "/System/Library/Fonts/")
-(defn get-font [font]
+(defn- get-font [font]
   (let [font-ptr
         (if-let [font-ptr (get @*font-cache* font)]
           font-ptr
@@ -411,7 +411,7 @@
 (defc skia_render_line membraneskialib Void/TYPE [resource font-ptr line text-length x y])
 (defc skia_next_line membraneskialib Void/TYPE [resource font-ptr])
 (def byte-array-class (type (byte-array 0)))
-(defn label-draw [{:keys [text font] :as label}]
+(defn- label-draw [{:keys [text font] :as label}]
   (let [lines (clojure.string/split-lines text)
         font-ptr (get-font font)]
     (save-canvas
@@ -477,7 +477,7 @@
   (get-image-texture [image-pointer]
     image-pointer))
 
-(defn slurp-bytes
+(defn- slurp-bytes
   "Slurp the bytes from a slurpable thing"
   [x]
   (with-open [out (java.io.ByteArrayOutputStream.)]
@@ -505,7 +505,7 @@
           image))))
 
 
-(defn image-size-raw [image-path]
+(defn- image-size-raw [image-path]
   (try
     (with-open [is (clojure.java.io/input-stream image-path)]
       (let [image-stream (ImageIO/createImageInputStream is)
@@ -523,7 +523,7 @@
            :doc "Returns the [width, height] of the file at image-path."})
         image-size)
 
-(defn image-draw [{:keys [image-path size opacity] :as image}]
+(defn- image-draw [{:keys [image-path size opacity] :as image}]
   (when-let [image-texture (get-image-texture image-path)]
     (let [[w h] size]
       (push-paint
@@ -552,16 +552,16 @@
 
 (defc skia_render_selection membraneskialib Void/TYPE [skia-resource font-ptr text text-length selection-start selection-end])
 (defc skia_line_height membraneskialib Float/TYPE [font-ptr])
-(defn skia-line-height [font]
+(defn- skia-line-height [font]
   (skia_line_height (get-font font)))
 
 (defc skia_advance_x membraneskialib Float/TYPE [font-ptr text text-length])
-(defn skia-advance-x [font text]
+(defn- skia-advance-x [font text]
   (let [line-bytes (.getBytes ^String text "utf-8")]
     (.write ^Memory skia-buf 0 line-bytes 0 (alength ^bytes line-bytes))
     (skia_advance_x (get-font font) skia-buf (alength line-bytes))))
 
-(defn text-selection-draw [{:keys [text font]
+(defn- text-selection-draw [{:keys [text font]
                             [selection-start selection-end] :selection
                             :as text-selection}]
   (let [font-ptr (get-font font)
@@ -596,7 +596,7 @@
     (text-selection-draw this)))
 
 (defc skia_render_cursor membraneskialib Void/TYPE [skia-resource font-ptr text text-length cursor])
-(defn text-cursor-draw [{:keys [text font cursor]
+(defn- text-cursor-draw [{:keys [text font cursor]
                          :as text-cursor}]
   (let [cursor (min (count text)
                     cursor)
@@ -695,7 +695,7 @@
 
 (defc skia_clip_rect membraneskialib Void/TYPE [skia-resource ox oy w h])
 
-(defn scissor-draw [scissor-view]
+(defn- scissor-draw [scissor-view]
   (save-canvas
    (let [[ox oy] (:offset scissor-view)
          [w h] (:bounds scissor-view)]
@@ -708,7 +708,7 @@
       (scissor-draw this)))
 
 
-(defn scrollview-draw [scrollview]
+(defn- scrollview-draw [scrollview]
   (draw
    (ui/->ScissorView [0 0]
                   (:bounds scrollview)
@@ -721,7 +721,7 @@
       (scrollview-draw this)))
 
 
-(defn wrap-text [text n]
+(defn- wrap-text [text n]
   (loop [[k & text] text
          i 0
          line []
@@ -785,7 +785,7 @@
 
 
 
-(defn dispatch-sync! [f]
+(defn- dispatch-sync! [f]
   (if-class com.apple.concurrent.Dispatch
     (.execute (.getBlockingMainQueueExecutor (eval '(com.apple.concurrent.Dispatch/getInstance)))
               f)
@@ -802,21 +802,21 @@
 ;; https://developer.apple.com/reference/objectivec/1657527-objective_c_runtime?language=objc
 ;; http://stackoverflow.com/questions/10289890/how-to-write-ios-app-purely-in-c
 
-(defn nsstring [s]
+(defn- nsstring [s]
   (let [NSString (jna/invoke Pointer CoreFoundation/objc_getClass "NSString")
         sel (jna/invoke Pointer CoreFoundation/sel_registerName "stringWithUTF8String:")]
     (jna/invoke Pointer CoreFoundation/objc_msgSend NSString sel s)))
 
-(defn nsstring->str [nsstring]
+(defn- nsstring->str [nsstring]
   (let [sel (jna/invoke Pointer CoreFoundation/sel_registerName "UTF8String")]
     (jna/invoke String CoreFoundation/objc_msgSend nsstring sel)))
 
-(defn nsnumber->int [nsnumber]
+(defn- nsnumber->int [nsnumber]
   (let [sel (jna/invoke Pointer CoreFoundation/sel_registerName "intValue")]
     (jna/invoke Integer/TYPE CoreFoundation/objc_msgSend nsnumber sel))
   )
 
-(defn objc-selector [sel]
+(defn- objc-selector [sel]
   (jna/invoke Pointer CoreFoundation/sel_registerName sel))
 
 
@@ -839,7 +839,7 @@
   (def-objc-class NSDictionary))
 
 ;; (objc-call standard-user-defaults Pointer "objectForKey:" (nsstring "ApplePressAndHoldEnabled"))
-(defn fix-press-and-hold! []
+(defn- fix-press-and-hold! []
   (when objlib
     (let [defaults (objc-call NSDictionary Pointer "dictionaryWithObject:forKey:"
                               (objc-call NSNumber Pointer "numberWithBool:" (char 0))
@@ -850,7 +850,7 @@
 
 
 
-(defn get-main-st []
+(defn- get-main-st []
   (let [threads (into-array Thread
                             (repeat  (.activeCount (.getThreadGroup (Thread/currentThread) )) nil))]
     (-> (.getThreadGroup (Thread/currentThread) )
@@ -866,7 +866,7 @@
 
 
 
-(defn getpid []
+(defn- getpid []
   (jna/invoke Integer/TYPE c/getpid))
 
 (defmacro glfw-call [ret fn-name & args]
@@ -875,7 +875,7 @@
             ~ret
             (to-array (vector ~@args))))
 
-(defn glfw-post-empty-event []
+(defn- glfw-post-empty-event []
   (glfw-call void glfwPostEmptyEvent))
 
 (defmacro gl
@@ -888,7 +888,7 @@
 (declare sx sy)
 
 (defc skia_text_bounds membraneskialib void [font-ptr text length minx miny maxx maxy])
-(defn text-bounds [font-ptr text]
+(defn- text-bounds [font-ptr text]
   (assert (instance? Pointer font-ptr))
   (assert text "Can't get font size of nil text")
   
@@ -906,7 +906,7 @@
 
 (defc skia_index_for_position membraneskialib Integer/TYPE [font-ptr text text-length px])
 
-(defn index-for-position [font text px py]
+(defn- index-for-position [font text px py]
   (assert (some? text) "can't find index for nil text")
   (let [font-ptr (get-font font)
         line-height (Skia/skia_line_height font-ptr)
@@ -928,7 +928,7 @@
 
 (intern (the-ns 'membrane.ui) 'index-for-position index-for-position)
 
-(defn copy-to-clipboard [s]
+(defn- copy-to-clipboard [s]
   (let [glfw-window *window*
         window-handle (:window glfw-window)]
     ;; window-handle may be null
@@ -937,8 +937,9 @@
 
 
 (defc skia_load_font membraneskialib Pointer [font-path font-size])
-(defn load-font [font-path font-size]
-  (assert (string? font-path))
+(defn- load-font [font-path font-size]
+  (assert (or (string? font-path)
+              (nil? font-path)))
   (let [font-ptr (Skia/skia_load_font font-path (float font-size))]
     (assert font-ptr (str "unable to load font: " font-path " " font-size))
     font-ptr))
@@ -948,7 +949,7 @@
 
 (defc skia_offscreen_buffer membraneskialib Pointer [skia-resource width height xscale yscale])
 (defc skia_offscreen_image membraneskialib Pointer [skia-resource])
-(defn cached-draw [drawable]
+(defn- cached-draw [drawable]
   #_(draw drawable)
   (let [padding (float 5)]
     (if *already-drawing*
@@ -1000,14 +1001,14 @@
     )
   )
 
-(defn get-framebuffer-size [window-handle]
+(defn- get-framebuffer-size [window-handle]
   (let [pix-width (IntByReference.)
         pix-height (IntByReference.)]
     (glfw-call void glfwGetFramebufferSize window-handle pix-width pix-height)
     [(.getValue pix-width)
      (.getValue pix-height)]))
 
-(defn get-window-content-scale-size [window-handle]
+(defn- get-window-content-scale-size [window-handle]
   (let [xscale (FloatByReference.)
         yscale (FloatByReference.)]
     (glfw-call void glfwGetWindowContentScale window-handle xscale yscale)
@@ -1022,7 +1023,7 @@
   (repaint! [_]))
 
 
-(defn -reshape
+(defn- -reshape
   ([window window-handle width height]
    (reshape! window width height)))
 
@@ -1042,12 +1043,12 @@
         (println e)))
     nil))
 
-(defn make-reshape-callback [window handler]
+(defn- make-reshape-callback [window handler]
   (->ReshapeCallback window handler))
 
 (declare email-image)
 
-(defn -mouse-button-callback [window window-handle button action mods]
+(defn- -mouse-button-callback [window window-handle button action mods]
   (try
     (mouse-event @(:ui window) @(:mouse-position window) button (= 1 action) mods)
     (catch Exception e
@@ -1071,12 +1072,12 @@
         (println e)))
     nil))
 
-(defn make-mouse-button-callback [window handler]
+(defn- make-mouse-button-callback [window handler]
   (MouseButtonCallback. window handler))
 
 
 
-(defn -scroll-callback [window window-handle offset-x offset-y]
+(defn- -scroll-callback [window window-handle offset-x offset-y]
   ;; a 2x multiplier felt better. I think it might have something to do with
   ;; retina display, but it's probably some other dumb thing
   (ui/scroll @(:ui window) [(* 2 offset-x) (* 2 offset-y)])
@@ -1100,11 +1101,11 @@
 
     nil))
 
-(defn make-scroll-callback [window handler]
+(defn- make-scroll-callback [window handler]
   (ScrollCallback. window handler))
 
 
-(defn -window-refresh-callback [window window-handle]
+(defn- -window-refresh-callback [window window-handle]
   (repaint! window))
 
 (deftype WindowRefreshCallback [window handler]
@@ -1123,11 +1124,11 @@
         (println e)))
     nil))
 
-(defn make-window-refresh-callback [window handler]
+(defn- make-window-refresh-callback [window handler]
   (WindowRefreshCallback. window handler))
 
 
-(defn -drop-callback [window window-handle paths]
+(defn- -drop-callback [window window-handle paths]
   (try
     (ui/drop @(:ui window) (vec paths) @(:mouse-position window))
     (catch Exception e
@@ -1154,11 +1155,11 @@
         (println e)))
     nil))
 
-(defn make-drop-callback [window handler]
+(defn- make-drop-callback [window handler]
   (DropCallback. window handler))
 
 
-(defn -cursor-pos-callback [window window-handle x y]
+(defn- -cursor-pos-callback [window window-handle x y]
   (try
     (doall (mouse-move @(:ui window) [x y]))
     (doall (mouse-move-global @(:ui window) [x y]))
@@ -1191,7 +1192,7 @@
           (println e)))
     nil))
 
-(defn make-cursor-pos-callback [window handler]
+(defn- make-cursor-pos-callback [window handler]
   (CursorPosCallback. window handler))
 
 
@@ -1199,7 +1200,7 @@
   {1 :press
    2 :repeat
    3 :release})
-(defn -key-callback [window window-handle key scancode action mods]
+(defn- -key-callback [window window-handle key scancode action mods]
   (let [action (get key-action-map action :unknown)
         ui @(:ui window)]
     (ui/key-event ui key scancode action mods)
@@ -1270,15 +1271,15 @@
         (println e)))
     nil))
 
-(defn make-key-callback [window handler]
+(defn- make-key-callback [window handler]
   (KeyCallback. window handler))
 
-(defn int->bytes [i]
+(defn- int->bytes [i]
   (-> (ByteBuffer/allocate 4)
       (.putInt i)
       (.array)))
 
-(defn -character-callback [window window-handle codepoint]
+(defn- -character-callback [window window-handle codepoint]
   (let [k (String. ^bytes (int->bytes codepoint) "utf-32")
         ui @(:ui window)]
     (try
@@ -1304,7 +1305,7 @@
         (println e)))
     nil))
 
-(defn make-character-callback [window handler]
+(defn- make-character-callback [window handler]
   (CharacterCallback. window handler))
 
 (def quit? (atom false))
@@ -1665,7 +1666,7 @@
    (async/thread
      (run-sync make-ui options))))
 
-(defn run-helper [window-chan]
+(defn- run-helper [window-chan]
   (with-local-vars [windows #{}]
     (letfn [(init []
               (if (not= 1 (glfw-call Integer/TYPE glfwInit))
