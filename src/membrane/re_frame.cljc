@@ -72,7 +72,7 @@
         $args [:$text [(list 'get tid) :text]
                :$font [(list 'get tid) :font]
                :$textarea-state [(list 'get tid) :textarea-state]
-               :$extra [(list 'get tid) :border?]
+               :$extra [(list 'get tid) :extra]
                :$focus [::focus]]]
     (ui/on-bubble
      (fn [effects]
