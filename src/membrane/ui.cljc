@@ -1,26 +1,15 @@
 (ns membrane.ui
-  (:refer-clojure :exclude [drop])
-  #?(:cljs
-     (:require-macros [membrane.ui :refer [defcomponent]])))
-
-(defmacro defcomponent [name [& fields] & opts+specs]
-   `(defrecord ~name [~@fields]
-      IComponent
-      ;; (~'cid [this#]
-      ;;   cid#)
-      ~@opts+specs))
+  #?(:cljs (:require-macros [membrane.ui :refer [make-event-handler]]))
+  (:refer-clojure :exclude [drop]))
 
 (defrecord Font [name size weight])
 
 
-(def default-font (Font. #? (:clj (if (.exists (clojure.java.io/file "/System/Library/Fonts/HelveticaNeueDeskInterface.ttc"))
-                                    "/System/Library/Fonts/HelveticaNeueDeskInterface.ttc"
-                                    "/usr/share/fonts/truetype/ubuntu/Ubuntu-R.ttf")
-                             :cljs "Ubuntu"
-                             )
-                            14
-                            #?(:clj nil
-                               :cljs nil)))
+(def default-font (Font. nil
+                         14
+                         nil))
+
+
 
 (defn font
   "Creates a font.
@@ -252,15 +241,6 @@
          (fn [this]
            (draw (children this)))))
 
-(defprotocol IComponent)
-
-(extend-protocol IComponent
-  nil
-  #?(:cljs cljs.core/PersistentVector
-     :clj clojure.lang.PersistentVector)
-    )
-
-
 (defprotocol IBounds
   (-bounds [elem]
     "Returns a 2 element vector with the [width, height] of an element's bounds with respect to its origin"))
@@ -454,22 +434,22 @@
     (-drop elem paths local-pos)))
 
 
-(defn make-event-handler [protocol-name protocol protocol-fn]
-  (fn handler [elem & args]
-    #_(when-not (or (satisfies? protocol elem) (satisfies? IComponent elem))
-        (throw (Exception. (str "Expecting " protocol-name " or IComponent, got " (type elem) " " elem))))
-    (cond
-      (satisfies? protocol elem)
-      (apply protocol-fn elem args)
-      (satisfies? IChildren elem)
-      (let [steps (transduce
-                   (map #(apply handler % args))
-                   into
-                   []
-                   (children elem))]
-        (if (satisfies? IBubble elem)
-          (-bubble elem steps)
-          steps)))))
+(defmacro make-event-handler [protocol-name protocol protocol-fn]
+  `(fn handler# [elem# & args#]
+     #_(when-not (or (satisfies? protocol elem#) (satisfies? IComponent elem#))
+         (throw (Exception. (str "Expecting " protocol-name " or IComponent, got " (type elem#) " " elem#))))
+     (cond
+       (satisfies? ~protocol elem#)
+       (apply ~protocol-fn elem# args#)
+       (satisfies? IChildren elem#)
+       (let [steps# (transduce
+                    (map #(apply handler# % args#))
+                    into
+                    []
+                    (children elem#))]
+         (if (satisfies? IBubble elem#)
+           (-bubble elem# steps#)
+           steps#)))))
 
 (def
   ^{:arglists '([elem key]),
@@ -497,7 +477,7 @@
   scroll (make-event-handler "IScroll" IScroll -scroll))
 
 
-(defcomponent Label [text font]
+(defrecord Label [text font]
     IOrigin
     (-origin [_]
         [0 0]))
@@ -524,7 +504,7 @@
              s)]
     (label s (or font default-font)))))
 
-(defcomponent TextSelection [text selection font]
+(defrecord TextSelection [text selection font]
     IOrigin
     (-origin [_]
         [0 0]))
@@ -537,7 +517,7 @@
    (TextSelection. (str text) selection font)))
 
 
-(defcomponent TextCursor [text cursor font]
+(defrecord TextCursor [text cursor font]
     IOrigin
     (-origin [_]
         [0 0]))
@@ -553,7 +533,7 @@
 
 
 
-(defcomponent Image [image-path size opacity]
+(defrecord Image [image-path size opacity]
     IOrigin
     (-origin [_]
         [0 0])
@@ -619,7 +599,7 @@
      (Image. image-path size opacity))))
 
 
-(defcomponent Group [drawables]
+(defrecord Group [drawables]
     IOrigin
     (-origin [_]
         [0 0])
@@ -651,7 +631,7 @@
   (Group. drawables))
 
 
-(defcomponent Translate [x y drawable]
+(defrecord Translate [x y drawable]
     IOrigin
     (-origin [this]
         [x y])
@@ -672,7 +652,7 @@
   (Translate. x y drawable))
 
 
-(defcomponent Rotate [degrees drawable]
+(defrecord Rotate [degrees drawable]
     IOrigin
     (-origin [this]
         [0 0])
@@ -687,7 +667,7 @@
 (defn- rotate [degrees drawable]
   (Rotate. degrees drawable))
 
-(defcomponent Spacer [x y]
+(defrecord Spacer [x y]
     IOrigin
     (-origin [_]
         [0 0])
@@ -707,7 +687,7 @@
   (Spacer. x y))
 
 
-(defcomponent FixedBounds [size drawable]
+(defrecord FixedBounds [size drawable]
     IOrigin
     (-origin [_]
         [0 0])
@@ -729,7 +709,7 @@
 (defn fixed-bounds [size drawable]
   (FixedBounds. size drawable))
 
-(defcomponent Padding [px py drawable]
+(defrecord Padding [px py drawable]
     IOrigin
     (-origin [this]
         [px py])
@@ -755,7 +735,7 @@
   (Padding. px py elem))
 
 
-(defcomponent Path [points]
+(defrecord Path [points]
     IOrigin
     (-origin [_]
         [0 0])
@@ -774,7 +754,7 @@
   (Path. points))
 
 
-(defcomponent WithColor [color drawables]
+(defrecord WithColor [color drawables]
     IOrigin
     (-origin [_]
         [0 0])
@@ -797,7 +777,7 @@
   [color & drawables]
   (WithColor. color drawables))
 
-(defcomponent WithStyle [style drawables]
+(defrecord WithStyle [style drawables]
     IOrigin
     (-origin [_]
         [0 0])
@@ -820,7 +800,7 @@
   [style & drawables]
   (WithStyle. style (vec drawables)))
 
-(defcomponent WithStrokeWidth [stroke-width drawables]
+(defrecord WithStrokeWidth [stroke-width drawables]
     IOrigin
     (-origin [_]
         [0 0])
@@ -838,7 +818,7 @@
   (WithStrokeWidth. stroke-width (vec drawables)))
 
 
-(defcomponent Scale [scalars drawables]
+(defrecord Scale [scalars drawables]
     IOrigin
     (-origin [_]
         [0 0])
@@ -858,7 +838,7 @@
   (Scale. [sx sy] (vec drawables)))
 
 
-(defcomponent Arc [radius rad-start rad-end steps]
+(defrecord Arc [radius rad-start rad-end steps]
 
     IOrigin
     (-origin [_]
@@ -870,7 +850,7 @@
 (defn- arc [radius rad-start rad-end]
   (Arc. radius rad-start rad-end 10))
 
-(defcomponent Rectangle [width height]
+(defrecord Rectangle [width height]
     IOrigin
     (-origin [_]
         [0 0])
@@ -899,7 +879,7 @@
     (with-style :membrane.ui/style-fill
       (Rectangle. width height))))
 
-(defcomponent RoundedRectangle [width height border-radius]
+(defrecord RoundedRectangle [width height border-radius]
     IOrigin
     (-origin [_]
         [0 0])
@@ -924,7 +904,7 @@
                 padding-y
                 drawable)]))
 
-(defcomponent Bordered [padding-x padding-y drawable]
+(defrecord Bordered [padding-x padding-y drawable]
     IOrigin
     (-origin [this]
         (origin (bordered-draw this)))
@@ -965,7 +945,7 @@
                 padding-y
                 drawable)]))
 
-(defcomponent FillBordered [color padding-x padding-y drawable]
+(defrecord FillBordered [color padding-x padding-y drawable]
     IOrigin
     (-origin [_]
         [0 0])
@@ -1024,7 +1004,7 @@
 
 
 
-(defcomponent Checkbox [checked?]
+(defrecord Checkbox [checked?]
     IOrigin
     (-origin [_]
         [0 0])
@@ -1080,7 +1060,7 @@
                 (- (/ padding 2) 2)
                 (label text))]))
 
-(defcomponent Button [text on-click hover?]
+(defrecord Button [text on-click hover?]
     IOrigin
     (-origin [_]
         [0 0])
@@ -1113,7 +1093,7 @@
    (Button. text on-click hover?)))
 
 
-(defcomponent OnClick [on-click drawables]
+(defrecord OnClick [on-click drawables]
     IOrigin
     (-origin [_]
         [0 0])
@@ -1154,7 +1134,7 @@
 
 
 
-(defcomponent OnMouseDown [on-mouse-down drawables]
+(defrecord OnMouseDown [on-mouse-down drawables]
     IOrigin
     (-origin [_]
         [0 0])
@@ -1193,7 +1173,7 @@
   [on-mouse-down & drawables]
   (OnMouseDown. on-mouse-down drawables))
 
-(defcomponent OnMouseUp [on-mouse-up drawables]
+(defrecord OnMouseUp [on-mouse-up drawables]
     IOrigin
     (-origin [_]
         [0 0])
@@ -1232,7 +1212,7 @@
   [on-mouse-up & drawables]
   (OnMouseUp. on-mouse-up drawables))
 
-(defcomponent OnMouseMove [on-mouse-move drawables]
+(defrecord OnMouseMove [on-mouse-move drawables]
     IOrigin
     (-origin [_]
         [0 0])
@@ -1271,7 +1251,7 @@
   [on-mouse-move & drawables]
   (OnMouseMove. on-mouse-move drawables))
 
-(defcomponent OnMouseMoveGlobal [on-mouse-move-global drawables]
+(defrecord OnMouseMoveGlobal [on-mouse-move-global drawables]
     IOrigin
     (-origin [_]
         [0 0])
@@ -1314,7 +1294,7 @@
   [on-mouse-move-global & drawables]
   (OnMouseMoveGlobal. on-mouse-move-global drawables))
 
-(defcomponent OnMouseEvent [on-mouse-event drawables]
+(defrecord OnMouseEvent [on-mouse-event drawables]
     IOrigin
     (-origin [_]
         [0 0])
@@ -1354,7 +1334,7 @@
   (OnMouseEvent. on-mouse-event drawables))
 
 
-(defcomponent OnDrop [on-drop drawables]
+(defrecord OnDrop [on-drop drawables]
     IOrigin
     (-origin [_]
         [0 0])
@@ -1393,7 +1373,7 @@
   [on-drop & drawables]
   (OnDrop. on-drop drawables))
 
-(defcomponent OnKeyPress [on-key-press drawables]
+(defrecord OnKeyPress [on-key-press drawables]
     IOrigin
     (-origin [_]
         [0 0])
@@ -1436,7 +1416,7 @@
   [on-key-press & drawables]
   (OnKeyPress. on-key-press drawables))
 
-(defcomponent OnKeyEvent [on-key-event drawables]
+(defrecord OnKeyEvent [on-key-event drawables]
     IOrigin
     (-origin [_]
         [0 0])
@@ -1479,7 +1459,7 @@
   [on-key-event & drawables]
   (OnKeyEvent. on-key-event drawables))
 
-(defcomponent OnBubble [on-bubble drawables]
+(defrecord OnBubble [on-bubble drawables]
     IOrigin
     (-origin [_]
         [0 0])
@@ -1519,7 +1499,7 @@
   (OnBubble. on-bubble drawables))
 
 
-(defcomponent OnClipboardPaste [on-clipboard-paste drawables]
+(defrecord OnClipboardPaste [on-clipboard-paste drawables]
     IOrigin
     (-origin [_]
         [0 0])
@@ -1559,7 +1539,7 @@
   (OnClipboardPaste. on-clipboard-paste drawables))
 
 
-(defcomponent OnClipboardCopy [on-clipboard-copy drawables]
+(defrecord OnClipboardCopy [on-clipboard-copy drawables]
     IOrigin
     (-origin [_]
         [0 0])
@@ -1599,7 +1579,7 @@
 
 
 
-(defcomponent OnClipboardCut [on-clipboard-cut drawables]
+(defrecord OnClipboardCut [on-clipboard-cut drawables]
     IOrigin
     (-origin [_]
         [0 0])
@@ -1639,7 +1619,7 @@
   (OnClipboardCut. on-clipboard-cut drawables))
 
 
-;; TODO: replace with defcomponent so that drawing doesn't require pushes and pops for each movement
+;; TODO: replace with component so that drawing doesn't require pushes and pops for each movement
 (defn vertical-layout
   "Returns a graphical elem of elems stacked on top of each other"
   [& elems]
@@ -1663,7 +1643,7 @@
                               elem))))
           group-elems)))))
 
-;; TODO: replace with defcomponent so that drawing doesn't require pushes and pops for each movement
+;; TODO: replace with component so that drawing doesn't require pushes and pops for each movement
 (defn horizontal-layout
   "Returns a graphical elem of elems layed out next to eachother."
   [& elems]
@@ -1722,7 +1702,7 @@
                elem)))
 
 
-(defcomponent OnScroll [on-scroll drawables]
+(defrecord OnScroll [on-scroll drawables]
     IOrigin
     (-origin [_]
         [0 0])
@@ -1763,7 +1743,7 @@
   (OnScroll. on-scroll drawables))
 
 
-(defcomponent ScissorView [offset bounds drawable]
+(defrecord ScissorView [offset bounds drawable]
     IOrigin
     (-origin [this]
         [0 0])
@@ -1781,7 +1761,7 @@
   [offset bounds drawable]
   (ScissorView.  offset bounds drawable))
 
-(defcomponent ScrollView [bounds offset drawable]
+(defrecord ScrollView [bounds offset drawable]
     IBounds
     (-bounds [_]
         bounds)
@@ -1827,7 +1807,7 @@
   (-handle-event [this event-type event-args]))
 
 
-(defcomponent EventHandler [event-type handler drawable]
+(defrecord EventHandler [event-type handler drawable]
     IOrigin
     (-origin [_]
         [0 0])
@@ -2007,7 +1987,7 @@
                  )))
       body)))
 
-(defcomponent NoEvents [drawable]
+(defrecord NoEvents [drawable]
     IBounds
     (-bounds [this]
         (bounds drawable))
@@ -2073,7 +2053,7 @@
         :mouse-move do-nothing
         body)))
 
-(defcomponent NoKeyEvent [drawable]
+(defrecord NoKeyEvent [drawable]
     IOrigin
     (-origin [_]
         [0 0])
@@ -2102,7 +2082,7 @@
      ~body
      (NoKeyEvent. ~body)))
 
-(defcomponent NoKeyPress [drawable]
+(defrecord NoKeyPress [drawable]
     IOrigin
     (-origin [_]
         [0 0])
@@ -2131,7 +2111,7 @@
      ~body
      (NoKeyPress. ~body)))
 
-(defcomponent TryDraw [drawable error-draw]
+(defrecord TryDraw [drawable error-draw]
     IOrigin
     (-origin [_]
         (try

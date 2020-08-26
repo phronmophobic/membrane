@@ -7,7 +7,7 @@
    #?(:cljs cljs.analyzer.api)
    #?(:cljs [cljs.analyzer :as cljs])
    #?(:cljs cljs.env)
-   [membrane.ui :as ui :refer [defcomponent children bounds origin]]))
+   [membrane.ui :as ui :refer [children bounds origin]]))
 
 #?
 (:clj
@@ -671,7 +671,7 @@
                   ~@(binding [*env* &env]
                       (doall* (map #(path-replace % deps) body)))))
 
-              (defcomponent ~component-name [~@arg-keys]
+              (defrecord ~component-name [~@arg-keys]
                   membrane.ui/IOrigin
                   (~'-origin [this#]
                    [0 0])

@@ -2,7 +2,8 @@
   (:require-macros [membrane.webgl-macros
                     :refer [add-image!]])
   (:require
-   [membrane.component :refer [defui]]
+   [membrane.component :refer [defui]
+    :as component]
    membrane.audio
    [membrane.webgl :as webgl]
    [com.rpl.specter :as spec
@@ -22,8 +23,7 @@
 
 (defui test-ui [& {:keys [a b]}]
   (let [l (label a)
-        [w h] (ui/text-bounds ui/default-font a)
-        border (ui/rectangle w h)]
+]
     [(translate 20 20
                 (membrane.basic-components/textarea :text a))]
     #_(translate 20 20
@@ -67,7 +67,10 @@
                            (set! (.-width style) (str (int (+ cw 200)) "px")))
                          ))))
 
-(defonce start-todo-app (webgl/run
-                          (membrane.component/make-app #'todo/todo-app todo/todo-state)
-                          {:canvas canvas}))
 
+
+(defn -main []
+  (defonce start-todo-app (webgl/run
+                            (membrane.component/make-app #'todo/todo-app todo/todo-state)
+                              {:canvas canvas}))
+  )
