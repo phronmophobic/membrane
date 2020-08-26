@@ -396,6 +396,21 @@
               (-bubble elem steps)
               steps))))))))
 
+;; TODO: make-mouse-move global work when the top level elem has an offset
+;; (ui/mouse-move-global
+;;                     (ui/translate 10 10
+;;                                   (ui/on-mouse-move-global
+;;                                    (fn [pos]
+;;                                      [[:the-pos pos]])
+;;                                    (ui/spacer 20 20)))
+;;                     [10 10])
+;; (ui/mouse-move-global
+;;                     (ui/translate 10 10
+;;                                   (ui/on-mouse-move-global
+;;                                    (fn [pos]
+;;                                      [[:the-pos pos]])
+;;                                    (ui/spacer 20 20)))
+;;                     [0 0])
 (defn mouse-move-global
   "Returns the effects of a mouse move event on elem. Will -mouse-move-global for all elements and their children."
   ([elem global-pos]
