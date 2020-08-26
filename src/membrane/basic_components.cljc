@@ -504,22 +504,42 @@
              (if (zero? b)
                b
                (/ a b)))
-        ]
+
+        on-mouse-move
+        (if mdowny?
+          (fn [body]
+            (on-mouse-out
+             :mouse-out
+             (fn []
+               [[:set $mdowny? nil]])
+             :hover? (get extra [:mdowny? :hover])
+             :body
+             (ui/on-mouse-move
+              (fn [[mx my]]
+                [[:set $offset-y (clampy (* (div0 (float my) height)
+                                            max-offset-y))]])
+              body)))
+          (if mdownx?
+            (fn [body]
+              (on-mouse-out
+               :mouse-out
+               (fn []
+                 [[:set $mdownx? nil]])
+               :hover? (get extra [:mdownx? :hover])
+               :body
+               (ui/on-mouse-move
+                (fn [[mx my]]
+                  [[:set $offset-x (clampx (* (div0 (float mx) width)
+                                              max-offset-x))]])
+                body)))
+            identity))]
     (ui/on-scroll
      (fn [[ox oy]]
        [[:update $offset-x (fn [old-offset]
                              (clampx (+ ox offset-x)))]
         [:update $offset-y (fn [old-offset]
                              (clampy (+ oy offset-y)))]])
-     (ui/on-mouse-move
-      (fn [[mx my :as mpos]]
-        (if mdowny?
-          [[:set $offset-y (clampy (* (div0 (float my) height)
-                                      max-offset-y))]]
-          (if mdownx?
-            [[:set $offset-x (clampx (* (div0 (float mx) width)
-                                        max-offset-x))]]
-            (ui/mouse-move scroll-elem mpos))))
+     (on-mouse-move
       (ui/on-mouse-event
        (fn [[mx my :as mpos] button mouse-down? mods]
          (if mouse-down?
