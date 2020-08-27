@@ -487,7 +487,6 @@
                    new-px)))))))
 
 (defn- index-for-position [font text px py]
-  (prn font text px py)
   (assert (some? text) "can't find index for nil text")
   (let [frc (get-font-render-context)
         jfont (get-java-font font)
@@ -608,7 +607,6 @@
   (let [c (.getKeyChar e)
         ui @(:ui window)]
     (try
-      (prn "key typed: " (.getKeyChar e) (printable? c))
       (when (printable? c)
         (ui/key-press ui (str c)))
       (catch Exception e
@@ -701,7 +699,7 @@
     (let [k (get keymap code)]
       (when (keyword? k)
         (try
-          (prn (ui/key-press ui k))
+          (ui/key-press ui k)
           (catch Exception e
             (println e)))))))
 
