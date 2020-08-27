@@ -19,6 +19,7 @@ While these three layers are made to work together, they can also be mixed and m
 #### Experimental platforms
 - Terminal (see [example project](https://github.com/phronmophobic/terminal-todo-mvc))
 - virtual dom
+- java swing
 
 #### Experimental UI framework integrations
 - re-frame (see [example project](https://github.com/phronmophobic/membrane-re-frame-example))
