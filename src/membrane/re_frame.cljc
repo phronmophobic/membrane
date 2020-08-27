@@ -72,7 +72,7 @@
         $args [:$text [(list 'get tid) :text]
                :$font [(list 'get tid) :font]
                :$textarea-state [(list 'get tid) :textarea-state]
-               :$extra [(list 'get tid) :border?]
+               :$extra [(list 'get tid) :extra]
                :$focus [::focus]]]
     (ui/on-bubble
      (fn [effects]
@@ -85,3 +85,44 @@
      (apply basic/textarea (concat args $args)))))
 
 
+
+(def scrollviews (atom {}))
+(def scrollview-dispatch (component/default-handler scrollviews))
+(defn get-scrollview [sid scroll-bounds body]
+  (let [all-data @scrollviews
+        data (get all-data sid)
+        args [:body body
+              :scroll-bounds scroll-bounds
+              :offset (get data :offset [0 0])
+              :mdownx? (get data :mdownx?)
+              :mdowny? (get data :mdowny?)
+              :extra (get data :extra)]
+        $args [:$offset [(list 'get sid) :offset (list 'nil->val [0 0])]
+               :$mdownx? [(list 'get sid) :mdownx?]
+               :$mdowny? [(list 'get sid) :mdowny?]
+               :$extra [(list 'get sid) :extra]]]
+    (ui/on-bubble
+     (fn [effects]
+       (run! #(apply scrollview-dispatch %) effects)
+       nil)
+     (apply basic/scrollview (concat args $args)))))
+
+
+
+(comment
+  (def lorem-ipsum (clojure.string/join
+                    "\n"
+                    (repeatedly 800
+                                (fn []
+                                  (clojure.string/join
+                                   (repeatedly (rand-int 50)
+                                               #(rand-nth "abcdefghijklmnopqrstuvwxyz ")))))))
+  (defn test-scrollview []
+    [(ui/translate 10 10
+                    (get-scrollview :my-scrollview [300 300]
+                                    (ui/label lorem-ipsum)))])
+
+  (require '[membrane.skia :as skia])
+  (skia/run #(re-frame-app (test-scrollview)))
+
+  )

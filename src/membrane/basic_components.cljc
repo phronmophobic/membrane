@@ -503,82 +503,97 @@
              (if (zero? b)
                b
                (/ a b)))
-        ]
-    (ui/on-scroll
-     (fn [[ox oy]]
-       [[:update $offset-x (fn [old-offset]
-                             (clampx (+ ox offset-x)))]
-        [:update $offset-y (fn [old-offset]
-                             (clampy (+ oy offset-y)))]])
-     (ui/on-mouse-move
-      (fn [[mx my :as mpos]]
+
+        on-mouse-move
         (if mdowny?
-          [[:set $offset-y (clampy (* (div0 (float my) height)
-                                      max-offset-y))]]
+          (fn [body]
+            (ui/on-mouse-move
+             (fn [[mx my]]
+               [[:set $offset-y (clampy (* (div0 (float my) height)
+                                           max-offset-y))]])
+             body))
           (if mdownx?
-            [[:set $offset-x (clampx (* (div0 (float mx) width)
-                                        max-offset-x))]]
-            (ui/mouse-move scroll-elem mpos))))
-      (ui/on-mouse-event
-       (fn [[mx my :as mpos] button mouse-down? mods]
-         (if mouse-down?
-           (let [new-mdownx? (and (> my height)
-                                  (> total-width width))
-                 new-mdowny? (and (> mx width)
-                                  (> total-height height))]
-             (into
-              [[:set $mdownx? new-mdownx?]
-               [:set $mdowny? new-mdowny?]]
-              (if new-mdowny?
-                [[:set $offset-y (clampy (* (div0 (float my) height)
-                                            max-offset-y))]]
-                (if new-mdownx?
-                  [[:set $offset-x (clampx (* (div0 (float mx) width)
-                                              max-offset-x))]]
-                  (ui/mouse-event scroll-elem mpos button mouse-down? mods)))))
-           ;; mouse up
-           (into
-            [[:set $mdownx? false]
-             [:set $mdowny? false]]
-            (ui/mouse-event scroll-elem mpos button mouse-down? mods)))
-         )
-       [
-        scroll-elem
-        (when (> total-height height)
-          (translate width 0
-                     [(filled-rectangle [0.941 0.941 0.941]
-                                        scroll-button-size height)
-                      (let [top (/ offset-y total-height)
-                            bottom (/ (+ offset-y height)
-                                      total-height)]
+            (fn [body]
+              (ui/on-mouse-move
+               (fn [[mx my]]
+                 [[:set $offset-x (clampx (* (div0 (float mx) width)
+                                             max-offset-x))]])
+               body))
+            identity))]
+    (on-mouse-out
+     :hover (get extra [:mdown :hover])
+     :mouse-out
+     (fn []
+       [[:set $mdowny? nil]
+        [:set $mdownx? nil]])
+     :body
+     (ui/on-scroll
+      (fn [[ox oy]]
+        [[:update $offset-x (fn [old-offset]
+                              (clampx (+ ox offset-x)))]
+         [:update $offset-y (fn [old-offset]
+                              (clampy (+ oy offset-y)))]])
+      (on-mouse-move
+       (ui/on-mouse-event
+        (fn [[mx my :as mpos] button mouse-down? mods]
+          (if mouse-down?
+            (let [new-mdownx? (and (> my height)
+                                   (> total-width width))
+                  new-mdowny? (and (> mx width)
+                                   (> total-height height))]
+              (into
+               [[:set $mdownx? new-mdownx?]
+                [:set $mdowny? new-mdowny?]]
+               (if new-mdowny?
+                 [[:set $offset-y (clampy (* (div0 (float my) height)
+                                             max-offset-y))]]
+                 (if new-mdownx?
+                   [[:set $offset-x (clampx (* (div0 (float mx) width)
+                                               max-offset-x))]]
+                   (ui/mouse-event scroll-elem mpos button mouse-down? mods)))))
+            ;; mouse up
+            (into
+             [[:set $mdownx? false]
+              [:set $mdowny? false]]
+             (ui/mouse-event scroll-elem mpos button mouse-down? mods)))
+          )
+        [
+         scroll-elem
+         (when (> total-height height)
+           (translate width 0
+                      [(filled-rectangle [0.941 0.941 0.941]
+                                         scroll-button-size height)
+                       (let [top (/ offset-y total-height)
+                             bottom (/ (+ offset-y height)
+                                       total-height)]
 
-                        (translate 0 (* height top)
-                                   (with-color
-                                    [0.73 0.73 0.73]
-                                    (ui/rounded-rectangle scroll-button-size (* height (- bottom top)) (/ scroll-button-size 2)))
-                                   ))
+                         (translate 0 (* height top)
+                                    (with-color
+                                      [0.73 0.73 0.73]
+                                      (ui/rounded-rectangle scroll-button-size (* height (- bottom top)) (/ scroll-button-size 2)))
+                                    ))
 
-                      (with-color [0.89 0.89 0.89]
-                        (with-style :membrane.ui/style-stroke
-                          (rectangle scroll-button-size height)))]))
-        (when (> total-width width)
-          (translate 0 height
-                     [(filled-rectangle [0.941 0.941 0.941]
-                                        width scroll-button-size)
-                      (let [left (/ offset-x total-width)
-                            right (/ (+ offset-x width)
-                                     total-width)]
-                        (translate (* width left) 0
-                                   (with-color
-                                    [0.73 0.73 0.73]
-                                    (ui/rounded-rectangle (* width (- right left)) scroll-button-size  (/ scroll-button-size 2)))
-                                   )
-                        )
-                      (with-color [0.89 0.89 0.89]
-                        (with-style :membrane.ui/style-stroke
-                          (rectangle width scroll-button-size )))]))
+                       (with-color [0.89 0.89 0.89]
+                         (with-style :membrane.ui/style-stroke
+                           (rectangle scroll-button-size height)))]))
+         (when (> total-width width)
+           (translate 0 height
+                      [(filled-rectangle [0.941 0.941 0.941]
+                                         width scroll-button-size)
+                       (let [left (/ offset-x total-width)
+                             right (/ (+ offset-x width)
+                                      total-width)]
+                         (translate (* width left) 0
+                                    (with-color
+                                      [0.73 0.73 0.73]
+                                      (ui/rounded-rectangle (* width (- right left)) scroll-button-size  (/ scroll-button-size 2)))
+                                    )
+                         )
+                       (with-color [0.89 0.89 0.89]
+                         (with-style :membrane.ui/style-stroke
+                           (rectangle width scroll-button-size )))]))
 
-        ])))))
+         ]))))))
 
 (defui test-scrollview [& {:keys [state]}]
   (scrollview :scroll-bounds [200 200]
