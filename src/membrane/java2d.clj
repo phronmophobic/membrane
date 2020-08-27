@@ -15,7 +15,16 @@
            java.awt.font.FontRenderContext
            java.awt.RenderingHints
            java.awt.GraphicsEnvironment
-           java.awt.Graphics2D))
+           java.awt.Graphics2D
+
+           java.awt.Component
+           java.awt.event.MouseEvent
+           java.awt.event.KeyEvent
+           java.awt.event.MouseListener
+           java.awt.event.MouseMotionListener
+           java.awt.event.KeyListener
+           java.awt.Dimension
+           javax.swing.JFrame))
 
 (def ^:dynamic *g* nil)
 (def ^:dynamic *paint-style* :membrane.ui/style-fill)
@@ -247,40 +256,65 @@
      (draw (:drawable this)))))
 
 
+(def selection-color [0.6980392156862745
+                      0.8431372549019608
+                      1])
+(defn text-selection-draw [font text [selection-start selection-end] selection-color]
+  (let [
 
-#_(defn text-selection-draw [{:keys [text font]
-                            [selection-start selection-end] :selection
-                            :as text-selection}]
-  (let [font-ptr (get-font font)
-        lines (clojure.string/split-lines text)]
+        jfont (get-java-font font)
+        lines (clojure.string/split-lines text)
 
-    (save-canvas
-     (loop [lines (seq lines)
-            selection-start selection-start
-            selection-end selection-end]
-       (if (and lines (>= selection-end 0))
-         (let [line (first lines)
-               line-bytes (.getBytes ^String line "utf-8")
-               line-count (count line)]
-           (when (< selection-start line-count)
-             (.write ^Memory skia-buf 0 line-bytes 0 (alength ^bytes line-bytes))
-             (Skia/skia_render_selection *skia-resource* font-ptr skia-buf (alength line-bytes) (int (max 0 selection-start)) (int (min selection-end
-                                                                                                                                        line-count))))
-           (Skia/skia_next_line *skia-resource* font-ptr)
-           (recur (next lines) (- selection-start line-count 1) (- selection-end line-count 1))))))))
+        frc (get-font-render-context)
+        metrics (.getLineMetrics ^Font jfont text frc)
+        line-height (double (.getHeight metrics))
+        selection-height line-height
 
-#_(extend-type membrane.ui.TextSelection
+        text (str text "8")
+
+        glyphs (.createGlyphVector jfont frc text)]
+    (loop [x 0
+           y 0
+           selection-start selection-start
+           selection-length (- selection-end selection-start)
+           idx 0]
+      (when (pos? selection-length)
+        (let [c (nth text idx)
+              glyph (.getGlyphMetrics glyphs idx)]
+          (let [new-x (if (= c \newline)
+                        0
+                        (+ x (.getAdvanceX glyph)))
+                new-y (if (= c \newline)
+                        (+ y (dec line-height))
+                        y)]
+            (if (<= selection-start 0)
+              (do
+                (let [selection-width (if (= c \newline)
+                                        5
+                                        (- new-x x))]
+                  (draw (ui/translate x (+ y (- line-height
+                                                selection-height))
+                                      (ui/filled-rectangle selection-color
+                                                           selection-width selection-height))))
+                (recur new-x new-y 0 (dec selection-length) (inc idx)))
+              (recur new-x new-y (dec selection-start) selection-length (inc idx)))))))))
+
+(extend-type membrane.ui.TextSelection
   IBounds
   (-bounds [this]
-    (let [[minx miny maxx maxy] (text-bounds (get-font (:font this))
-                                             (:text this))
+    (let [[maxx maxy] (text-bounds (get-java-font (:font this))
+                                   (:text this))
           maxx (max 0 maxx)
           maxy (max 0 maxy)]
       [maxx maxy]))
 
   IDraw
   (draw [this]
-    (text-selection-draw this)))
+    (text-selection-draw
+     (:font this)
+     (:text this)
+     (:selection this)
+     selection-color)))
 
 #_(defn text-cursor-draw [{:keys [text font cursor]
                          :as text-cursor}]
@@ -302,6 +336,17 @@
 
            (recur (next lines) (- cursor line-count 1))))))))
 
+(extend-type membrane.ui.TextCursor
+  IBounds
+  (-bounds [this]
+    (text-bounds (get-java-font (:font this)) (:text this)))
+
+  IDraw
+  (draw [this]
+    (let [cursor (min (count (:text this)) (:cursor this))]
+      (text-selection-draw (:font this) (str (:text this) "8") [cursor (inc cursor)]
+                           [0.9 0.9 0.9]))
+    ))
 #_(extend-type membrane.ui.TextCursor
   IBounds
   (-bounds [this]
@@ -425,6 +470,52 @@
     )
   )
 
+(defn index-for-position-line [frc font text px]
+  (let [max-index (max 0 (dec (.length text)))
+        chs (char-array (inc max-index))]
+    (.getChars text 0 max-index chs 0)
+    (loop [index 0
+           px px]
+      (if (> index max-index)
+        index
+        (let [rect2d (.getStringBounds ^Font font chs index (inc index) frc)
+              width (.getWidth rect2d)
+              new-px (- px width)]
+          (if (neg? new-px)
+            index
+            (recur (inc index)
+                   new-px)))))))
+
+(defn- index-for-position [font text px py]
+  (prn font text px py)
+  (assert (some? text) "can't find index for nil text")
+  (let [frc (get-font-render-context)
+        jfont (get-java-font font)
+        metrics (.getLineMetrics ^Font jfont text frc)
+        line-height (.getHeight metrics)
+
+        line-no (loop [py py
+                       line-no 0]
+                  (if (> py line-height)
+                    (recur (- py line-height)
+                           (inc line-no))
+                    line-no))
+        lines (clojure.string/split-lines text)
+
+
+        ]
+    (if (>= line-no (count lines))
+      (count text)
+      (let [line (nth lines line-no)
+            rect2d (.getStringBounds ^Font jfont line frc)]
+        (apply +
+               line-no
+               (index-for-position-line frc jfont line px)
+               (map count (take line-no lines)))))))
+
+
+(intern (the-ns 'membrane.ui) 'index-for-position index-for-position)
+
 (defn image-size-raw [image-path]
   (try
     (with-open [is (clojure.java.io/input-stream image-path)]
@@ -505,15 +596,256 @@
       ]))
   )
 
+(defn printable? [c]
+  (let [block (java.lang.Character$UnicodeBlock/of \backspace)]
+    (and (not (Character/isISOControl c))
+         (not= KeyEvent/CHAR_UNDEFINED c)
+         (some? block)
+         (not= block java.lang.Character$UnicodeBlock/SPECIALS))))
 
 
-(defn -main [& args]
-  (try
-    (img-test)
-    (println "done!")
-    (catch Exception e
-      (println e)))
-  )
+(defn- -key-typed [window e]
+  (let [c (.getKeyChar e)
+        ui @(:ui window)]
+    (try
+      (prn "key typed: " (.getKeyChar e) (printable? c))
+      (when (printable? c)
+        (ui/key-press ui (str c)))
+      (catch Exception e
+        (println e)))))
+
+(def keycodes
+  {:unknown -1
+   :grave_accent KeyEvent/VK_DEAD_GRAVE
+   :escape KeyEvent/VK_ESCAPE 
+   :enter KeyEvent/VK_ENTER
+   :tab KeyEvent/VK_TAB
+   :backspace KeyEvent/VK_BACK_SPACE
+   :insert KeyEvent/VK_INSERT
+   :delete KeyEvent/VK_DELETE
+   :right KeyEvent/VK_RIGHT
+   :left KeyEvent/VK_LEFT
+   :down KeyEvent/VK_DOWN
+   :up KeyEvent/VK_UP
+   :page_up KeyEvent/VK_PAGE_UP
+   :page_down KeyEvent/VK_PAGE_DOWN
+   :home KeyEvent/VK_HOME
+   :end KeyEvent/VK_END
+   :caps_lock KeyEvent/VK_CAPS_LOCK
+   :scroll_lock KeyEvent/VK_SCROLL_LOCK
+   :num_lock KeyEvent/VK_NUM_LOCK
+   :print_screen KeyEvent/VK_PRINTSCREEN 
+   :pause KeyEvent/VK_PAUSE 
+   :f1 KeyEvent/VK_F1
+   :f2 KeyEvent/VK_F2
+   :f3 KeyEvent/VK_F3
+   :f4 KeyEvent/VK_F4
+   :f5 KeyEvent/VK_F5
+   :f6 KeyEvent/VK_F6
+   :f7 KeyEvent/VK_F7
+   :f8 KeyEvent/VK_F8
+   :f9 KeyEvent/VK_F9
+   :f10 KeyEvent/VK_F10
+   :f11 KeyEvent/VK_F11
+   :f12 KeyEvent/VK_F12
+   :f13 KeyEvent/VK_F13
+   :f14 KeyEvent/VK_F14
+   :f15 KeyEvent/VK_F15
+   :f16 KeyEvent/VK_F16
+   :f17 KeyEvent/VK_F17
+   :f18 KeyEvent/VK_F18
+   :f19 KeyEvent/VK_F19
+   :f20 KeyEvent/VK_F20
+   :f21 KeyEvent/VK_F21
+   :f22 KeyEvent/VK_F22
+   :f23 KeyEvent/VK_F23
+   :f24 KeyEvent/VK_F24
+   :kp_0 KeyEvent/VK_NUMPAD0
+   :kp_1 KeyEvent/VK_NUMPAD1
+   :kp_2 KeyEvent/VK_NUMPAD2
+   :kp_3 KeyEvent/VK_NUMPAD3
+   :kp_4 KeyEvent/VK_NUMPAD4
+   :kp_5 KeyEvent/VK_NUMPAD5
+   :kp_6 KeyEvent/VK_NUMPAD6
+   :kp_7 KeyEvent/VK_NUMPAD7
+   :kp_8 KeyEvent/VK_NUMPAD8
+   :kp_9 KeyEvent/VK_NUMPAD9
+   :kp_decimal KeyEvent/VK_DECIMAL
+   :kp_divide KeyEvent/VK_DIVIDE
+   :kp_multiply KeyEvent/VK_MULTIPLY
+   :kp_subtract KeyEvent/VK_SUBTRACT
+   :kp_add KeyEvent/VK_ADD
+   :kp_equal KeyEvent/VK_EQUALS
+   :left_shift KeyEvent/VK_SHIFT
+   :left_control KeyEvent/VK_CONTROL
+   :left_alt KeyEvent/VK_ALT
+   ;; :left_super 343
+   :right_shift KeyEvent/VK_SHIFT
+   :right_control KeyEvent/VK_CONTROL
+   :right_alt KeyEvent/VK_ALT
+   ;; :right_super 347
+   :menu KeyEvent/VK_CONTEXT_MENU})
+(def keymap (into {} (map (comp vec reverse) keycodes)))
+
+(def key-action-map
+  {1 :press
+   2 :repeat
+   3 :release})
+(defn -key-pressed [window e]
+  (let [action :press
+        ui @(:ui window)
+        mods (.getModifiers e)
+        code (.getKeyCode e)
+        key-char (.getKeyChar e)]
+    (ui/key-event ui key code action mods)
+    (let [k (get keymap code)]
+      (when (keyword? k)
+        (try
+          (prn (ui/key-press ui k))
+          (catch Exception e
+            (println e)))))))
+
+(defn -key-released [window e]
+  (let [action :release
+        ui @(:ui window)
+        mods (.getModifiers e)
+        code (.getKeyCode e)
+        key-char (.getKeyChar e)]
+    (ui/key-event ui key code action mods)))
 
 
 
+(defn -on-mouse-down [window e]
+  (let [x (.getX ^MouseEvent e)
+        y (.getY ^MouseEvent e)
+        button (.getButton e)
+        mouse-down? true]
+    (try
+      (membrane.ui/mouse-event @(:ui window) [x y] button mouse-down? nil)
+      (catch Exception e
+        (throw e)))))
+
+
+(defn -on-mouse-up [window e]
+  (let [x (.getX ^MouseEvent e)
+        y (.getY ^MouseEvent e)
+        button (.getButton e)
+        mouse-down? false]
+    (try
+      (membrane.ui/mouse-event @(:ui window) [x y] button mouse-down? nil)
+      (catch Exception e
+        (throw e)))))
+
+
+(defn -on-mouse-move [window e]
+  (let [
+        x (.getX ^MouseEvent e)
+        y (.getY ^MouseEvent e)
+        pos [x y]
+        ]
+        (try
+          (doall (membrane.ui/mouse-move @(:ui window) pos))
+          (doall (membrane.ui/mouse-move-global @(:ui window) pos))
+
+          (catch Exception e
+            (println e)))))
+
+
+
+(defn make-panel [window]
+  (let [render (:render window)]
+    (proxy
+        [Component]
+        []
+      (getPreferredSize []
+        (let [[w h] (ui/bounds (render))]
+          (Dimension. (int w) (int h))))
+      (paint [g]
+        (binding [*g* g]
+          (let [to-render (swap! (:ui window)
+                                 (fn [_]
+                                   (render)))]
+            (.setColor *g* Color/white)
+            (.fillRect *g* 0 0 (.getWidth this) (.getHeight this))
+            (.setColor *g* Color/black)
+            (draw to-render)))))))
+
+
+
+(defn make-uber-listener [window]
+  (let [panel @(:panel window)]
+    (reify
+
+      KeyListener
+      (keyPressed [this e]
+        (-key-pressed window e)
+        (.repaint panel))
+
+      (keyReleased [this e]
+        (-key-released window e)
+        (.repaint panel))
+
+      (keyTyped [this e]
+        (-key-typed window e)
+        (.repaint panel))
+
+      MouseMotionListener
+      (mouseMoved [this e]
+        (-on-mouse-move window e)
+        (.repaint panel))
+
+      (mouseDragged [this e]
+        (-on-mouse-move window e)
+        (.repaint panel))
+
+      MouseListener
+      (mousePressed [this e]
+        (println e)
+        (-on-mouse-down window e)
+        (.repaint panel)
+        )
+
+      (mouseReleased [this e]
+        (-on-mouse-up window e)
+        (.repaint panel))
+
+      (mouseEntered [this e])
+
+      (mouseExited [this e])
+
+      (mouseClicked [this e]))))
+
+
+(defn run
+  ([make-ui]
+   (run make-ui {}))
+  ([make-ui {:keys [window-start-width
+                    window-start-height
+                    window-start-x
+                    window-start-y] :as options}]
+   (let [window {:window (atom nil)
+                 :panel (atom nil)
+                 :ui (atom nil)
+                 :render make-ui}
+         panel (doto (make-panel window)
+                 (.setFocusable true))
+         _ (reset! (:panel window)
+                   panel)
+         listener (make-uber-listener window)
+         _ (doto panel
+             (.addMouseListener listener)
+             (.addMouseMotionListener listener)
+             (.addKeyListener listener))
+         f (doto (JFrame. "title")
+             (.add panel)
+             (.pack)
+             (.show))])))
+
+(comment
+  (do
+    (require '[membrane.example.todo :as todo]
+             '[membrane.component :as component
+               :refer [defui]]
+             '[membrane.basic-components :as basic])
+
+    (run (component/make-app #'todo/todo-app todo/todo-state))))
