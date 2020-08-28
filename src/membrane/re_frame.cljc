@@ -88,6 +88,13 @@
 
 (def scrollviews (atom {}))
 (def scrollview-dispatch (component/default-handler scrollviews))
+
+(defn set-scroll-offset! [sid [sx sy :as offset]]
+  (swap! scrollviews assoc-in [sid :offset] offset))
+
+(defn scroll-to-top! [sid]
+  (set-scroll-offset! sid [0 0]))
+
 (defn get-scrollview [sid scroll-bounds body]
   (let [all-data @scrollviews
         data (get all-data sid)
@@ -107,7 +114,10 @@
        nil)
      (apply basic/scrollview (concat args $args)))))
 
-
+(defn fix-scroll [elem]
+  (ui/on-scroll (fn [[sx sy]]
+                  (ui/scroll elem [(- sx) (- sy)]))
+                elem))
 
 (comment
   (def lorem-ipsum (clojure.string/join
@@ -119,8 +129,9 @@
                                                #(rand-nth "abcdefghijklmnopqrstuvwxyz ")))))))
   (defn test-scrollview []
     [(ui/translate 10 10
+                   (fix-scroll
                     (get-scrollview :my-scrollview [300 300]
-                                    (ui/label lorem-ipsum)))])
+                                    (ui/label lorem-ipsum))))])
 
   (require '[membrane.skia :as skia])
   (skia/run #(re-frame-app (test-scrollview)))
