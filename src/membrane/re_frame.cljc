@@ -11,8 +11,8 @@
 
 (defn re-frame-app [root]
   (membrane.ui/on-scroll
-   (fn [offset]
-     (let [steps (membrane.ui/scroll root offset)]
+   (fn [offset mpos]
+     (let [steps (membrane.ui/scroll root offset mpos)]
        (run! dispatch-sync steps)))
    (membrane.ui/on-mouse-move-global
     (fn [pos]

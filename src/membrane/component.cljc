@@ -865,8 +865,8 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
                    :$context $context
                    args)]
     (membrane.ui/on-scroll
-     (fn [offset]
-       (let [steps (membrane.ui/scroll main-view offset)]
+     (fn [offset mpos]
+       (let [steps (membrane.ui/scroll main-view offset mpos)]
          (run! #(apply handler %) steps)))
      (membrane.ui/on-mouse-move-global
       (fn [pos]

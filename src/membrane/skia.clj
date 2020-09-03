@@ -1082,7 +1082,7 @@
 (defn- -scroll-callback [window window-handle offset-x offset-y]
   ;; a 2x multiplier felt better. I think it might have something to do with
   ;; retina display, but it's probably some other dumb thing
-  (ui/scroll @(:ui window) [(* 2 offset-x) (* 2 offset-y)])
+  (ui/scroll @(:ui window) [(* 2 offset-x) (* 2 offset-y)] @(:mouse-position window))
 
   (repaint! window))
 

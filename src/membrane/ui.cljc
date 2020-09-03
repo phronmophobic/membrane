@@ -31,7 +31,7 @@
 (defprotocol IMouseMoveGlobal (-mouse-move-global [this info]))
 (defprotocol IMouseEvent (-mouse-event [this pos button mouse-down? mods]))
 (defprotocol IDrop (-drop [this paths pos]))
-(defprotocol IScroll (-scroll [this info]))
+(defprotocol IScroll (-scroll [this info mpos]))
 (defprotocol IMouseUp (-mouse-up [this info]))
 (defprotocol IMouseWheel (-mouse-wheel [this info]))
 (defprotocol IKeyPress (-key-press [this info]))
@@ -111,6 +111,8 @@
   IMouseEvent
   (-mouse-event [elem local-pos button mouse-down? mods]
     nil)
+  IScroll
+  (-scroll [elem offset local-pos])
   IDrop
   (-drop [elem paths local-pos]
     nil))
@@ -191,6 +193,15 @@
   IMouseUp
   (-mouse-up [elem mpos]
     nil)
+
+  IScroll
+  (-scroll [elem offset local-pos]
+    (let [steps
+          ;; use seq to make sure we don't stop for empty sequences
+          (some #(when-let [local-pos (within-bounds? % local-pos)]
+                   (seq (-scroll % offset local-pos)))
+                (reverse (children elem)))]
+      (-bubble elem steps)))
 
   IDrop
   (-drop [elem paths local-pos]
@@ -433,6 +444,10 @@
   (when-let [local-pos (within-bounds? elem pos)]
     (-drop elem paths local-pos)))
 
+(defn scroll [elem offset pos]
+  (when-let [local-pos (within-bounds? elem pos)]
+    (-scroll elem offset local-pos)))
+
 
 (defmacro make-event-handler [protocol-name protocol protocol-fn]
   `(fn handler# [elem# & args#]
@@ -471,11 +486,6 @@
   ^{:arglists '([elem s]),
     :doc "Returns the effects of a clipboard paste event on elem."}
   clipboard-paste (make-event-handler "IClipboardPaste" IClipboardPaste -clipboard-paste))
-(def
-  ^{:arglists '([elem [offset-x offset-y :as offset]]),
-    :doc "Returns the effects of a scroll event on elem."}
-  scroll (make-event-handler "IScroll" IScroll -scroll))
-
 
 (defrecord Label [text font]
     IOrigin
@@ -1719,9 +1729,9 @@
      drawables))
 
   IScroll
-  (-scroll [this [offset-x offset-y :as offset]]
+  (-scroll [this [offset-x offset-y :as offset] mpos]
     (when on-scroll
-      (on-scroll offset)))
+      (on-scroll offset mpos)))
 
   IChildren
   (-children [this]
@@ -1876,6 +1886,10 @@
                  :drop
                  (on-drop handler
                           body)
+
+                 :scroll
+                 (on-scroll handler
+                            body)
 
                  :key-event
                  (on-key-event handler
@@ -2032,7 +2046,7 @@
     IMouseWheel
     (-mouse-wheel [this pos] nil)
     IScroll
-    (-scroll [this pos] nil))
+    (-scroll [this pos mpos] nil))
 
 (swap! default-draw-impls
        assoc NoEvents

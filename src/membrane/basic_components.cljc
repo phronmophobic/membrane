@@ -528,7 +528,7 @@
         [:set $mdownx? nil]])
      :body
      (ui/on-scroll
-      (fn [[ox oy]]
+      (fn [[ox oy] _]
         [[:update $offset-x (fn [old-offset]
                               (clampx (+ ox offset-x)))]
          [:update $offset-y (fn [old-offset]
