@@ -41,17 +41,13 @@ Support for Windows and other platforms is coming soon!
 Leiningen dependency:
 
 ```
-[com.phronemophobic/membrane "0.9.8-beta"]
+[com.phronemophobic/membrane  "0.9.14-beta"]
 ```
 
 deps.edn dependency:
 
 ```
-{:deps
- {
-  com.phronemophobic/membrane {:mvn/version "0.9.8-beta"}
-  }
-}
+com.phronemophobic/membrane {:mvn/version "0.9.14-beta"}
 ```
 ## Examples
 
@@ -67,6 +63,7 @@ Screenshot:
              :refer [horizontal-layout
                      button
                      label
+                     spacer
                      on]]))
 
 (defonce counter-state (atom 0))
@@ -104,7 +101,7 @@ Screenshot:
                      label
                      on]]
             [membrane.component :as component
-             :refer [defui run-ui run-ui-sync defeffect]])
+             :refer [defui make-app defeffect]])
   (:gen-class))
 
 
@@ -123,7 +120,7 @@ Screenshot:
 (comment
   ;; pop up a window showing our counter with
   ;; num initially set to 10
-  (run-ui #'counter {:num 10}))
+  (skia/run (make-app #'counter {:num 10})))
 ```
 
 Here's an example of how you can use your `counter` component.
@@ -155,7 +152,7 @@ Screenshot:
 (comment
   ;; pop up a window showing our counter-counter
   ;; with nums initially set to [0 1 2]
-  (run-ui #'counter-counter {:nums [0 1 2]}))
+  (skia/run (make-app #'counter-counter {:nums [0 1 2]})))
 
 ```
 
@@ -165,9 +162,9 @@ Screenshot:
 ```
 ;; graphical elements are values
 ;; no need to attach elements to the dom to get layout info
-(bounds (vertical-layout
-         (ui/label "hello")
-         (ui/checkbox true)))
+(ui/bounds (vertical-layout
+           (ui/label "hello")
+           (ui/checkbox true)))
 >> [30.867887496948242 29.489776611328125]
 
 
@@ -187,7 +184,7 @@ Screenshot:
 (skia/run #(let [rect (ui/with-style :membrane.ui/style-stroke
                         (ui/rectangle 200 200))]
              [rect
-              (ui/center (ui/label "hello") (bounds rect))]) )
+              (ui/center (ui/label "hello") (ui/bounds rect))]) )
 
 
 ;; save graphical elem as an image
