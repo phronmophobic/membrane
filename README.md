@@ -33,6 +33,8 @@ Support for Windows and other platforms is coming soon!
 [Examples](https://github.com/phronmophobic/membrane/tree/master/src/membrane/example)  
 [Distributing your desktop app](/docs/distribution.md)  
 [Targeting WebGL](/docs/webgl.md)  
+Questions? Comments? Connect with us on clojurians slack in [#membrame](https://clojurians.slack.com/archives/CVB8K7V50)
+
 <!-- Guides   -->
 <!-- Design Philosophy   -->
 <!-- FAQ   -->
@@ -221,6 +223,7 @@ That's it! For more in-depth info, check out the [tutorial](/docs/tutorial.md).
 [Examples](https://github.com/phronmophobic/membrane/tree/master/src/membrane/example)  
 [Distributing your desktop app](/docs/distribution.md)  
 [Targeting WebGL](/docs/webgl.md)  
+Questions? Comments? Connect with us on clojurians slack in [#membrame](https://clojurians.slack.com/archives/CVB8K7V50)
 <!-- Guides   -->
 <!-- Design Philosophy   -->
 <!-- FAQ   -->
