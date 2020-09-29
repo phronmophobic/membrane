@@ -268,7 +268,7 @@
                                   (:size ui/default-font))
                               "px "
                               (or (:name font)
-                                  (:name ui/default-font)))))
+                                    "Ubuntu"))))
                  (doseq [line lines]
                    (.translate *ctx* 0 (dec line-height))
                    (case *paint-style*
@@ -592,7 +592,8 @@
                          (str weight " "))
                        (:size ui/default-font) "px"
                        " "
-                       (:name ui/default-font)
+                       "Ubuntu"
+                       ;;(:name ui/default-font)
                        ))
            (.then (fn []
                     (redraw canvas))))))
