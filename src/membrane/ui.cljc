@@ -1379,7 +1379,7 @@
 (defn on-drop
   "Wraps drawables and adds an event handler for drop events.
 
-  on-drop-event should take 4 arguments [pos button drop-down? mods] and return a sequence of effects."
+  on-drop should take 2 arguments [paths pos] and return a sequence of effects."
   [on-drop & drawables]
   (OnDrop. on-drop drawables))
 
