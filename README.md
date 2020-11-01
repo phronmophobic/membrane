@@ -10,6 +10,9 @@ Membrane provides three layers:
 
 While these three layers are made to work together, they can also be mixed and matched with other implementations. For example, you could use [your favorite UI framework](https://github.com/phronmophobic/membrane-re-frame-example) and the other layers to reach another platform. Alternatively, you could provide your own ncurses graphics backend and leverage the ui framework and graphics model.
 
+For membrane to run on a platform, the only requirements are 
+1) Drawing implementations for graphical primitives like drawing rectangles, text, and images
+2) An event loop that forwards events like mouse clicks and key presses to membrane and repaints
 
 #### Supported platforms:
 - Mac OSX
@@ -38,6 +41,25 @@ Questions? Comments? Connect with us on clojurians slack in [#membrane](https://
 <!-- Guides   -->
 <!-- Design Philosophy   -->
 <!-- FAQ   -->
+
+## Rationale
+
+Membrane was written because I wanted to build a desktop app with clojure, but I wanted all the cool functional features found in libraries targeting the browser, ie. react, reagent, re-frame, fulcro, etc.
+
+Membrane does not build on top of any existing ui toolkits like Swing, JavaFX, HTML, UIKit, GTK, etc. These toolkits are fundamentally based on an object oriented model and have a deep impedance mismatch with idiomatic clojure code.
+
+As much as possible, the development of the library was meant to follow clojure's principles
+* Use the simplest construct that does the job
+* Data first
+* Pure functions that work with the data
+* Side effects and process at the edges
+
+By applying clojure's principles, several "extras" were obtained for free
+* platform agnostic
+* flexible
+* great for tooling
+
+
 
 ## Usage
 Leiningen dependency:
