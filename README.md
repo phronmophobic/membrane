@@ -11,8 +11,8 @@ Membrane provides three layers:
 While these three layers are made to work together, they can also be mixed and matched with other implementations. For example, you could use [your favorite UI framework](https://github.com/phronmophobic/membrane-re-frame-example) and the other layers to reach another platform. Alternatively, you could provide your own ncurses graphics backend and leverage the ui framework and graphics model.
 
 For membrane to run on a platform, the only requirements are 
-1) Drawing implementations for graphical primitives like drawing rectangles, text, and images
-2) An event loop that forwards events like mouse clicks and key presses to membrane and repaints
+1) Drawing implementations for graphical primitives like rectangles, text, and images
+2) An event loop that forwards events (eg. mouse clicks, key presses) to membrane and repaints
 
 #### Supported platforms:
 - Mac OSX
