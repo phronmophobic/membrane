@@ -65,13 +65,13 @@ By applying clojure's principles, several "extras" were obtained for free
 Leiningen dependency:
 
 ```
-[com.phronemophobic/membrane  "0.9.14-beta"]
+[com.phronemophobic/membrane  "0.9.15-beta"]
 ```
 
 deps.edn dependency:
 
 ```
-com.phronemophobic/membrane {:mvn/version "0.9.14-beta"}
+com.phronemophobic/membrane {:mvn/version "0.9.15-beta"}
 ```
 ## Examples
 
