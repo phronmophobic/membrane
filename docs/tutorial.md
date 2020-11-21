@@ -644,8 +644,7 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
 
 Every component can be run on its own. The goal is to build complex components and applications out of simpler components.
 
-To run a component, simply call your implementation's `run` function with `(component/make-app #'component-var initial-state)`
-
+To run a component, simply call the backend's (eg. skia) `run` function with `(component/make-app #'component-var initial-state)`
 
 
 ### File Selector example
