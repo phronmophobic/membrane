@@ -27,12 +27,10 @@
 
 
 (defprotocol IMouseMove (-mouse-move [this info]))
-(defprotocol IMouseDown (-mouse-down [this info]))
 (defprotocol IMouseMoveGlobal (-mouse-move-global [this info]))
 (defprotocol IMouseEvent (-mouse-event [this pos button mouse-down? mods]))
 (defprotocol IDrop (-drop [this paths pos]))
 (defprotocol IScroll (-scroll [this info mpos]))
-(defprotocol IMouseUp (-mouse-up [this info]))
 (defprotocol IMouseWheel (-mouse-wheel [this info]))
 (defprotocol IKeyPress (-key-press [this info]))
 (defprotocol IKeyType (-key-type [this info]))
@@ -102,12 +100,6 @@
   IHasMouseMoveGlobal
   (has-mouse-move-global [this]
     false)
-  IMouseDown
-  (-mouse-down [elem mpos]
-    nil)
-  IMouseUp
-  (-mouse-up [elem mpos]
-    nil)
   IMouseEvent
   (-mouse-event [elem local-pos button mouse-down? mods]
     nil)
@@ -174,25 +166,12 @@
 
   IMouseEvent
   (-mouse-event [elem local-pos button mouse-down? mods]
-    (if-let [steps (seq
-                    (if mouse-down?
-                      (-mouse-down elem local-pos)
-                      (-mouse-up elem local-pos)))]
-      steps
-      (let [steps
+    (let [steps
             ;; use seq to make sure we don't stop for empty sequences
             (some #(when-let [local-pos (within-bounds? % local-pos)]
                      (seq (-mouse-event % local-pos button mouse-down? mods)))
                   (reverse (children elem)))]
-        (-bubble elem steps))))
-
-  IMouseDown
-  (-mouse-down [elem mpos]
-    nil)
-
-  IMouseUp
-  (-mouse-up [elem mpos]
-    nil)
+      (-bubble elem steps)))
 
   IScroll
   (-scroll [elem offset local-pos]
@@ -1082,10 +1061,10 @@
               btn-width (+ text-width padding)
               btn-height (+ text-height padding)]
           [btn-width btn-height]))
-  IMouseDown
-  (-mouse-down [this [mx my]]
-      (when on-click
-        (on-click))))
+  IMouseEvent
+  (-mouse-event [this pos button mouse-down? mods]
+    (when (and mouse-down? on-click)
+      (on-click))))
 
 (swap! default-draw-impls
        assoc Button
@@ -1123,10 +1102,10 @@
   (-children [this]
     drawables)
 
-  IMouseDown
-  (-mouse-down [this [mx my]]
-      (when on-click
-        (on-click))))
+  IMouseEvent
+  (-mouse-event [this pos button mouse-down? mods]
+    (when (and mouse-down? on-click)
+      (on-click))))
 
 (swap! default-draw-impls
        assoc OnClick
@@ -1164,10 +1143,17 @@
   (-children [this]
     drawables)
 
-  IMouseDown
-  (-mouse-down [this [mx my :as pos]]
+  IMouseEvent
+  (-mouse-event [this pos button mouse-down? mods]
+    (if mouse-down?
       (when on-mouse-down
-        (on-mouse-down pos))))
+        (on-mouse-down pos))
+      (let [steps
+            ;; use seq to make sure we don't stop for empty sequences
+            (some #(when-let [local-pos (within-bounds? % pos)]
+                     (seq (-mouse-event % local-pos button mouse-down? mods)))
+                  (reverse (children this)))]
+        (-bubble this steps)))))
 
 (swap! default-draw-impls
        assoc OnMouseDown
@@ -1203,10 +1189,17 @@
   (-children [this]
     drawables)
 
-  IMouseUp
-  (-mouse-up [this [mx my :as pos]]
+  IMouseEvent
+  (-mouse-event [this pos button mouse-down? mods]
+    (if mouse-down?
+      (let [steps
+            ;; use seq to make sure we don't stop for empty sequences
+            (some #(when-let [local-pos (within-bounds? % pos)]
+                     (seq (-mouse-event % local-pos button mouse-down? mods)))
+                  (reverse (children this)))]
+        (-bubble this steps))
       (when on-mouse-up
-        (on-mouse-up pos))))
+        (on-mouse-up pos)))))
 
 (swap! default-draw-impls
        assoc OnMouseUp
@@ -2042,14 +2035,10 @@
     (-key-press [this key] nil)
     IKeyType
     (-key-type [this key] nil)
-    IMouseDown
-    (-mouse-down [this pos] nil)
     IMouseMove
     (-mouse-move [this pos] nil)
     IMouseMoveGlobal
     (-mouse-move-global [this pos] nil)
-    IMouseUp
-    (-mouse-up [this pos] nil)
     IMouseWheel
     (-mouse-wheel [this pos] nil)
     IScroll
