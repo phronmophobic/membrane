@@ -124,9 +124,7 @@
                   []
                   (for [child (children elem)]
                     (-mouse-move-global child child-offset)))]
-      (if (satisfies? IBubble elem)
-        (-bubble elem steps)
-        steps))))
+      (-bubble elem steps))))
 
 
 (declare bounds)
@@ -384,26 +382,7 @@
 (defn mouse-move-global
   "Returns the effects of a mouse move event on elem. Will -mouse-move-global for all elements and their children."
   ([elem global-pos]
-   (mouse-move-global elem global-pos [0 0]))
-  ([elem global-pos offset]
-   (let [[x y] global-pos
-         [sx sy] offset
-         [ox oy] (origin elem)]
-     (if (satisfies? IMouseMoveGlobal elem)
-       (let [local-x (- x (+ sx ox))
-             local-y (- y (+ sy oy))]
-        (-mouse-move-global elem [local-x local-y]))
-       ;; else
-       (let [child-offset [(+ ox sx)
-                           (+ oy sy)]]
-         (let [steps
-               (reduce into
-                       []
-                       (for [child (children elem)]
-                         (mouse-move-global child global-pos child-offset)))]
-           (if (satisfies? IBubble elem)
-             (-bubble elem steps)
-             steps)))))))
+   (-mouse-move-global elem global-pos)))
 
 (defn mouse-event [elem pos button mouse-down? mods]
   (when-let [local-pos (within-bounds? elem pos)]
