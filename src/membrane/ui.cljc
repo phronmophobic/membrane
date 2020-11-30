@@ -165,10 +165,10 @@
   IMouseEvent
   (-mouse-event [elem local-pos button mouse-down? mods]
     (let [steps
-            ;; use seq to make sure we don't stop for empty sequences
-            (some #(when-let [local-pos (within-bounds? % local-pos)]
-                     (seq (-mouse-event % local-pos button mouse-down? mods)))
-                  (reverse (children elem)))]
+          ;; use seq to make sure we don't stop for empty sequences
+          (some #(when-let [local-pos (within-bounds? % local-pos)]
+                   (seq (-mouse-event % local-pos button mouse-down? mods)))
+                (reverse (children elem)))]
       (-bubble elem steps)))
 
   IScroll
