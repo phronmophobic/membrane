@@ -1050,17 +1050,18 @@
                 (label text))]))
 
 (defrecord Button [text on-click hover?]
-    IOrigin
-    (-origin [_]
-        [0 0])
+  IOrigin
+  (-origin [_]
+    [0 0])
 
-    IBounds
-    (-bounds [_]
-        (let [[text-width text-height] (bounds (label text))
-              padding 12
-              btn-width (+ text-width padding)
-              btn-height (+ text-height padding)]
-          [btn-width btn-height]))
+  IBounds
+  (-bounds [_]
+    (let [[text-width text-height] (bounds (label text))
+          padding 12
+          btn-width (+ text-width padding)
+          btn-height (+ text-height padding)]
+      [btn-width btn-height]))
+
   IMouseEvent
   (-mouse-event [this pos button mouse-down? mods]
     (when (and mouse-down? on-click)
