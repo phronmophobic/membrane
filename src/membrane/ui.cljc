@@ -1882,6 +1882,9 @@
                                      body)
                  :mouse-move
                  (on-mouse-move handler
+
+                 :mouse-move-global
+                 (on-mouse-move-global handler
                                        body)
 
                  :clipboard-copy
