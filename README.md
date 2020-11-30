@@ -10,6 +10,9 @@ Membrane provides three layers:
 
 While these three layers are made to work together, they can also be mixed and matched with other implementations. For example, you could use [your favorite UI framework](https://github.com/phronmophobic/membrane-re-frame-example) and the other layers to reach another platform. Alternatively, you could provide your own ncurses graphics backend and leverage the ui framework and graphics model.
 
+For membrane to run on a platform, the only requirements are 
+1) Drawing implementations for graphical primitives like rectangles, text, and images
+2) An event loop that forwards events (eg. mouse clicks, key presses) to membrane and repaints
 
 #### Supported platforms:
 - Mac OSX
@@ -33,23 +36,42 @@ Support for Windows and other platforms is coming soon!
 [Examples](https://github.com/phronmophobic/membrane/tree/master/src/membrane/example)  
 [Distributing your desktop app](/docs/distribution.md)  
 [Targeting WebGL](/docs/webgl.md)  
-Questions? Comments? Connect with us on clojurians slack in [#membrame](https://clojurians.slack.com/archives/CVB8K7V50)
+Questions? Comments? Connect with us on clojurians slack in [#membrane](https://clojurians.slack.com/archives/CVB8K7V50)
 
 <!-- Guides   -->
 <!-- Design Philosophy   -->
 <!-- FAQ   -->
 
+## Rationale
+
+Membrane was written because I wanted to build a desktop app with clojure, but I wanted all the cool functional features found in libraries targeting the browser, ie. react, reagent, re-frame, fulcro, etc.
+
+Membrane does not build on top of any existing ui toolkits like Swing, JavaFX, HTML, UIKit, GTK, etc. These toolkits are fundamentally based on an object oriented model and have a deep impedance mismatch with idiomatic clojure code.
+
+As much as possible, the development of the library was meant to follow clojure's principles
+* Use the simplest construct that does the job
+* Data first
+* Pure functions that work with the data
+* Side effects and process at the edges
+
+By applying clojure's principles, several "extras" were obtained for free
+* platform agnostic
+* flexible
+* great for tooling
+
+
+
 ## Usage
 Leiningen dependency:
 
 ```
-[com.phronemophobic/membrane  "0.9.14-beta"]
+[com.phronemophobic/membrane  "0.9.15-beta"]
 ```
 
 deps.edn dependency:
 
 ```
-com.phronemophobic/membrane {:mvn/version "0.9.14-beta"}
+com.phronemophobic/membrane {:mvn/version "0.9.15-beta"}
 ```
 ## Examples
 
@@ -223,7 +245,7 @@ That's it! For more in-depth info, check out the [tutorial](/docs/tutorial.md).
 [Examples](https://github.com/phronmophobic/membrane/tree/master/src/membrane/example)  
 [Distributing your desktop app](/docs/distribution.md)  
 [Targeting WebGL](/docs/webgl.md)  
-Questions? Comments? Connect with us on clojurians slack in [#membrame](https://clojurians.slack.com/archives/CVB8K7V50)
+Questions? Comments? Connect with us on clojurians slack in [#membrane](https://clojurians.slack.com/archives/CVB8K7V50)
 <!-- Guides   -->
 <!-- Design Philosophy   -->
 <!-- FAQ   -->
