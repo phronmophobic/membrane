@@ -327,7 +327,7 @@ Here are few illustrative examples:
                        (fn []
                          [[:self-destruct!]])))]
      (ui/mouse-down elem [20 20]))
->>> ()
+>>> nil
 ```
 -->
 #### Ignore all events from a child element
