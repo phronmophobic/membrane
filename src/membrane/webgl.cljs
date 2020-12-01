@@ -584,7 +584,7 @@
 
 
 (defn run [make-ui options]
-  (let [canvas (webgl-canvas (:canvas options) make-ui)]
+  (let [canvas (webgl-canvas (:container options) make-ui)]
     (on-freetype-loaded
      (fn [_]
        (-> (.-fonts js/document)

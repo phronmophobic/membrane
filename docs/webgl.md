@@ -20,7 +20,7 @@ Below are a few tips for setting up your project when targeting opengl.
 
 ;; Must be an <canvas/> element
 (def canvas (.getElementById js/document "canvas"))
-(defonce start-app (membrane.webgl/run #(ui/label "Hello World") {:canvas canvas}))
+(defonce start-app (membrane.webgl/run #(ui/label "Hello World") {:container canvas}))
 ```
 
 To receive key events, your canvas needs to have a "tabindex" attribute set to zero or greater (https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/tabindex). If you don't know what value to set it to, then set it to zero. 
@@ -30,7 +30,7 @@ You can also create your canvas in clojurescript and add it to the page. Creatin
 ```
 (let [canvas (webgl/create-canvas 300 400)]
   (.appendChild (.-body js/document) canvas)
-  (defonce start-app (membrane.webgl/run #(ui/label "Hello World") {:canvas canvas})))
+  (defonce start-app (membrane.webgl/run #(ui/label "Hello World") {:container canvas})))
 ```
 
 ## Images
@@ -53,5 +53,5 @@ Components can still be run using `membrane.component/run-ui`.
 
 For example:
 ```
-(defonce start-todo-app (membrane.component/run-ui #'todo/todo-app todo/todo-state nil {:canvas canvas}))
+(defonce start-todo-app (membrane.component/run-ui #'todo/todo-app todo/todo-state nil {:container canvas}))
 ```

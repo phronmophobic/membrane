@@ -1524,9 +1524,9 @@
                    ge (best-gen obj)]
 
                (def canvas (.getElementById js/document "canvas"))
-               (defonce start-auto-app (membrane.component/run-ui  #'gen-editor-editor {:ge ge :obj obj} nil {:canvas canvas}))
+               #_(defonce start-auto-app (membrane.component/run-ui  #'gen-editor-editor {:ge ge :obj obj} nil {:container canvas}))
 
-               #_(defonce start-auto-app (membrane.component/run-ui #'gen-editor-editor {:ge ge :obj obj} nil {:root (js/document.getElementById "app")})))
+               #_(defonce start-auto-app (membrane.component/run-ui #'gen-editor-editor {:ge ge :obj obj} nil {:container (js/document.getElementById "app")})))
 
 
              (def background-eval-context (atom {}))

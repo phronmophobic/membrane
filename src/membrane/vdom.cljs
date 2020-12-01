@@ -786,7 +786,7 @@
                      (:name ui/default-font)
                      ))
          (.then (fn []
-                  (let [root (app-root (:root options) make-ui)
+                  (let [root (app-root (:container options) make-ui)
                         root-style (.-style (:elem root))]
                     (set! (.-position root-style) "relative")
                     
@@ -955,7 +955,7 @@
 #_(defonce start-todo-app
   (run
     (membrane.component/make-app #'todo/todo-app todo/todo-state)
-    {:root (js/document.getElementById "app")}))
+    {:container (js/document.getElementById "app")}))
 
 (def state (atom {}))
 
