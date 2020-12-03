@@ -195,11 +195,11 @@
                k k
                path []]
           (if-let [[new-deps get-path] (get deps k)]
-            (let [[new-k step] @get-path]
+            (let [[new-k intent] @get-path]
               (recur new-deps
                      new-k
-                     (if (some? step)
-                       (conj path step)
+                     (if (some? intent)
+                       (conj path intent)
                        path)))
             (vec (reverse (if k
                             (conj path `(list (quote ~'keypath) (quote ~k)))
@@ -866,50 +866,50 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
                    args)]
     (membrane.ui/on-scroll
      (fn [offset mpos]
-       (let [steps (membrane.ui/scroll main-view offset mpos)]
-         (run! #(apply handler %) steps)))
+       (let [intents (membrane.ui/scroll main-view offset mpos)]
+         (run! #(apply handler %) intents)))
      (membrane.ui/on-mouse-move-global
       (fn [pos]
-        (let [steps (membrane.ui/mouse-move-global main-view pos)]
-          (run! #(apply handler %) steps)))
+        (let [intents (membrane.ui/mouse-move-global main-view pos)]
+          (run! #(apply handler %) intents)))
       (membrane.ui/on-mouse-move
        (fn [pos]
-         (let [steps (membrane.ui/mouse-move main-view pos)]
-           (run! #(apply handler %) steps)))
+         (let [intents (membrane.ui/mouse-move main-view pos)]
+           (run! #(apply handler %) intents)))
        (membrane.ui/on-mouse-event
         (fn [pos button mouse-down? mods]
-          (let [steps (membrane.ui/mouse-event main-view pos button mouse-down? mods)]
-            (if (seq steps)
-              (run! #(apply handler %) steps)
+          (let [intents (membrane.ui/mouse-event main-view pos button mouse-down? mods)]
+            (if (seq intents)
+              (run! #(apply handler %) intents)
               (when mouse-down?
                 (handler :set [$context :focus] nil)
                 nil))))
         (ui/on-key-press
          (fn [s]
-           (let [steps (membrane.ui/key-press main-view s)]
-             (run! #(apply handler %) steps))
+           (let [intents (membrane.ui/key-press main-view s)]
+             (run! #(apply handler %) intents))
            )
          (membrane.ui/on-key-event
           (fn [key scancode action mods]
-            (let [steps (membrane.ui/key-event main-view key scancode action mods)]
-              (run! #(apply handler %) steps))
+            (let [intents (membrane.ui/key-event main-view key scancode action mods)]
+              (run! #(apply handler %) intents))
             )
           (membrane.ui/on-clipboard-cut
            (fn []
-             (let [steps (membrane.ui/clipboard-cut main-view)]
-               (run! #(apply handler %) steps)))
+             (let [intents (membrane.ui/clipboard-cut main-view)]
+               (run! #(apply handler %) intents)))
            (membrane.ui/on-clipboard-copy
             (fn []
-              (let [steps (membrane.ui/clipboard-copy main-view)]
-                (run! #(apply handler %) steps)))
+              (let [intents (membrane.ui/clipboard-copy main-view)]
+                (run! #(apply handler %) intents)))
             (membrane.ui/on-clipboard-paste
              (fn [s]
-               (let [steps (membrane.ui/clipboard-paste main-view s)]
-                 (run! #(apply handler %) steps)))
+               (let [intents (membrane.ui/clipboard-paste main-view s)]
+                 (run! #(apply handler %) intents)))
              (membrane.ui/on-drop
               (fn [paths pos]
-                (let [steps (membrane.ui/drop main-view paths pos)]
-                  (run! #(apply handler %) steps)))
+                (let [intents (membrane.ui/drop main-view paths pos)]
+                  (run! #(apply handler %) intents)))
               main-view))))))))))))
 
 

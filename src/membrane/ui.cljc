@@ -119,12 +119,12 @@
         [sx sy] offset
         child-offset [(- sx ox)
                       (- sy oy)]]
-    (let [steps
+    (let [intents
           (reduce into
                   []
                   (for [child (children elem)]
                     (-mouse-move-global child child-offset)))]
-      (-bubble elem steps))))
+      (-bubble elem intents))))
 
 
 (declare bounds)
@@ -159,49 +159,49 @@
     (-default-mouse-move-global this offset))
 
   IBubble
-  (-bubble [this steps]
-    steps)
+  (-bubble [this intents]
+    intents)
 
   IMouseEvent
   (-mouse-event [elem local-pos button mouse-down? mods]
-    (let [steps
+    (let [intents
           ;; use seq to make sure we don't stop for empty sequences
           (some #(when-let [local-pos (within-bounds? % local-pos)]
                    (seq (-mouse-event % local-pos button mouse-down? mods)))
                 (reverse (children elem)))]
-      (-bubble elem steps)))
+      (-bubble elem intents)))
 
   IScroll
   (-scroll [elem offset local-pos]
-    (let [steps
+    (let [intents
           ;; use seq to make sure we don't stop for empty sequences
           (some #(when-let [local-pos (within-bounds? % local-pos)]
                    (seq (-scroll % offset local-pos)))
                 (reverse (children elem)))]
-      (-bubble elem steps)))
+      (-bubble elem intents)))
 
   IDrop
   (-drop [elem paths local-pos]
-    (let [steps
+    (let [intents
           ;; use seq to make sure we don't stop for empty sequences
           (some #(when-let [local-pos (within-bounds? % local-pos)]
                    (seq (-drop % paths local-pos)))
                 (reverse (children elem)))]
-      (-bubble elem steps)))
+      (-bubble elem intents)))
 
   IKeyPress
   (-key-press [this info]
-    (let [steps (mapcat #(-key-press % info) (children this))]
+    (let [intents (mapcat #(-key-press % info) (children this))]
       (if (satisfies? IBubble this)
-        (-bubble this steps)
-        steps)))
+        (-bubble this intents)
+        intents)))
 
   IKeyEvent
   (-key-event [this key scancode action mods]
-    (let [steps (mapcat #(-key-event % key scancode action mods) (children this))]
+    (let [intents (mapcat #(-key-event % key scancode action mods) (children this))]
       (if (satisfies? IBubble this)
-        (-bubble this steps)
-        steps))))
+        (-bubble this intents)
+        intents))))
 
 
 
@@ -355,14 +355,14 @@
         ;; else
         (let [child-offset [(+ ox sx)
                             (+ oy sy)]]
-          (let [steps 
+          (let [intents
                 (reduce into
                         []
                         (for [child (children elem)]
                           (mouse-move child global-pos child-offset)))]
             (if (satisfies? IBubble elem)
-              (-bubble elem steps)
-              steps))))))))
+              (-bubble elem intents)
+              intents))))))))
 
 ;; TODO: make-mouse-move global work when the top level elem has an offset
 ;; (ui/mouse-move-global
@@ -415,14 +415,14 @@
        (satisfies? ~protocol elem#)
        (apply ~protocol-fn elem# args#)
        (satisfies? IChildren elem#)
-       (let [steps# (transduce
+       (let [intents# (transduce
                     (map #(apply handler# % args#))
                     into
                     []
                     (children elem#))]
          (if (satisfies? IBubble elem#)
-           (-bubble elem# steps#)
-           steps#)))))
+           (-bubble elem# intents#)
+           intents#)))))
 
 (def
   ^{:arglists '([elem key]),
@@ -1128,12 +1128,12 @@
     (if mouse-down?
       (when on-mouse-down
         (on-mouse-down pos))
-      (let [steps
+      (let [intents
             ;; use seq to make sure we don't stop for empty sequences
             (some #(when-let [local-pos (within-bounds? % pos)]
                      (seq (-mouse-event % local-pos button mouse-down? mods)))
                   (reverse (children this)))]
-        (-bubble this steps)))))
+        (-bubble this intents)))))
 
 (swap! default-draw-impls
        assoc OnMouseDown
@@ -1172,12 +1172,12 @@
   IMouseEvent
   (-mouse-event [this pos button mouse-down? mods]
     (if mouse-down?
-      (let [steps
+      (let [intents
             ;; use seq to make sure we don't stop for empty sequences
             (some #(when-let [local-pos (within-bounds? % pos)]
                      (seq (-mouse-event % local-pos button mouse-down? mods)))
                   (reverse (children this)))]
-        (-bubble this steps))
+        (-bubble this intents))
       (when on-mouse-up
         (on-mouse-up pos)))))
 
@@ -1815,11 +1815,11 @@
   IBubble
   (-bubble [this events]
       (apply concat
-             (for [step events
-                   :let [step-type (first step)]]
-               (if (-can-handle? this step-type)
-                 (-handle-event this step-type (rest step))
-                 [step]))))
+             (for [intent events
+                   :let [intent-type (first intent)]]
+               (if (-can-handle? this intent-type)
+                 (-handle-event this intent-type (rest intent))
+                 [intent]))))
 
   IHandleEvent
     (-can-handle? [this other-event-type]
