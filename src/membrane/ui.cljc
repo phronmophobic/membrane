@@ -171,6 +171,15 @@
                 (reverse (children elem)))]
       (-bubble elem intents)))
 
+  IMouseMove
+  (-mouse-move [elem local-pos]
+    (let [intents
+          ;; use seq to make sure we don't stop for empty sequences
+          (some #(when-let [local-pos (within-bounds? % local-pos)]
+                   (seq (-mouse-move % local-pos)))
+                (reverse (children elem)))]
+      (-bubble elem intents)))
+
   IScroll
   (-scroll [elem offset local-pos]
     (let [intents
@@ -332,37 +341,9 @@
 
 (defn mouse-move
   "Returns the effects of a mouse move event on elem. Will only call -mouse-move on mouse events within an elements bounds."
-  ([elem global-pos]
-   (mouse-move elem global-pos [0 0]))
-  ([elem global-pos offset]
-   #_(when-not (or (satisfies? IMouseMove elem) (satisfies? IComponent elem))
-       (throw (Exception. (str "Expecting " IMouseMove " or IComponent, got " (type elem) " " elem))))
-   (let [[x y] global-pos
-         [sx sy] offset
-         [ox oy] (origin elem)
-         [width height] (bounds elem)
-         local-x (- x (+ sx ox))
-         local-y (- y (+ sy oy))]
-     (when (and
-            (< local-x
-               width)
-            (>= local-x 0)
-            (< local-y
-               height)
-            (>= local-y 0))
-      (if (satisfies? IMouseMove elem)
-        (-mouse-move elem [local-x local-y])
-        ;; else
-        (let [child-offset [(+ ox sx)
-                            (+ oy sy)]]
-          (let [intents
-                (reduce into
-                        []
-                        (for [child (children elem)]
-                          (mouse-move child global-pos child-offset)))]
-            (if (satisfies? IBubble elem)
-              (-bubble elem intents)
-              intents))))))))
+  ([elem pos]
+   (when-let [local-pos (within-bounds? elem pos)]
+     (-mouse-move elem local-pos))))
 
 ;; TODO: make-mouse-move global work when the top level elem has an offset
 ;; (ui/mouse-move-global
