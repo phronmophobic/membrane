@@ -26,17 +26,17 @@
          (:weight default-font)))
 
 
-(defprotocol IMouseMove (-mouse-move [this info]))
-(defprotocol IMouseMoveGlobal (-mouse-move-global [this info]))
-(defprotocol IMouseEvent (-mouse-event [this pos button mouse-down? mods]))
-(defprotocol IDrop (-drop [this paths pos]))
-(defprotocol IScroll (-scroll [this info mpos]))
-(defprotocol IMouseWheel (-mouse-wheel [this info]))
-(defprotocol IKeyPress (-key-press [this info]))
-(defprotocol IKeyType (-key-type [this info]))
-(defprotocol IClipboardPaste (-clipboard-paste [this info]))
-(defprotocol IClipboardCopy (-clipboard-copy [_]))
-(defprotocol IClipboardCut (-clipboard-cut [_]))
+(defprotocol IMouseMove (-mouse-move [elem pos]))
+(defprotocol IMouseMoveGlobal (-mouse-move-global [elem pos]))
+(defprotocol IMouseEvent (-mouse-event [elem pos button mouse-down? mods]))
+(defprotocol IDrop (-drop [elem paths pos]))
+(defprotocol IScroll (-scroll [elem delta mpos]))
+(defprotocol IMouseWheel (-mouse-wheel [elem delta]))
+(defprotocol IKeyPress (-key-press [elem key]))
+(defprotocol IKeyType (-key-type [elem key]))
+(defprotocol IClipboardPaste (-clipboard-paste [elem contents]))
+(defprotocol IClipboardCopy (-clipboard-copy [elem]))
+(defprotocol IClipboardCut (-clipboard-cut [elem]))
 
 (declare children)
 
