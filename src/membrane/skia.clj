@@ -1418,7 +1418,7 @@
                        quality
                        path)))))
 
-(defrecord GlfwSkiaWindow [render window handlers callbacks ui mouse-position skia-resource image-cache font-cache draw-cache window-content-scale window-start-width window-start-height window-start-x window-start-y window-title]
+(defrecord GlfwSkiaWindow [view-fn window handlers callbacks ui mouse-position skia-resource image-cache font-cache draw-cache window-content-scale window-start-width window-start-height window-start-x window-start-y window-title]
   IWindow
   (init! [this]
     (let [window-width (int (or window-start-width 787))
@@ -1555,13 +1555,12 @@
               *window* this
               *draw-cache* draw-cache
               *skia-resource* skia-resource]
-      (let [to-render (swap! ui (fn [_]
-                                  (render)))]
+      (let [view (reset! ui (view-fn))]
         ;; TODO: should try to implement
         ;; Yes, that's fine.  Another common approach is to record the entire scene normally as an SkPicture, and just play it back into each tile, clipped and translated as appropriate.
 ;; This approach works best if you use SkRTreeFactory when calling beginRecording()... that'll build an R-tree to help us skip issuing draws that fall outside each tile.
         (do
-          (draw to-render))))
+          (draw view))))
     (Skia/skia_flush skia-resource)
     (glfw-call Void/TYPE glfwSwapBuffers window)))
 
@@ -1612,7 +1611,7 @@
    (assert membraneskialib "Could not run because membraneskia could not be loaded.")
 
    (async/>!! window-chan (map->GlfwSkiaWindow (merge
-                                                {:render make-ui}
+                                                {:view-fn make-ui}
                                                 options)))
 
    (dispatch-sync!
@@ -1685,7 +1684,7 @@
                 (when window
                   (var-set windows (conj (var-get windows) (init! window)))
                   (recur (async/poll! window-chan)))))
-            (wait []
+            (wait-events []
               (glfw-call void glfwWaitEventsTimeout (double 0.5))
               #_(glfw-call void glfwWaitEvents )
               #_(glfw-call void glfwPollEvents)
@@ -1705,7 +1704,7 @@
           (add-windows!)
 
           (loop []
-            (wait)
+            (wait-events)
 
             ;; clear gl errors. :-/
             (glGetError)
