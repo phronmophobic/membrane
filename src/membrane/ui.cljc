@@ -1882,6 +1882,7 @@
                                      body)
                  :mouse-move
                  (on-mouse-move handler
+                                body)
 
                  :mouse-move-global
                  (on-mouse-move-global handler
