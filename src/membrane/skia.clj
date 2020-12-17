@@ -1166,7 +1166,6 @@
     (doall (mouse-move @(:ui window) [x y]))
     (doall (mouse-move-global @(:ui window) [x y]))
     (catch Exception e
-      (println e)
       (println e)))
 
 
