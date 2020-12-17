@@ -36,7 +36,7 @@ Support for Windows and other platforms is coming soon!
 [Examples](https://github.com/phronmophobic/membrane/tree/master/src/membrane/example)  
 [Distributing your desktop app](/docs/distribution.md)  
 [Targeting WebGL](/docs/webgl.md)  
-Questions? Comments? Connect with us on clojurians slack in [#membrane](https://clojurians.slack.com/archives/CVB8K7V50)
+Questions? Comments? Connect with us on clojurians slack in [#membrane](https://clojurians.slack.com/archives/CVB8K7V50) (join [here](http://clojurians.net/)) or discuss on [twitter](https://twitter.com/phronmophobic).
 
 <!-- Guides   -->
 <!-- Design Philosophy   -->
