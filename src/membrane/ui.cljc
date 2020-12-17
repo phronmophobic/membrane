@@ -548,36 +548,36 @@
      (Image. image-path size opacity))))
 
 
-(defrecord Group [drawables]
-    IOrigin
-    (-origin [_]
-        [0 0])
+;; (defrecord Group [drawables]
+;;     IOrigin
+;;     (-origin [_]
+;;         [0 0])
 
-  IBounds
-  (-bounds [this]
-    (reduce
-     (fn [[max-width max-height] elem]
-       (let [[ox oy] (origin elem)
-             [w h] (bounds elem)]
-         [(max max-width (+ ox w))
-          (max max-height (+ oy h))]))
-     [0 0]
-     drawables))
+;;   IBounds
+;;   (-bounds [this]
+;;     (reduce
+;;      (fn [[max-width max-height] elem]
+;;        (let [[ox oy] (origin elem)
+;;              [w h] (bounds elem)]
+;;          [(max max-width (+ ox w))
+;;           (max max-height (+ oy h))]))
+;;      [0 0]
+;;      drawables))
 
-  IChildren
-  (-children [this]
-    drawables))
+;;   IChildren
+;;   (-children [this]
+;;     drawables))
 
-(swap! default-draw-impls
-       assoc Group (fn [draw]
-                     (fn [this]
-                       (doseq [drawable (:drawables this)]
-                         (draw drawable)))))
+;; (swap! default-draw-impls
+;;        assoc Group (fn [draw]
+;;                      (fn [this]
+;;                        (doseq [drawable (:drawables this)]
+;;                          (draw drawable)))))
 
-(defn group
-  "Creates a graphical elem that will draw drawables in order"
-  [& drawables]
-  (Group. drawables))
+;; (defn group
+;;   "Creates a graphical elem that will draw drawables in order"
+;;   [& drawables]
+;;   (Group. drawables))
 
 
 (defrecord Translate [x y drawable]
