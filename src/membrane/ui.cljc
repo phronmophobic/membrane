@@ -616,6 +616,9 @@
 (defn- rotate [degrees drawable]
   (Rotate. degrees drawable))
 
+(defrecord AffineTransform [matrix drawable])
+(defrecord Skew [sx sy drawable])
+
 (defrecord Spacer [x y]
     IOrigin
     (-origin [_]
