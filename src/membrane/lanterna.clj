@@ -177,10 +177,10 @@
     (-bounds [this]
         [(+ 2 (count (:text this))) 3])
 
-    ui/IMouseDown
-    (-mouse-down [this [mx my]]
-        (when on-click
-          (on-click)))
+    ui/IMouseEvent
+    (-mouse-event [this pos button mouse-down? mods]
+      (when mouse-down?
+        (on-click)))
 
     IDraw
     (draw [this]

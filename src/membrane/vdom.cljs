@@ -9,7 +9,6 @@
             [membrane.ui :as ui
              :refer [IBounds
                      IOrigin
-                     IMouseDown
                      bounds
                      vertical-layout
                      horizontal-layout
@@ -342,9 +341,10 @@
               btn-width (+ text-width padding)
               btn-height (+ text-height padding)]
           [btn-width btn-height]))
-  IMouseDown
-  (-mouse-down [this [mx my]]
-      (when on-click
+
+    ui/IMouseEvent
+    (-mouse-event [this pos button mouse-down? mods]
+      (when mouse-down?
         (on-click)))
 
   IRender
@@ -952,17 +952,9 @@
        "keyup" -on-key-up)
 
 
-#_(defonce start-todo-app
-  (run
-    (membrane.component/make-app #'todo/todo-app todo/todo-state)
-    {:container (js/document.getElementById "app")}))
 
-(def state (atom {}))
 
 (declare vroot)
-(defn ^:export change []
-  (swap! state assoc :s "")
-  (rerender vroot))
 
 (defui test-ui [& {:keys [num s]
                    :or {num 1
@@ -996,3 +988,9 @@
      )
   )
 
+(defn -main []
+  (defonce start-todo-app
+    (run
+      (membrane.component/make-app #'todo/todo-app todo/todo-state)
+      {:container (js/document.getElementById "app")}))
+  )
