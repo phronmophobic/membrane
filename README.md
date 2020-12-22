@@ -67,13 +67,13 @@ For more info covering the design of membrane:
 Leiningen dependency:
 
 ```
-[com.phronemophobic/membrane  "0.9.15-beta"]
+[com.phronemophobic/membrane  "0.9.16-beta"]
 ```
 
 deps.edn dependency:
 
 ```
-com.phronemophobic/membrane {:mvn/version "0.9.15-beta"}
+com.phronemophobic/membrane {:mvn/version "0.9.16-beta"}
 ```
 ## Examples
 

@@ -40,7 +40,7 @@
 Add this dependency to your project:
 
 ```
-[com.phronemophobic/membrane "0.9.15-beta"]
+[com.phronemophobic/membrane "0.9.16-beta"]
 ```
 
 
