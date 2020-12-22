@@ -38,6 +38,15 @@
 (defprotocol IClipboardCopy (-clipboard-copy [elem]))
 (defprotocol IClipboardCut (-clipboard-cut [elem]))
 
+(defprotocol IMakeNode
+  (make-node [node childs]))
+
+(extend-protocol IMakeNode
+  #?(:cljs cljs.core/PersistentVector
+     :clj clojure.lang.PersistentVector)
+  (make-node [node childs]
+    (vec childs)))
+
 (declare children)
 
 (defprotocol IOrigin
@@ -584,6 +593,12 @@
     IOrigin
     (-origin [this]
         [x y])
+
+    IMakeNode
+    (make-node [this childs]
+      (assert (= (count childs) 1))
+      (Translate. x y (first childs)))
+
   IChildren
   (-children [this]
       [drawable])
@@ -605,6 +620,12 @@
     IOrigin
     (-origin [this]
         [0 0])
+
+    IMakeNode
+    (make-node [this childs]
+      (assert (= (count childs) 1))
+      (Rotate. degrees (first childs)))
+
   IChildren
   (-children [this]
       [drawable])
@@ -648,6 +669,11 @@
     (-bounds [this]
         size)
 
+    IMakeNode
+    (make-node [this childs]
+      (assert (= (count childs) 1))
+      (FixedBounds. size (first childs)))
+
   IChildren
   (-children [this]
       [drawable]))
@@ -665,6 +691,12 @@
     IOrigin
     (-origin [this]
         [px py])
+
+    IMakeNode
+    (make-node [this childs]
+      (assert (= (count childs) 1))
+      (Padding. px py (first childs)))
+
   IChildren
   (-children [this]
       [drawable])
@@ -720,6 +752,11 @@
           (max max-height (+ oy h))]))
      [0 0]
      drawables))
+
+    IMakeNode
+    (make-node [this childs]
+      (WithColor. color childs))
+
   IChildren
   (-children [this]
     drawables))
@@ -736,6 +773,10 @@
     IBounds
     (-bounds [this]
         (bounds drawables))
+
+    IMakeNode
+    (make-node [this childs]
+      (WithStyle. style childs))
 
     IChildren
     (-children [this]
@@ -761,6 +802,10 @@
     (-bounds [this]
         (bounds drawables))
 
+    IMakeNode
+    (make-node [this childs]
+      (WithStrokeWidth. stroke-width childs))
+
     IChildren
     (-children [this]
         drawables))
@@ -780,6 +825,11 @@
               [sx sy] scalars]
           [(* w sx)
            (* h sy)]))
+
+    IMakeNode
+    (make-node [this childs]
+      (Scale. scalars childs))
+
     IChildren
     (-children [this]
         drawables)
@@ -861,6 +911,13 @@
     (-origin [this]
         (origin (bordered-draw this)))
 
+
+    IMakeNode
+    (make-node [this childs]
+      (assert (= (count childs) 1))
+      (Bordered. padding-x padding-y (first childs)))
+
+
   IChildren
   (-children [this]
       (bordered-draw this))
@@ -901,6 +958,12 @@
     IOrigin
     (-origin [_]
         [0 0])
+
+    IMakeNode
+    (make-node [this childs]
+      (assert (= (count childs) 1))
+      (FillBordered. color padding-x padding-y (first childs)))
+
 
   IChildren
   (-children [this]
@@ -1062,6 +1125,12 @@
      [0 0]
      drawables))
 
+
+    IMakeNode
+    (make-node [this childs]
+      (OnClick. on-click childs))
+
+
   IChildren
   (-children [this]
     drawables)
@@ -1102,6 +1171,12 @@
           (max max-height (+ oy h))]))
      [0 0]
      drawables))
+
+
+    IMakeNode
+    (make-node [this childs]
+      (OnMouseDown. on-mouse-down childs))
+
 
   IChildren
   (-children [this]
@@ -1149,6 +1224,12 @@
      [0 0]
      drawables))
 
+
+    IMakeNode
+    (make-node [this childs]
+      (OnMouseUp. on-mouse-up childs))
+
+
   IChildren
   (-children [this]
     drawables)
@@ -1195,6 +1276,11 @@
      [0 0]
      drawables))
 
+    IMakeNode
+    (make-node [this childs]
+      (OnMouseMove. on-mouse-move childs))
+
+
   IChildren
   (-children [this]
     drawables)
@@ -1233,6 +1319,11 @@
           (max max-height (+ oy h))]))
      [0 0]
      drawables))
+
+    IMakeNode
+    (make-node [this childs]
+      (OnMouseMoveGlobal. on-mouse-move-global childs))
+
 
   IChildren
   (-children [this]
@@ -1277,6 +1368,11 @@
          [0 0]
          drawables))
 
+    IMakeNode
+    (make-node [this childs]
+      (OnMouseEvent. on-mouse-event childs))
+
+
     IChildren
     (-children [this]
         drawables)
@@ -1316,6 +1412,11 @@
               (max max-height (+ oy h))]))
          [0 0]
          drawables))
+
+    IMakeNode
+    (make-node [this childs]
+      (OnDrop. on-drop childs))
+
 
     IChildren
     (-children [this]
@@ -1365,6 +1466,11 @@
     (when on-key-press
       (on-key-press key)))
 
+    IMakeNode
+    (make-node [this childs]
+      (OnKeyPress. on-key-press childs))
+
+
   IChildren
   (-children [this]
       drawables))
@@ -1408,6 +1514,11 @@
       (when on-key-event
         (on-key-event key scancode action mods)))
 
+    IMakeNode
+    (make-node [this childs]
+      (OnKeyEvent. on-key-event childs))
+
+
   IChildren
   (-children [this]
       drawables))
@@ -1442,6 +1553,11 @@
           (max max-height (+ oy h))]))
      [0 0]
      drawables))
+
+    IMakeNode
+    (make-node [this childs]
+      (OnBubble. on-bubble childs))
+
 
   IChildren
   (-children [this]
@@ -1482,6 +1598,11 @@
          [0 0]
          drawables))
 
+    IMakeNode
+    (make-node [this childs]
+      (OnClipboardPaste. on-clipboard-paste childs))
+
+
     IChildren
     (-children [this]
         drawables)
@@ -1520,6 +1641,11 @@
           (max max-height (+ oy h))]))
      [0 0]
      drawables))
+
+    IMakeNode
+    (make-node [this childs]
+      (OnClipboardCopy. on-clipboard-copy childs))
+
 
   IChildren
   (-children [this]
@@ -1561,6 +1687,11 @@
           (max max-height (+ oy h))]))
      [0 0]
      drawables))
+
+    IMakeNode
+    (make-node [this childs]
+      (OnClipboardCut. on-clipboard-cut childs))
+
 
   IChildren
   (-children [this]
@@ -1690,6 +1821,11 @@
     (when on-scroll
       (on-scroll offset mpos)))
 
+    IMakeNode
+    (make-node [this childs]
+      (OnScroll. on-scroll childs))
+
+
   IChildren
   (-children [this]
       drawables))
@@ -1714,6 +1850,10 @@
     IOrigin
     (-origin [this]
         [0 0])
+    IMakeNode
+    (make-node [this childs]
+      (assert (= (count childs) 1))
+      (ScissorView. offset bounds (first childs)))
     IChildren
     (-children [this]
         [drawable])
@@ -1766,6 +1906,12 @@
         (-default-mouse-move-global this [(- mx (nth offset 0))
                                           (- my (nth offset 1))])))
 
+
+  IMakeNode
+  (make-node [this childs]
+    (assert (= (count childs) 1))
+    (ScrollView. offset bounds (first childs)))
+
   IChildren
   (-children [this]
       [drawable]))
@@ -1791,6 +1937,11 @@
         (mapv +
               (origin drawable)
               (bounds drawable)))
+
+  IMakeNode
+  (make-node [this childs]
+    (assert (= (count childs) 1))
+    (EventHandler. event-type handler (first childs)))
 
   IChildren
   (-children [this]
@@ -1978,6 +2129,11 @@
   (-origin [_]
       [0 0])
 
+  IMakeNode
+  (make-node [this childs]
+    (assert (= (count childs) 1))
+    (NoEvents. (first childs)))
+
   IChildren
     (-children [this]
         [drawable])
@@ -2040,6 +2196,12 @@
     (-bounds [this]
         (bounds drawable))
 
+    IMakeNode
+    (make-node [this childs]
+      (assert (= (count childs) 1))
+      (NoKeyEvent. (first childs)))
+
+
     IChildren
     (-children [this]
         [drawable])
@@ -2068,6 +2230,11 @@
     IBounds
     (-bounds [this]
         (bounds drawable))
+
+    IMakeNode
+    (make-node [this childs]
+      (assert (= (count childs) 1))
+      (NoKeyPress. (first childs)))
 
     IChildren
     (-children [this]
@@ -2107,6 +2274,11 @@
             (println e)
             (bounds (label "error"))))
         )
+
+    IMakeNode
+    (make-node [this childs]
+      (assert (= (count childs) 1))
+      (TryDraw. (first childs) error-draw))
 
   IChildren
   (-children [this]
