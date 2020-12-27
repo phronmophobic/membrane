@@ -2115,6 +2115,13 @@
                              pos))
                   body)
 
+                 :mouse-move-global
+                 (on-mouse-move-global
+                  (fn [pos]
+                    (handler (fn [pos] (mouse-move-global body pos))
+                             pos))
+                  body)
+
                  ;; ;; else
                  ;; (EventHandler. event-type handler body)
                  )))
