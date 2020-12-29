@@ -297,6 +297,52 @@
                                       (int (* 255 b)))))))
     paint))
 
+(defn index-for-position-line [skija-font text px]
+  (let [
+        glyphs (.getStringGlyphs ^Font skija-font text)
+        glyph-widths (.getWidths ^Font skija-font glyphs)
+        glyph-count (alength glyphs)
+
+        max-index (max 0 (dec (.length text)))
+        chs (char-array (inc max-index))
+        ;; fill chs
+        _ (.getChars text 0 max-index chs 0)]
+    (loop [index 0
+           px px]
+      (if (or (> index max-index)
+              (not (< index glyph-count)))
+        index
+        (let [width (aget glyph-widths index)
+              new-px (- px width)]
+          (if (neg? new-px)
+            index
+            (recur (inc index)
+                   new-px)))))))
+
+(defn- index-for-position [font text px py]
+  (assert (some? text) "can't find index for nil text")
+  (let [skija-font (get-font font)
+        line-spacing (.getSpacing ^Font skija-font)
+
+        line-no (loop [py py
+                       line-no 0]
+                  (if (> py line-spacing)
+                    (recur (- py line-spacing)
+                           (inc line-no))
+                    line-no))
+        lines (clojure.string/split-lines text)]
+    (if (>= line-no (count lines))
+      (count text)
+      (let [line (nth lines line-no)]
+        (apply +
+               ;; newlines
+               line-no
+               (index-for-position-line skija-font line px)
+               (map count (take line-no lines)))))))
+
+
+(intern (the-ns 'membrane.ui) 'index-for-position index-for-position)
+
 (defn- label-draw [{:keys [text font] :as label}]
   (let [lines (clojure.string/split-lines text)
         skija-font (get-font font)
