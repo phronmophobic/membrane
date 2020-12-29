@@ -780,7 +780,6 @@
 
       MouseListener
       (mousePressed [this e]
-        (println e)
         (-on-mouse-down window e)
         (.repaint panel)
         )
