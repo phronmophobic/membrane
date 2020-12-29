@@ -472,8 +472,9 @@
 
 (defn index-for-position-line [frc font text px]
   (let [max-index (max 0 (dec (.length text)))
-        chs (char-array (inc max-index))]
-    (.getChars text 0 max-index chs 0)
+        chs (char-array (inc max-index))
+        ;; fill chs
+        _ (.getChars text 0 max-index chs 0)]
     (loop [index 0
            px px]
       (if (> index max-index)
