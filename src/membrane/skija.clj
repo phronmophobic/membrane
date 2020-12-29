@@ -208,7 +208,7 @@
 (def void Void/TYPE)
 (def main-class-loader @clojure.lang.Compiler/LOADER)
 
-(def objlib (com.sun.jna.NativeLibrary/getInstance "CoreFoundation"))
+
 
 (deftype DispatchCallback [f]
   com.sun.jna.CallbackProxy
@@ -855,19 +855,32 @@
 
       )))
 
-(def main-queue (.getGlobalVariableAddress ^com.sun.jna.NativeLibrary objlib "_dispatch_main_q"))
+(def objlib (try
+              (com.sun.jna.NativeLibrary/getInstance "CoreFoundation")
+              (catch UnsatisfiedLinkError e
+                    nil)))
 
-(def dispatch_sync (.getFunction ^com.sun.jna.NativeLibrary objlib "dispatch_sync_f"))
+(def main-queue (try
+                  (.getGlobalVariableAddress ^com.sun.jna.NativeLibrary objlib "_dispatch_main_q")
+                  (catch UnsatisfiedLinkError e
+                    nil)))
+
+(def dispatch_sync (try
+                     (.getFunction ^com.sun.jna.NativeLibrary objlib "dispatch_sync_f")
+                     (catch UnsatisfiedLinkError e
+                       nil)))
 
 (defonce callbacks (atom []))
 
 (defn- dispatch-sync [f]
-  (let [callback (DispatchCallback. f)
-        args (to-array [main-queue nil callback])]
-    (.invoke ^com.sun.jna.Function dispatch_sync void args)
-    ;; please don't garbage collect me :D
-    (identity args)
-    nil))
+  (if (and main-queue dispatch_sync)
+    (let [callback (DispatchCallback. f)
+          args (to-array [main-queue nil callback])]
+      (.invoke ^com.sun.jna.Function dispatch_sync void args)
+      ;; please don't garbage collect me :D
+      (identity args)
+      nil)
+    (f)))
 
 (comment
   (.invoke dispatch_sync void (to-array [main-queue nil my-callback]))
