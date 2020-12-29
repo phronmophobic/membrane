@@ -506,8 +506,7 @@
         ]
     (if (>= line-no (count lines))
       (count text)
-      (let [line (nth lines line-no)
-            rect2d (.getStringBounds ^Font jfont line frc)]
+      (let [line (nth lines line-no)]
         (apply +
                line-no
                (index-for-position-line frc jfont line px)
