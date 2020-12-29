@@ -944,7 +944,7 @@
    (ui/label (str "count: " @counter-state))))
 
 ;; (require '[membrane.example.kitchen-sink :as ks])
-(defn my-test [& args]
+(defn -main [& args]
   ;; (run #(ui/image "/Users/adrian/Documents/sketchup/cards/Fully+3D-printable+wind-up+car+gift+card/images/10a8da40fe773f83ac236135b685c141.png" [200 200] 0.5))
 
   (require '[membrane.example.todo :as todo-app])
