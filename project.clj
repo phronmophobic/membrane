@@ -68,23 +68,22 @@
          :repl-options {:nrepl-middleware [cider.piggieback/wrap-cljs-repl]}
          ;;:source-paths ["cljs_src"]
          }
-   :skija {:dependencies
-           [
-            [org.jetbrains.skija/skija-macos "0.6.45"]
-            [org.lwjgl/lwjgl "3.2.3"]
-            [org.lwjgl/lwjgl "3.2.3" :classifier "natives-macos"]
-            [org.lwjgl/lwjgl-glfw "3.2.3"]
-            [org.lwjgl/lwjgl-glfw "3.2.3"  :classifier "natives-macos"]
-            [org.lwjgl/lwjgl-opengl "3.2.3"]
-            [org.lwjgl/lwjgl-opengl "3.2.3"  :classifier "natives-macos"]]
-           }
    :provided {:dependencies [[org.clojure/clojurescript "1.10.764"]
                              [com.phronemophobic/vdom "0.2.2"]
                              [com.googlecode.lanterna/lanterna "3.0.2"]
                              [spec-provider "0.4.14"]
                              [mogenslund/liquid "2.0.3"]
                              [re-frame "1.0.0-rc3"]
-                             [com.cognitect/transit-cljs "0.8.264"]]}}
+                             [com.cognitect/transit-cljs "0.8.264"]
+
+                             ;; skija
+                             [org.jetbrains.skija/skija-macos "0.6.45"]
+                             [org.lwjgl/lwjgl "3.2.3"]
+                             [org.lwjgl/lwjgl "3.2.3" :classifier "natives-macos"]
+                             [org.lwjgl/lwjgl-glfw "3.2.3"]
+                             [org.lwjgl/lwjgl-glfw "3.2.3"  :classifier "natives-macos"]
+                             [org.lwjgl/lwjgl-opengl "3.2.3"]
+                             [org.lwjgl/lwjgl-opengl "3.2.3"  :classifier "natives-macos"]]}}
 
   :deploy-repositories [["releases" :clojars]
                         ["snapshots" :clojars]]
