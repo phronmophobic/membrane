@@ -820,6 +820,11 @@
              (.pack)
              (.show))])))
 
+(defn -main [& args]
+  (run ((requiring-resolve 'membrane.component/make-app)
+        (requiring-resolve 'membrane.example.todo/todo-app)
+        @(requiring-resolve 'membrane.example.todo/todo-state))))
+
 (comment
   (do
     (require '[membrane.example.todo :as todo]
