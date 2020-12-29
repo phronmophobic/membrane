@@ -515,24 +515,6 @@
 
 (intern (the-ns 'membrane.ui) 'index-for-position index-for-position)
 
-(defn image-size-raw [image-path]
-  (try
-    (with-open [is (clojure.java.io/input-stream image-path)]
-      (let [image-stream (ImageIO/createImageInputStream is)
-            buffered-image (ImageIO/read image-stream)]
-        [(.getWidth buffered-image)
-         (.getHeight buffered-image)]))
-    (catch Exception e
-      (.printStackTrace e)
-      [0 0])))
-
-(def image-size (memoize image-size-raw))
-(intern (the-ns 'membrane.ui)
-        (with-meta 'image-size
-          {:arglists '([image-path])
-           :doc "Returns the [width, height] of the file at image-path."})
-        image-size)
-
 (defn draw-to-image
   ([elem]
    (draw-to-image elem nil))

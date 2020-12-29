@@ -1,5 +1,6 @@
 (ns membrane.ui
   #?(:cljs (:require-macros [membrane.ui :refer [make-event-handler]]))
+  #?(:clj (:import javax.imageio.ImageIO))
   (:refer-clojure :exclude [drop]))
 
 (defrecord Font [name size weight])
@@ -502,8 +503,28 @@
 )
 
 
-(defn image-size [image-path]
-  (assert false "image size should be replaced by implementation"))
+
+
+#?
+(:clj
+ (do
+   (defn- image-size-raw [image-path]
+     (try
+       (with-open [is (clojure.java.io/input-stream image-path)]
+         (let [image-stream (ImageIO/createImageInputStream is)
+               buffered-image (ImageIO/read image-stream)]
+           [(.getWidth buffered-image)
+            (.getHeight buffered-image)]))
+       (catch Exception e
+         (.printStackTrace e)
+         [0 0])))
+   (def ^{:arglists '([image-path])
+          :doc "Returns the [width, height] of the file at image-path."}
+     image-size (memoize image-size-raw)))
+
+ :cljs
+ (defn image-size [image-path]
+   (assert false "image size should be replaced by implementation")))
 
 (defn image
   "Graphical element that draws an image.

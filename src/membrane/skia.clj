@@ -43,7 +43,6 @@
            com.sun.jna.IntegerType
            java.awt.image.BufferedImage)
   (:import java.nio.ByteBuffer
-           javax.imageio.ImageIO
            com.phronemophobic.membrane.Skia)
   (:gen-class))
 
@@ -505,25 +504,6 @@
         (let [image (Skia/skia_load_image_from_memory bytes (alength ^bytes bytes))]
           (swap! *image-cache* assoc bytes image)
           image))))
-
-
-(defn- image-size-raw [image-path]
-  (try
-    (with-open [is (clojure.java.io/input-stream image-path)]
-      (let [image-stream (ImageIO/createImageInputStream is)
-            buffered-image (ImageIO/read image-stream)]
-        [(.getWidth buffered-image)
-         (.getHeight buffered-image)]))
-    (catch Exception e
-      (.printStackTrace e)
-      [0 0])))
-
-(def image-size (memoize image-size-raw))
-(intern (the-ns 'membrane.ui)
-        (with-meta 'image-size
-          {:arglists '([image-path])
-           :doc "Returns the [width, height] of the file at image-path."})
-        image-size)
 
 (defn- image-draw [{:keys [image-path size opacity] :as image}]
   (when-let [image-texture (get-image-texture image-path)]
@@ -1047,8 +1027,6 @@
 
 (defn- make-reshape-callback [window handler]
   (->ReshapeCallback window handler))
-
-(declare email-image)
 
 (defn- -mouse-button-callback [window window-handle button action mods]
   (try
