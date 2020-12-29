@@ -17,3 +17,7 @@ dist
 projects
 media/
 pom.xml.asc
+node_modules
+package-lock.json
+package.json
+.shadow-cljs
