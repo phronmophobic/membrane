@@ -860,15 +860,11 @@
               (catch UnsatisfiedLinkError e
                     nil)))
 
-(def main-queue (try
-                  (.getGlobalVariableAddress ^com.sun.jna.NativeLibrary objlib "_dispatch_main_q")
-                  (catch UnsatisfiedLinkError e
-                    nil)))
+(def main-queue (when objlib
+                  (.getGlobalVariableAddress ^com.sun.jna.NativeLibrary objlib "_dispatch_main_q")))
 
-(def dispatch_sync (try
-                     (.getFunction ^com.sun.jna.NativeLibrary objlib "dispatch_sync_f")
-                     (catch UnsatisfiedLinkError e
-                       nil)))
+(def dispatch_sync (when objlib
+                     (.getFunction ^com.sun.jna.NativeLibrary objlib "dispatch_sync_f")))
 
 (defonce callbacks (atom []))
 
