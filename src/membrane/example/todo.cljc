@@ -2,8 +2,7 @@
   #?(:cljs
      (:require-macros [membrane.component
                        :refer [defui defeffect]]))
-  (:require #?(:clj [membrane.skia :as skia])
-            [membrane.ui :as ui
+  (:require [membrane.ui :as ui
              :refer [vertical-layout
                      translate
                      horizontal-layout
@@ -17,11 +16,6 @@
                      #?(:clj defeffect)]]
             [membrane.basic-components :as basic])
   #?(:clj (:gen-class)))
-
-#?
-(:clj
- (defn run-ui [ui-var initial-state]
-   (skia/run (component/make-app ui-var initial-state))))
 
 ;; Draw a red X that we'll use to display a delete button
 ;; No interactivity, so `defui` not needed
@@ -37,7 +31,12 @@
                   [0 10])]))))
 
 (comment
-  (skia/run #(delete-X)))
+  (defn run-ui [ui-var initial-state]
+    (skia/run (component/make-app ui-var initial-state)))
+
+  (require '[membrane.skia :as skia])
+  (skia/run #(delete-X))
+  ,)
 
 ;; Display a single todo item
 (defui todo-item [ & {:keys [todo]}]
@@ -167,15 +166,16 @@
 #?
 (:clj
  (defn -main [& args]
-   (skia/run-sync (component/make-app #'todo-app
-                                      {:todos
-                                       [{:complete? false
-                                         :description "first"}
-                                        {:complete? false
-                                         :description "second"}
-                                        {:complete? true
-                                         :description "third"}]
-                                       :next-todo-text ""}))
+   ((requiring-resolve 'membrane.skia/run-sync)
+    (component/make-app #'todo-app
+                        {:todos
+                         [{:complete? false
+                           :description "first"}
+                          {:complete? false
+                           :description "second"}
+                          {:complete? true
+                           :description "third"}]
+                         :next-todo-text ""}))
    ))
 
 
