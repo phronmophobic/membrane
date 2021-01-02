@@ -76,6 +76,8 @@
                              [re-frame "1.0.0-rc3"]
                              [com.cognitect/transit-cljs "0.8.264"]
 
+                             [cljfx "1.7.11"]
+
                              ;; skija
                              [org.jetbrains.skija/skija-macos "0.6.45"]
                              [org.lwjgl/lwjgl "3.2.3"]
