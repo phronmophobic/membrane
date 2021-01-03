@@ -23,9 +23,11 @@ For membrane to run on a platform, the only requirements are
 - Terminal (see [example project](https://github.com/phronmophobic/terminal-todo-mvc))
 - virtual dom
 - java swing
+- [skija](https://github.com/JetBrains/skija) (see [example project](https://github.com/phronmophobic/membrane-skija-example))
 
 #### Experimental UI framework integrations
 - re-frame (see [example project](https://github.com/phronmophobic/membrane-re-frame-example))
+- fulcro (see [example project](https://github.com/phronmophobic/membrane-fulcro))
 
 Support for Windows and other platforms is coming soon!
 
