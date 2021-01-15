@@ -72,6 +72,9 @@
         raw-path
         (spec/path (path->spec arg))
 
+        collect-one
+        (spec/collect-one (path->spec arg))
+
         keypath
         (spec/keypath arg)
 

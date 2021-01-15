@@ -3,11 +3,8 @@
      (:require-macros [membrane.ui :refer [maybe-key-event]]
                       [membrane.component :refer [defui defeffect]]))
   (:require [membrane.component :refer [#?(:clj defui)
-                                        #?(:clj defeffect)
-                                        path->spec
-                                        ] :as component]
-            [com.rpl.specter :as spec
-             :refer [ATOM ALL FIRST LAST MAP-VALS META]]
+                                        #?(:clj defeffect)]
+             :as component]
             [membrane.ui :as ui
              :refer [vertical-layout
                      translate
@@ -128,8 +125,8 @@
 
   (run! #(apply dispatch! %)
         [
-         [:update [(spec/collect-one (path->spec $cursor))
-                   (spec/collect-one (path->spec $select-cursor))
+         [:update [(list 'collect-one $cursor)
+                   (list 'collect-one $select-cursor)
                    $text]
           (fn [cursor select-cursor text]
             (let [
@@ -146,7 +143,7 @@
              (if text
                (str (subs text 0 start-clip-index) s (subs text end-clip-index))
                s)))]
-         [:update [(spec/collect-one (path->spec $select-cursor))
+         [:update [(list 'collect-one $select-cursor)
                    $cursor]
           (fn [select-cursor cursor]
             (let [cursor (or cursor 0)
@@ -183,7 +180,7 @@
                                       text mx my)]
     (run! #(apply dispatch! %)
           [
-           [:update [(spec/collect-one (path->spec $down-pos))
+           [:update [(list 'collect-one $down-pos)
                      $select-cursor]
             (fn [down-pos select-cursor]
               (when-let [[dx dy] down-pos]
@@ -196,7 +193,7 @@
               
               )]
            [:set $down-pos nil]
-           [:update [(spec/collect-one (path->spec $select-cursor))
+           [:update [(list 'collect-one $select-cursor)
                      $cursor]
             (fn [select-cursor cursor]
               (if (and select-cursor (> end-index select-cursor))
@@ -225,7 +222,7 @@
           [mx my] pos]
       (run! #(apply dispatch! %)
             [
-             [:update [(spec/collect-one (path->spec $last-click))
+             [:update [(list 'collect-one $last-click)
                        $select-cursor]
               (fn [[last-click [dx dy]] select-cursor]
                 (if last-click
@@ -241,7 +238,7 @@
                           (count text)))
                       select-cursor))
                   select-cursor))]
-             [:update [(spec/collect-one (path->spec $last-click))
+             [:update [(list 'collect-one $last-click)
                        $cursor]
               (fn [[last-click [dx dy]] cursor]
                 (if last-click
@@ -269,8 +266,8 @@
   (run!
    #(apply dispatch! %)
    [
-    [:update [(spec/collect-one (path->spec [$cursor]))
-              (spec/collect-one (path->spec [$select-cursor]))
+    [:update [(list 'collect-one $cursor)
+              (list 'collect-one $select-cursor)
               $text]
      (fn [cursor select-cursor text]
        (let [cursor (min (count text) cursor)
@@ -282,7 +279,7 @@
                                      [(max 0 (dec cursor)) cursor])]
          (str (subs text 0 clip-start)
               (subs text clip-end))))]
-    [:update [(spec/collect-one (path->spec [$select-cursor]))
+    [:update [(list 'collect-one [$select-cursor])
               $cursor]
      (fn [select-cursor cursor]
        (max 0 (if select-cursor
