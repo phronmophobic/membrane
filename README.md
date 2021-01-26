@@ -25,7 +25,7 @@ For membrane to run on a platform, the only requirements are
 - virtual dom
 - java swing
 - [skija](https://github.com/JetBrains/skija) (see [example project](https://github.com/phronmophobic/membrane-skija-example))
-- javafx via cljfx
+- javafx via cljfx (see [example project](https://github.com/phronmophobic/reveal-treemap))
 
 #### Experimental UI framework integrations
 - re-frame (see [example project](https://github.com/phronmophobic/membrane-re-frame-example))
