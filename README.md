@@ -4,7 +4,7 @@
 
 Membrane provides three layers:
 
-1. A **UI framework**, `membrane.component`, that deals with state management for GUIs
+1. A **UI framework**, `membrane.component`, that provides state management for GUIs
 2. A platform agnostic **model** for graphics and events
 3. Multiple **graphics backends** that provide concrete implementations for #2
 
