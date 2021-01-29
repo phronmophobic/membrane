@@ -981,13 +981,13 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
   If `handler` is nil or an arity that doesn't specify `handler` is used, then a default handler using all of the globally defined effects from `defeffect` will be used. In addition to the globally defined effects the handler will provide 3 additional effects:
 
   `:update` similar to `update` except instead of a keypath, takes a more generic path.
-  example: `[:update $path inc]`
+  example: `[:update $ref inc]`
 
   `:set` sets the value given a $path
-  example: `[:set $path value]`
+  example: `[:set $ref val]`
 
   `:delete` deletes value at $path
-  example: `[:delete $path]`
+  example: `[:delete $ref]`
 
   return value: the state atom used by the ui."
   ([ui-var]
