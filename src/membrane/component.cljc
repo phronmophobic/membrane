@@ -828,11 +828,11 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
 
   "
   [type args & body]
-  `(def ~(symbol (str "effect-" (name type)))
-     (let [effect# (fn [~'dispatch! ~@args]
-                     ~@body)]
-       (swap! effects assoc ~type effect#)
-       effect#)))
+  (let [fn-name (symbol (str "effect-" (name type)))]
+    `(let [var# (defn ~fn-name [~'dispatch! ~@args]
+                  ~@body)]
+       (swap! effects assoc ~type ~fn-name)
+       var#)))
 
 
 #?(:clj
