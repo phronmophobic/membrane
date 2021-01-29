@@ -37,7 +37,7 @@
 
 (defui on-hover
   "Component for adding a hover? state."
-  [ & {:keys [hover? body]}]
+  [{:keys [hover? body]}]
   (if hover?
     (ui/on-mouse-move-global
      (fn [[x y]]
@@ -53,7 +53,7 @@
        [[:set $hover? true]])
      body)))
 
-(defui on-mouse-out [& {:keys [mouse-out body hover?]}]
+(defui on-mouse-out [{:keys [mouse-out body hover?]}]
   (if hover?
     (ui/on-mouse-move-global
        (fn [[x y]]
@@ -75,9 +75,9 @@
 
 (defui button
   "Button component with hover state."
-  [& {:keys [hover? text on-click]}]
-  (on-hover :hover? hover?
-            :body (ui/button text on-click hover?)))
+  [{:keys [hover? text on-click]}]
+  (on-hover {:hover? hover?
+             :body (ui/button text on-click hover?)}))
 
 
 
@@ -292,7 +292,7 @@
 
 (defui textarea-view
   "Raw component for a basic textarea. textarea should be preferred."
-  [& {:keys [cursor
+  [{:keys [cursor
              focus?
              text
              down-pos
@@ -426,44 +426,44 @@
 
 (defui textarea
   "Textarea component."
-  [& {:keys [text
-             font
-             ^:membrane.component/contextual focus
-             textarea-state]}]
+  [{:keys [text
+           font
+           ^:membrane.component/contextual focus
+           textarea-state]}]
   (on
    ::request-focus
    (fn []
      [[:set [$focus] $text]])
-   (textarea-view :text text
-                  :cursor (get textarea-state :cursor 0)
-                  :focus? (= focus $text)
-                  :font font
-                  :down-pos (:down-pos textarea-state)
-                  :mpos (:mpos textarea-state)
-                  :border? true
-                  :select-cursor (:select-cursor textarea-state)))
+   (textarea-view {:text text
+                   :cursor (get textarea-state :cursor 0)
+                   :focus? (= focus $text)
+                   :font font
+                   :down-pos (:down-pos textarea-state)
+                   :mpos (:mpos textarea-state)
+                   :border? true
+                   :select-cursor (:select-cursor textarea-state)}))
   )
 
 (defui textarea-light
   "Alternate look for textarea component."
-  [& {:keys [text
-             font
-             ^:membrane.component/contextual focus
-             textarea-state]}]
+  [{:keys [text
+           font
+           ^:membrane.component/contextual focus
+           textarea-state]}]
   (on
    ::request-focus
    (fn []
      [[:set [$focus] $text]])
    (let [focus? (= focus $text)]
      (let [textarea
-           (textarea-view :text text
-                          :cursor (get textarea-state :cursor 0)
-                          :focus? focus?
-                          :font font
-                          :down-pos (:down-pos textarea-state)
-                          :mpos (:mpos textarea-state)
-                          :select-cursor (:select-cursor textarea-state)
-                          :border? false)]
+           (textarea-view {:text text
+                           :cursor (get textarea-state :cursor 0)
+                           :focus? focus?
+                           :font font
+                           :down-pos (:down-pos textarea-state)
+                           :mpos (:mpos textarea-state)
+                           :select-cursor (:select-cursor textarea-state)
+                           :border? false})]
        (ui/fill-bordered [0.97 0.97 0.97] [0 0]
                          textarea)))))
 
@@ -475,8 +475,8 @@
   scroll-bounds should be a two element vector of [width height] of the scrollview
   body should be an element.
 "
-  [& {:keys [offset mdownx? mdowny? scroll-bounds body]
-      :or {offset [0 0]}}]
+  [{:keys [offset mdownx? mdowny? scroll-bounds body]
+    :or {offset [0 0]}}]
   (let [offset-x (nth offset 0)
         offset-y (nth offset 1)
         [width height] scroll-bounds
@@ -525,96 +525,96 @@
                body))
             identity))]
     (on-mouse-out
-     :hover (get extra [:mdown :hover])
-     :mouse-out
-     (fn []
-       [[:set $mdowny? nil]
-        [:set $mdownx? nil]])
-     :body
-     (ui/on-scroll
-      (fn [[ox oy] _]
-        [[:update $offset-x (fn [old-offset]
-                              (clampx (+ ox offset-x)))]
-         [:update $offset-y (fn [old-offset]
-                              (clampy (+ oy offset-y)))]])
-      (on-mouse-move
-       (ui/on-mouse-event
-        (fn [[mx my :as mpos] button mouse-down? mods]
-          (if mouse-down?
-            (let [new-mdownx? (and (> my height)
-                                   (> total-width width))
-                  new-mdowny? (and (> mx width)
-                                   (> total-height height))]
-              (into
-               [[:set $mdownx? new-mdownx?]
-                [:set $mdowny? new-mdowny?]]
-               (if new-mdowny?
-                 [[:set $offset-y (clampy (* (div0 (float my) height)
-                                             max-offset-y))]]
-                 (if new-mdownx?
-                   [[:set $offset-x (clampx (* (div0 (float mx) width)
-                                               max-offset-x))]]
-                   (ui/mouse-event scroll-elem mpos button mouse-down? mods)))))
-            ;; mouse up
-            (into
-             [[:set $mdownx? false]
-              [:set $mdowny? false]]
-             (ui/mouse-event scroll-elem mpos button mouse-down? mods)))
-          )
-        [
-         scroll-elem
-         (when (> total-height height)
-           (translate width 0
-                      [(filled-rectangle [0.941 0.941 0.941]
-                                         scroll-button-size height)
-                       (let [top (/ offset-y total-height)
-                             bottom (/ (+ offset-y height)
-                                       total-height)]
+     {:hover (get extra [:mdown :hover])
+      :mouse-out
+      (fn []
+        [[:set $mdowny? nil]
+         [:set $mdownx? nil]])
+      :body
+      (ui/on-scroll
+       (fn [[ox oy] _]
+         [[:update $offset-x (fn [old-offset]
+                               (clampx (+ ox offset-x)))]
+          [:update $offset-y (fn [old-offset]
+                               (clampy (+ oy offset-y)))]])
+       (on-mouse-move
+        (ui/on-mouse-event
+         (fn [[mx my :as mpos] button mouse-down? mods]
+           (if mouse-down?
+             (let [new-mdownx? (and (> my height)
+                                    (> total-width width))
+                   new-mdowny? (and (> mx width)
+                                    (> total-height height))]
+               (into
+                [[:set $mdownx? new-mdownx?]
+                 [:set $mdowny? new-mdowny?]]
+                (if new-mdowny?
+                  [[:set $offset-y (clampy (* (div0 (float my) height)
+                                              max-offset-y))]]
+                  (if new-mdownx?
+                    [[:set $offset-x (clampx (* (div0 (float mx) width)
+                                                max-offset-x))]]
+                    (ui/mouse-event scroll-elem mpos button mouse-down? mods)))))
+             ;; mouse up
+             (into
+              [[:set $mdownx? false]
+               [:set $mdowny? false]]
+              (ui/mouse-event scroll-elem mpos button mouse-down? mods)))
+           )
+         [
+          scroll-elem
+          (when (> total-height height)
+            (translate width 0
+                       [(filled-rectangle [0.941 0.941 0.941]
+                                          scroll-button-size height)
+                        (let [top (/ offset-y total-height)
+                              bottom (/ (+ offset-y height)
+                                        total-height)]
 
-                         (translate 0 (* height top)
-                                    (with-color
-                                      [0.73 0.73 0.73]
-                                      (ui/rounded-rectangle scroll-button-size (* height (- bottom top)) (/ scroll-button-size 2)))
-                                    ))
+                          (translate 0 (* height top)
+                                     (with-color
+                                       [0.73 0.73 0.73]
+                                       (ui/rounded-rectangle scroll-button-size (* height (- bottom top)) (/ scroll-button-size 2)))
+                                     ))
 
-                       (with-color [0.89 0.89 0.89]
-                         (with-style :membrane.ui/style-stroke
-                           (rectangle scroll-button-size height)))]))
-         (when (> total-width width)
-           (translate 0 height
-                      [(filled-rectangle [0.941 0.941 0.941]
-                                         width scroll-button-size)
-                       (let [left (/ offset-x total-width)
-                             right (/ (+ offset-x width)
-                                      total-width)]
-                         (translate (* width left) 0
-                                    (with-color
-                                      [0.73 0.73 0.73]
-                                      (ui/rounded-rectangle (* width (- right left)) scroll-button-size  (/ scroll-button-size 2)))
-                                    )
-                         )
-                       (with-color [0.89 0.89 0.89]
-                         (with-style :membrane.ui/style-stroke
-                           (rectangle width scroll-button-size )))]))
+                        (with-color [0.89 0.89 0.89]
+                          (with-style :membrane.ui/style-stroke
+                            (rectangle scroll-button-size height)))]))
+          (when (> total-width width)
+            (translate 0 height
+                       [(filled-rectangle [0.941 0.941 0.941]
+                                          width scroll-button-size)
+                        (let [left (/ offset-x total-width)
+                              right (/ (+ offset-x width)
+                                       total-width)]
+                          (translate (* width left) 0
+                                     (with-color
+                                       [0.73 0.73 0.73]
+                                       (ui/rounded-rectangle (* width (- right left)) scroll-button-size  (/ scroll-button-size 2)))
+                                     )
+                          )
+                        (with-color [0.89 0.89 0.89]
+                          (with-style :membrane.ui/style-stroke
+                            (rectangle width scroll-button-size )))]))
 
-         ]))))))
+          ])))})))
 
-(defui test-scrollview [& {:keys [state]}]
-  (scrollview :scroll-bounds [200 200]
-              :body
-              (apply
-               vertical-layout
-               (for [i (range 100)]
-                 (label (str "The quick brown fox"
-                             " jumped over the lazy dog"
-                             ))))))
+(defui test-scrollview [{:keys [state]}]
+  (scrollview {:scroll-bounds [200 200]
+               :body
+               (apply
+                vertical-layout
+                (for [i (range 100)]
+                  (label (str "The quick brown fox"
+                              " jumped over the lazy dog"
+                              ))))}))
 
 (defeffect ::toggle [$bool]
   (dispatch! :update $bool not))
 
 (defui checkbox
   "Checkbox component."
-  [& {:keys [checked?]}]
+  [{:keys [checked?]}]
   (on
    :mouse-down
    (fn [_]
@@ -624,7 +624,7 @@
 
 
 (defui dropdown-list
-  [& {:keys [options selected]}]
+  [{:keys [options selected]}]
   (let [
         labels (for [option (map second options)]
                  (ui/label option))
@@ -650,25 +650,25 @@
                  row-height (+ h 4)
                  row-width (+ max-width (* 2 padding-x))]
              (on-hover
-              :hover? hover?
-              :body
-              (on
-               :mouse-down
-               (fn [_]
-                 [[::select $selected value]])
+              {:hover? hover?
+               :body
+               (on
+                :mouse-down
+                (fn [_]
+                  [[::select $selected value]])
 
-               [(spacer row-width row-height)
-                (cond
+                [(spacer row-width row-height)
+                 (cond
 
-                  selected?
-                  (ui/filled-rectangle [0 0.48 1]
-                                       row-width row-height)
+                   selected?
+                   (ui/filled-rectangle [0 0.48 1]
+                                        row-width row-height)
 
-                  hover?
-                  (ui/filled-rectangle [0.976 0.976 0.976]
-                                       row-width row-height))
-                (translate padding-x 2
-                           label)])))))
+                   hover?
+                   (ui/filled-rectangle [0.976 0.976 0.976]
+                                        row-width row-height))
+                 (translate padding-x 2
+                            label)])}))))
         [rows-width rows-height] (bounds rows)
         ]
     [(ui/with-style
@@ -689,7 +689,7 @@
                 rows)])
   )
 
-(defui dropdown [ & {:keys [options selected open?]}]
+(defui dropdown [{:keys [options selected open?]}]
   (vertical-layout
    (on
     :mouse-down
@@ -709,7 +709,7 @@
       (fn [$selected value]
         [[::select $selected value]
          [:set $open? false]])
-      (dropdown-list :options options :selected selected)))
+      (dropdown-list {:options options :selected selected})))
    ))
 
 (defeffect ::select [$selected value]
@@ -730,13 +730,13 @@
     (dispatch! :update $num #(min max (inc %)))
     (dispatch! :update $num inc)))
 
-(defui counter [ & {:keys [num min max]
-                    :or {num 0}}]
+(defui counter [{:keys [num min max]
+                 :or {num 0}}]
   (horizontal-layout
-   (button :text "-"
-           :on-click
-           (fn []
-             [[::counter-dec $num min]]))
+   (button {:text "-"
+            :on-click
+            (fn []
+              [[::counter-dec $num min]])})
    (ui/spacer 5 0)
    (let [lbl (ui/label num)
          w (ui/width lbl)
@@ -746,10 +746,10 @@
       lbl
       (spacer padding 0)))
    (ui/spacer 5 0)
-   (button :text "+"
-           :on-click
-           (fn []
-             [[::counter-inc $num max]]))))
+   (button {:text "+"
+            :on-click
+            (fn []
+              [[::counter-inc $num max]])})))
 
 
 (comment
@@ -763,8 +763,8 @@
               (double num))]
    (dispatch! :set $num num)))
 
-(defui number-slider [& {:keys [num max-width min max integer? mdown?]
-                         :or {max-width 100}}]
+(defui number-slider [{:keys [num max-width min max integer? mdown?]
+                       :or {max-width 100}}]
   (let [ratio (/ (- num min)
                  (- max min))
         width (* max-width (double ratio))
