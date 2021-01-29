@@ -14,7 +14,7 @@
                :refer [defui defeffect]]
               [membrane.basic-components :as basic]))
 
-(defui item-row [ & {:keys [item-name selected?]}]
+(defui item-row [{:keys [item-name selected?]}]
   (on
    :mouse-down
    (fn [_]
@@ -36,13 +36,13 @@
 `selected` a set of selected items
 `str-filter` filter out item names that don't contain a case insensitive match for `str-filter` as a substring
 "
-  [& {:keys [item-names selected str-filter]
-      :or {str-filter ""
-           selected #{}}}]
+  [{:keys [item-names selected str-filter]
+    :or {str-filter ""
+         selected #{}}}]
   (let [filtered-items (filter #(clojure.string/includes? (clojure.string/lower-case %) str-filter) item-names)]
     (apply
      vertical-layout
-     (basic/textarea :text str-filter)
+     (basic/textarea {:text str-filter})
      (for [iname filtered-items]
        ;; override the default behaviour of updating the `selected?` value directly
        ;; instead, we'll keep the list of selected items in a set
@@ -52,7 +52,7 @@
                                    (if (contains? selected iname)
                                      (disj selected iname)
                                      (conj selected iname)))]])
-           (item-row :item-name iname :selected? (get selected iname)))))))
+           (item-row {:item-name iname :selected? (get selected iname)}))))))
 
 (comment
   (skia/run (component/make-app #'item-selector {:item-names

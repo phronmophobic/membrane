@@ -39,11 +39,11 @@
    (let [component-sym (gensym "example-component-")]
      `(let [title# ~title
             category# ~category]
-        (defui ~component-sym [ & {:keys ~(mapv (fn [k]
-                                                  (-> k
-                                                      name
-                                                      symbol))
-                                                (keys initial-state))}]
+        (defui ~component-sym [{:keys ~(mapv (fn [k]
+                                               (-> k
+                                                   name
+                                                   symbol))
+                                             (keys initial-state))}]
           ~elem)
         (swap! ~'examples assoc
                [category# title#]
@@ -64,7 +64,7 @@
   "Components"
   "textarea"
   {:text "sup"}
-  (basic/textarea :text text :font (assoc ui/default-font :size 24)))
+  (basic/textarea {:text text :font (assoc ui/default-font :size 24)}))
 
 
 
@@ -142,7 +142,7 @@
   "Components"
   "button"
   {:hover? false}
-  (basic/button :hover? hover? :text "hello"))
+  (basic/button {:hover? hover? :text "hello"}))
 
 
 
@@ -151,28 +151,28 @@
   "Components"
   "textarea-light"
   {:text "hello"}
-  (basic/textarea-light :text text :font (assoc ui/default-font :size 24)))
+  (basic/textarea-light {:text text :font (assoc ui/default-font :size 24)}))
 
 
 
-(defui scroll-example [& {:keys []}]
-  (basic/scrollview :scroll-bounds [200 150]
-                    :body (ui/image (clojure.java.io/resource "lines.png"))))
+(defui scroll-example [m]
+  (basic/scrollview {:scroll-bounds [200 150]
+                     :body (ui/image (clojure.java.io/resource "lines.png"))}))
 
 
 (defcomponent-example
   "Components"
   "scrollview"
   {}
-  (basic/scrollview :scroll-bounds [200 150]
-                    :body (ui/image (clojure.java.io/resource "lines.png"))))
+  (basic/scrollview {:scroll-bounds [200 150]
+                     :body (ui/image (clojure.java.io/resource "lines.png"))}))
 
 
 (defcomponent-example
   "Components"
   "checkbox"
   {:checked? false}
-  (basic/checkbox :checked? checked?))
+  (basic/checkbox {:checked? checked?}))
 
 
 
@@ -244,12 +244,12 @@ with values from 0 - 1 inclusive"
     (ui/with-color red
       (ui/rounded-rectangle 30 50 5))))
 
-(defui example-component [& {:keys [ui-var state]}]
+(defui example-component [{:keys [ui-var state]}]
   (let [arglist (-> ui-var
                     meta
                     :arglists
                     first)
-        m (second arglist)
+        m (first arglist)
         arg-names (disj (set (:keys m))
                         'extra)
         defaults (:or m)
@@ -269,12 +269,11 @@ with values from 0 - 1 inclusive"
         
         elem-extra (get state :extra)]
 
-    (apply @ui-var
-           :extra elem-extra
-           :$extra $elem-extra
-           :context context
-           :$context $context
-           args)))
+    (@ui-var (merge {:extra elem-extra
+                     :$extra $elem-extra
+                     :context context
+                     :$context $context}
+                    (apply hash-map args)))))
 
 
 (let [counter (atom 0)]
@@ -290,7 +289,7 @@ with values from 0 - 1 inclusive"
                        old-val)))))))
 
 
-(defui show-examples [& {:keys [examples selected example-state show-copy-text]}]
+(defui show-examples [{:keys [examples selected example-state show-copy-text]}]
   
   (translate 20 20
              (vertical-layout
@@ -309,8 +308,8 @@ with values from 0 - 1 inclusive"
                     [[:membrane.basic-components/select $selected value]
                      (let [example (examples value)]
                        [:set $example-state (:initial-state example)])])
-                  (basic/dropdown :options options
-                                  :selected selected))))
+                  (basic/dropdown {:options options
+                                   :selected selected}))))
               (spacer 0 10)
               (when selected
                 (let [example (get examples selected)]
@@ -318,16 +317,16 @@ with values from 0 - 1 inclusive"
                    (ui/label (:code example))
                    (spacer 0 10)
                    (horizontal-layout
-                    (basic/button :text "Copy to clipboard"
-                                  :on-click (fn []
-                                              [[:clipboard-copy (pr-str (:code example))]
-                                               [:fade-copy-text $show-copy-text]]))
+                    (basic/button {:text "Copy to clipboard"
+                                   :on-click (fn []
+                                               [[:clipboard-copy (pr-str (:code example))]
+                                                [:fade-copy-text $show-copy-text]])})
                     (when show-copy-text
                       (translate 10 3
                                  (ui/label "copied!"))))
                    (spacer 0 10)
                    (let [elem (if (:component? example)
-                                (example-component :ui-var (:fn example) :state example-state)
+                                (example-component {:ui-var (:fn example) :state example-state})
                                 ((:fn example)))
                          body (translate 10 10
                                          elem)

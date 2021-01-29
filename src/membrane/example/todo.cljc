@@ -39,7 +39,7 @@
   ,)
 
 ;; Display a single todo item
-(defui todo-item [ & {:keys [todo]}]
+(defui todo-item [{:keys [todo]}]
   (horizontal-layout
    (translate 5 5
               (on
@@ -48,9 +48,9 @@
                  [[:delete $todo]])
                (delete-X)))
    (translate 10 4
-              (basic/checkbox :checked? (:complete? todo)))
+              (basic/checkbox {:checked? (:complete? todo)}))
    (spacer 10 0)
-   (basic/textarea :text (:description todo))))
+   (basic/textarea {:text (:description todo)})))
 
 (comment
   (run-ui #'todo-item {:todo
@@ -60,13 +60,13 @@
 
 ;; Display a list of `todo-item`s stacked vertically
 ;; Add 5px of spacing between `todo-item`s
-(defui todo-list [ & {:keys [todos]}]
+(defui todo-list [{:keys [todos]}]
   (apply
    vertical-layout
    (interpose
     (spacer 0 5)
     (for [todo todos]
-      (todo-item :todo todo)))))
+      (todo-item {:todo todo})))))
 
 (comment
   (run-ui #'todo-list {:todos
@@ -86,7 +86,7 @@
 
 ;; Create a toggle that allows the user
 ;; to toggle between options
-(defui toggle [& {:keys [options selected]}]
+(defui toggle [{:keys [options selected]}]
   (apply
    horizontal-layout
    (interpose
@@ -106,14 +106,14 @@
           {:options [:all :active :complete?]
            :selected nil}))
 
-(defui todo-app [ & {:keys [todos next-todo-text selected-filter]
-                     :or {selected-filter :all}}]
+(defui todo-app [{:keys [todos next-todo-text selected-filter]
+                  :or {selected-filter :all}}]
   (vertical-layout
    (horizontal-layout
-    (basic/button :text "Add Todo"
-                  :on-click (fn []
-                              [[::add-todo $todos next-todo-text]
-                               [:set $next-todo-text ""]]))
+    (basic/button {:text "Add Todo"
+                   :on-click (fn []
+                               [[::add-todo $todos next-todo-text]
+                                [:set $next-todo-text ""]])})
     (translate 10 10
                (ui/wrap-on
                 :key-press
@@ -124,13 +124,13 @@
                       [[::add-todo $todos next-todo-text]
                        [:set $next-todo-text ""]]
                       effects)))
-                (basic/textarea :text next-todo-text))))
+                (basic/textarea {:text next-todo-text}))))
    (spacer 0 10)
-   (toggle :selected selected-filter :options [:all :active :complete?])
+   (toggle {:selected selected-filter :options [:all :active :complete?]})
    (spacer 0 10)
    (let [filter-fn (get filter-fns selected-filter :all)
          visible-todos (filter filter-fn todos)]
-     (todo-list :todos visible-todos))))
+     (todo-list {:todos visible-todos}))))
 
 
 (def todo-state (atom {:todos

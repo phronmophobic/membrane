@@ -18,7 +18,7 @@
 
 ;; Display a "more!" button next to label showing num
 ;; clicking on "more!" will dispatch a ::counter-increment effect
-(defui counter [& {:keys [num]}]
+(defui counter [{:keys [num]}]
   (horizontal-layout
    (on :mouse-down (fn [[mouse-x mouse-y]]
                      [[::counter-increment $num]])
@@ -41,14 +41,14 @@
 ;; 
 ;; clicking on the counters' "more!" buttons will
 ;; update their respective numbers
-(defui counter-counter [& {:keys [nums]}]
+(defui counter-counter [{:keys [nums]}]
   (apply
    vertical-layout
    (on :mouse-down (fn [[mx my]]
                      [[::add-counter $nums]])
        (ui/button "Add Counter"))
    (for [num nums]
-     (counter :num num))))
+     (counter {:num num}))))
 
 (defeffect ::add-counter [$nums]
   (dispatch! :update $nums conj 0))

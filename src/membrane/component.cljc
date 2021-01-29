@@ -426,7 +426,8 @@
                              (::special? m)
                              (contains? @special-fns @full-sym)))]
             (if special?
-              (let [args (into {} (map vec (partition 2 (rest form))))
+              (let [args (second form)
+                    _ (assert (map? args) "membrane components must be called with a literal map.")
                     fn-meta (get @special-fns @full-sym
                                  (or #?(:clj (meta (resolve first-form)))
                                      (meta first-form)
@@ -434,7 +435,7 @@
 
                     arglists (:arglists fn-meta)
                     first-arglist (first arglists)
-                    [ampersand arg-map] first-arglist
+                    arg-map (first first-arglist)
 
                     defaults (:or arg-map)
                     
@@ -505,12 +506,11 @@
                           (get binding-syms (symbol arg-name))]
                          [arg-key (get binding-syms arg)])))]
                 (with-meta
-                  `(apply ~first-form
-                          ~(path-replace
-                            ;; identity
-                            `(let [~@(apply concat bindings)]
-                               (vector ~@new-args ))
-                            deps))
+                  `(~first-form
+                    ~(path-replace
+                      `(let [~@(apply concat bindings)]
+                         ~(apply hash-map new-args))
+                      deps))
                   (meta form)))
               
               ;; else
@@ -596,17 +596,24 @@
                       fdecl)
          _ (assert (vector? (first fdecl)) "only one arglist allowed for defui.")
          [args & body] fdecl
-         
-         [ampersand arg-map] args
-         _ (assert (and (= '& ampersand)
-                        (map? arg-map)
-                        (vector? (:keys arg-map)))
-                   "defui arglist must be in the form [& {:keys [arg1 arg2 ...]}]")
-         ;; arg-syms (get arg-map :keys)
 
-         args-map-sym (get arg-map :as (gensym "m-"))
+         _ (assert (= 1 (count args))
+                   "defui arglist must have exactly one arg")
 
-         arg-keys (:keys arg-map)
+         arg-map-or-sym (first args)
+         _ (assert (or (symbol? arg-map-or-sym)
+                       (map? arg-map-or-sym)
+                       "defui arglist must have exactly one arg and it must be either a symbol or map."
+                       ))
+         ;; [ampersand arg-map-or-sym] args
+
+         ;; arg-syms (get arg-map-or-sym :keys)
+
+         args-map-sym (if (symbol? arg-map-or-sym)
+                        arg-map-or-sym
+                        (get arg-map-or-sym :as (gensym "m-")))
+
+         arg-keys (get arg-map-or-sym :keys [])
          arg-keys (if (some #(= 'extra %) arg-keys)
                     arg-keys
                     (conj arg-keys 'extra))
@@ -615,16 +622,17 @@
                     arg-keys
                     (conj arg-keys 'context))
          
-         defaults (:or arg-map)
+         defaults (:or arg-map-or-sym)
 
          arg-path-syms (for [arg-name arg-keys]
                          (gensym (str "arg-path-" (name arg-name) "-")))
          arg-path-bindings (mapcat                                     
                             (fn [arg-sym path-sym]
-                              (let [$arg-key (keyword (str "$" (name arg-sym)))]
+                              (let [arg-key (keyword arg-sym)
+                                    $arg-key (keyword (str "$" (name arg-sym)))]
                                 [path-sym
                                  ;; should be same as below with one less vector wrap
-                                 (let [fn-arg-path `(get ~args-map-sym ~$arg-key [::unknown])]
+                                 (let [fn-arg-path `(get ~args-map-sym ~$arg-key [~(list 'list '(quote keypath) (list 'quote arg-key))])]
                                    (if-let [default (get defaults arg-sym)]
                                      [fn-arg-path [`((quote ~'nil->val) ~default)]]
                                      fn-arg-path))
@@ -644,12 +652,14 @@
                          [nil (with-meta path-sym
                                 {::flatten? true})])]]))
          ui-arg-map
-         (merge {:keys arg-keys
+         (merge (when (map? arg-map-or-sym)
+                  arg-map-or-sym)
+                {:keys arg-keys
                  :as args-map-sym}
                 (when defaults
                   {:or defaults}))
          ui-name-meta (merge
-                       {::special? true :arglists `([ ~'& ~(dissoc ui-arg-map :as)])}
+                       {::special? true :arglists `([~(dissoc ui-arg-map :as)])}
                        def-meta)
 ]
 
@@ -756,8 +766,7 @@
                     ret#
                     (defn ~ui-name ~(dissoc ui-name-meta
                                             :arglists)
-                      [ ~'& ~ui-arg-map]
-
+                      [~ui-arg-map]
                       (let [key# [~ui-name-kw
                                   [~@arg-keys
                                    ;; ideally, the provenance keys shouldn't need
@@ -838,35 +847,38 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
 
 
 
-(defui top-level-ui [& {:keys [extra
-                               state
-                               body
-                               arg-names
-                               defaults
-                               handler]}]
-
+(defui top-level-ui [{:keys [extra
+                             state
+                             body
+                             arg-names
+                             defaults
+                             handler]
+                      :as m}]
   (let [extra (::extra state)
         context (::context state)
-        args (apply concat
-                    (for [nm arg-names
-                          :let [kw (keyword nm)
-                                $kw (keyword (str "$" (name kw)))]]
-                      [kw
-                       (get state kw
-                            (get defaults nm))
+        args (apply
+              hash-map
+              (apply concat
+                     (for [nm arg-names
+                           :let [kw (keyword nm)
+                                 $kw (keyword (str "$" (name kw)))]]
+                       [kw
+                        (get state kw
+                             (get defaults nm))
 
-                       $kw
-                       (into
-                        `[(~'keypath ~kw)]
-                        (when (contains? defaults nm)
-                          [(list 'nil->val (get defaults nm))]))]))
-        main-view (apply
-                   @body
-                   :extra extra
-                   :$extra  $extra
-                   :context context
-                   :$context $context
-                   args)]
+                        $kw
+                        (into
+                         `[(~'keypath ~kw)]
+                         (when (contains? defaults nm)
+                           [(list 'nil->val (get defaults nm))]))])))
+
+        main-view (@body
+                   (merge
+                    {:extra extra
+                     :$extra  $extra
+                     :context context
+                     :$context $context}
+                    args))]
     (membrane.ui/on-scroll
      (fn [offset mpos]
        (let [intents (membrane.ui/scroll main-view offset mpos)]
@@ -995,17 +1007,16 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
                      meta
                      :arglists
                      first)
-         m (second arglist)
+         m (first arglist)
          arg-names (disj (set (:keys m))
                          'extra
                          'context)
          defaults (:or m)
          top-level (fn []
-                     (top-level-ui :state @state-atom :$state []
-                                   :body ui-var
-                                   :arg-names arg-names
-                                   :defaults defaults
-                                   :handler handler))]
+                     (top-level-ui {:state @state-atom :$state []
+                                    :body ui-var
+                                    :arg-names arg-names
+                                    :defaults defaults
+                                    :handler handler}))]
      top-level)))
-
 

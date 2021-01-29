@@ -58,65 +58,68 @@
                steps))
            root))))))))))
 
-(def text-boxes (atom {}))
-(def text-box-dispatch (component/default-handler text-boxes))
-(defn get-text-box [tid text]
-  (let [all-data @text-boxes
-        data (get all-data tid)
-        args (apply concat
-                    [:text text]
-                    [:focus (get all-data ::focus)]
-                    (for [[k v] data
-                          :when (not= k :text)]
-                      [k v]))
-        $args [:$text [(list 'get tid) :text]
-               :$font [(list 'get tid) :font]
-               :$textarea-state [(list 'get tid) :textarea-state]
-               :$extra [(list 'get tid) :extra]
-               :$focus [::focus]]]
-    (ui/on-bubble
-     (fn [effects]
-       (text-box-dispatch :set [(list 'get tid) :text] text)
-       (run! #(apply text-box-dispatch %) effects)
-       (let [new-data (get @text-boxes tid)
-             new-text (:text new-data)]
-         (when (not= new-text text)
-           [[:change new-text]])))
-     (apply basic/textarea (concat args $args)))))
-
-
-
-(def scrollviews (atom {}))
-(def scrollview-dispatch (component/default-handler scrollviews))
+(defonce re-frame-state (atom {}))
+(def re-frame-dispatch (component/default-handler re-frame-state))
 
 (defn set-scroll-offset! [sid [sx sy :as offset]]
-  (swap! scrollviews assoc-in [sid :offset] offset))
+  (swap! re-frame-state assoc-in [sid :offset] offset))
 
 (defn scroll-to-top! [sid]
   (set-scroll-offset! sid [0 0]))
 
-(defn get-scrollview [sid scroll-bounds body]
-  (let [all-data @scrollviews
-        data (get all-data sid)
-        args [:body body
-              :scroll-bounds scroll-bounds
-              :offset (get data :offset [0 0])
-              :mdownx? (get data :mdownx?)
-              :mdowny? (get data :mdowny?)
-              :extra (get data :extra)]
-        $args [:$offset [(list 'get sid) :offset (list 'nil->val [0 0])]
-               :$mdownx? [(list 'get sid) :mdownx?]
-               :$mdowny? [(list 'get sid) :mdowny?]
-               :$extra [(list 'get sid) :extra]]]
-    (ui/on-bubble
-     (fn [effects]
-       (run! #(apply scrollview-dispatch %) effects)
-       nil)
-     (apply basic/scrollview (concat args $args)))))
+(defmacro defrf [ui-name component [id-sym m-args :as params]]
+  (let [
+        arglist (-> (resolve component)
+                    meta
+                    :arglists
+                    first)
+        m (first arglist)
+        defaults (:or m)
+
+        get-sid-sym (gensym "getsid-")
+        args (into {}
+                   cat
+                   [(for [[sym v] defaults]
+                      [(keyword sym) v])
+                    (for [sym (:keys m)
+                          :when (-> sym meta ::component/contextual)]
+                      [(keyword sym)
+                       `(get @re-frame-state
+                             ~(keyword sym)
+                             ~(when (contains? defaults sym)
+                                (get defaults sym)))])
+                    (for [sym (:keys m)
+                          :let [$k (keyword (str "$" (name sym)))
+                                $v (if (-> sym meta ::component/contextual)
+                                     [(keyword sym)]
+                                     [get-sid-sym (keyword sym)])
+                                $v (if (contains? defaults sym)
+                                     (conj $v `(quote ~(list 'nil->val (get defaults sym)) ))
+                                     $v)]]
+                      [$k $v])])
+        
+        m-sym (get m-args :as (gensym "m-"))
+        params [id-sym (assoc m-args :as m-sym)]]
+    `(defn ~ui-name ~params
+       (let [~get-sid-sym ~(list 'list (quote 'get) id-sym)]
+         (ui/on-bubble
+          (fn [effects#]
+            ~@(for [k (:keys m-args)]
+                `(re-frame-dispatch :set ~(get args (keyword (str "$" (name k)))) ~k))
+            (run! #(apply re-frame-dispatch %) effects#)
+            (remove nil?
+                    [~@(for [k (:keys m-args)]
+                         `(let [new-val# (re-frame-dispatch :get ~(get args (keyword (str "$" (name k)))))]
+                            (when (not= new-val# ~k)
+                              [:change ~(keyword k) new-val#])))]))
+          (~component (merge ~args (get @re-frame-state ~id-sym) ~m-sym)))))))
+
+(defrf text-box basic/textarea [tid {:keys [text font]}])
+(defrf scrollview basic/scrollview [sid {:keys [scroll-bounds]}])
 
 (defn fix-scroll [elem]
-  (ui/on-scroll (fn [[sx sy]]
-                  (ui/scroll elem [(- sx) (- sy)]))
+  (ui/on-scroll (fn [[sx sy] pos]
+                  (ui/scroll elem [(- sx) (- sy)] pos))
                 elem))
 
 (comment
@@ -130,10 +133,11 @@
   (defn test-scrollview []
     [(ui/translate 10 10
                    (fix-scroll
-                    (get-scrollview :my-scrollview [300 300]
-                                    (ui/label lorem-ipsum))))])
+                    (scrollview :test-scroll {:scroll-bounds [300 300]
+                                              :body (ui/label lorem-ipsum)})))])
 
   (require '[membrane.skia :as skia])
   (skia/run #(re-frame-app (test-scrollview)))
+  ,
 
   )

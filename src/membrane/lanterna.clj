@@ -317,7 +317,7 @@
 
 (defui checkbox
   "Checkbox component."
-  [& {:keys [checked?]}]
+  [{:keys [checked?]}]
   (on
    :mouse-down
    (fn [_]
@@ -364,7 +364,7 @@
 ;;       way foreground and background work.
 (defui textarea-view
   "Raw component for a basic textarea. textarea should be preferred."
-  [& {:keys [cursor
+  [{:keys [cursor
              focus?
              text
              down-pos
@@ -446,19 +446,19 @@
 
 (defui textarea
   "Textarea component."
-  [& {:keys [text
+  [{:keys [text
              ^:membrane.component/contextual focus
              textarea-state]}]
   (on
    ::request-focus
    (fn []
      [[:set [$focus] $text]])
-   (textarea-view :text text
-                  :cursor (get textarea-state :cursor 0)
-                  :focus? (= focus $text)
-                  :down-pos (:down-pos textarea-state)
-                  :mpos (:mpos textarea-state)
-                  :select-cursor (:select-cursor textarea-state))))
+   (textarea-view {:text text
+                   :cursor (get textarea-state :cursor 0)
+                   :focus? (= focus $text)
+                   :down-pos (:down-pos textarea-state)
+                   :mpos (:mpos textarea-state)
+                   :select-cursor (:select-cursor textarea-state)})))
 
 (extend-type membrane.ui.Translate
   IDraw
