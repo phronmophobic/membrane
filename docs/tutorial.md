@@ -39,7 +39,7 @@
 
 Add this dependency to your project:
 
-```
+```clojure
 [com.phronemophobic/membrane "0.9.16-beta"]
 ```
 
@@ -96,14 +96,14 @@ For more examples, check out the [kitchen sink](/src/membrane/example/kitchen_si
 
 ![Label Default](/docs/images/label-default.png?raw=true)
 
-```
+```clojure
 ;; label using default font
 (ui/label "Hello\nWorld!")
 ```
 
 
 ![Label with font](/docs/images/label-font.png?raw=true)
-```
+```clojure
 ;; label with specified font
 ;; font will check the default System font folder
 ;; on Mac osx, check /System/Library/Fonts/ for available fonts
@@ -111,14 +111,14 @@ For more examples, check out the [kitchen sink](/src/membrane/example/kitchen_si
 ```
 
 ![Label with font](/docs/images/label-font.png?raw=true)
-```
+```clojure
 ;; Use the default font, but change the size
 (ui/label "Hello\nWorld!" (ui/font nil 22))
 ```
 ### Lines and Shapes
 
 ![Star](/docs/images/star.png?raw=true)
-```
+```clojure
 ;; filled polygon
 (ui/path [24.20 177.98]
          [199.82 37.93]
@@ -132,7 +132,7 @@ For more examples, check out the [kitchen sink](/src/membrane/example/kitchen_si
 
 
 ![Star](/docs/images/sawtooth.png?raw=true)
-```
+```clojure
 ;; line
 (ui/with-style :membrane.ui/style-stroke
   (ui/with-stroke-width 3
@@ -146,7 +146,7 @@ For more examples, check out the [kitchen sink](/src/membrane/example/kitchen_si
 
 
 ![rectangle](/docs/images/rectangle.png?raw=true)
-```
+```clojure
 ;; draw a filled  rectangle
 (ui/with-style :membrane.ui/style-stroke
   (ui/with-stroke-width 3
@@ -157,7 +157,7 @@ For more examples, check out the [kitchen sink](/src/membrane/example/kitchen_si
 ```
 
 ![rounded rectangle](/docs/images/rounded-rectangle.png?raw=true)
-```
+```clojure
 ;; rounded rectangle
 (ui/rounded-rectangle 200 100 10)
 ```
@@ -165,7 +165,7 @@ For more examples, check out the [kitchen sink](/src/membrane/example/kitchen_si
 ### Color
 
 ![label with color](/docs/images/label-color.png?raw=true)
-```
+```clojure
 ;; colors are vectors of [red green blue] or [red green blue alpha]
 ;; with values from 0 - 1 inclusive
 
@@ -178,7 +178,7 @@ For more examples, check out the [kitchen sink](/src/membrane/example/kitchen_si
 To draw multiple elements, simply use a vector. The elements will be drawn in order.
 
 ![label with color](/docs/images/group.png?raw=true)
-```
+```clojure
 [(ui/with-color [1 0 0 0.75]
    (ui/label "red"))
  (ui/with-color [0 1 0 0.75]
@@ -193,7 +193,7 @@ To draw multiple elements, simply use a vector. The elements will be drawn in or
 `translate [x y drawable]`
 
 ![translate](/docs/images/translate.png?raw=true)
-```
+```clojure
 [(ui/with-style :membrane.ui/style-stroke
    [(ui/path [0 0] [0 100])
     (ui/path [0 0] [60 0])])
@@ -207,7 +207,7 @@ To draw multiple elements, simply use a vector. The elements will be drawn in or
 `scale [sx sy & drawables]` 
 
 ![scale](/docs/images/scale.png?raw=true)
-```
+```clojure
 (ui/scale 3 10
     (ui/label "sx: 3, sy: 10"))
 ```
@@ -217,7 +217,7 @@ To draw multiple elements, simply use a vector. The elements will be drawn in or
 `vertical-layout [& elems]`
 ![vertical layout](/docs/images/vertical-layout.png?raw=true)
 
-```
+```clojure
 (ui/vertical-layout
  (ui/button "hello")
  (ui/button "world"))
@@ -226,7 +226,7 @@ To draw multiple elements, simply use a vector. The elements will be drawn in or
 `horizontal-layout [& elems]`
 ![horizontal layout](/docs/images/horizontal-layout.png?raw=true)
 
-```
+```clojure
 (ui/horizontal-layout
  (ui/button "hello")
  (ui/button "world"))
@@ -234,7 +234,7 @@ To draw multiple elements, simply use a vector. The elements will be drawn in or
 
 ![horizontal layout spacing](/docs/images/horizontal-layout-spacing.png?raw=true)
 
-```
+```clojure
 (apply ui/horizontal-layout
        (interpose
         (spacer 10 0)
@@ -245,7 +245,7 @@ To draw multiple elements, simply use a vector. The elements will be drawn in or
 
 
 ![centering](/docs/images/center2.png?raw=true)
-```
+```clojure
 ;; most layouts can be created just by using bounds
 (defn center [elem [width height]]
   (let [[ewidth eheight] (bounds elem)]
@@ -269,7 +269,7 @@ Typically, the graphics for elements and their event handling code is intertwine
 
 ![checkbox](/docs/images/checkbox-elem.png?raw=true)
 
-```
+```clojure
 (ui/horizontal-layout
  (ui/padding 10 10
              (ui/checkbox false))
@@ -278,7 +278,7 @@ Typically, the graphics for elements and their event handling code is intertwine
 ```
 
 ![button](/docs/images/button-elem.png?raw=true)
-```
+```clojure
 (ui/horizontal-layout
  (ui/padding 10 10
              (ui/button "button"))
@@ -291,7 +291,7 @@ Typically, the graphics for elements and their event handling code is intertwine
 With membrane, events handlers are pure functions that take events and return a sequence of effects.
 Effects are a data description of what to do rather than a side effect.
 
-```
+```clojure
 ;; mouse-down event at location [15 15]
 (let [mpos [15 15]]
   (ui/mouse-down
@@ -434,7 +434,7 @@ Will only be called if [mx my] is within the element's bounds
 `button` is 0 if left click, 1 if right click. greater than 1 for more exotic mouse buttons
 `mouse-down?` is true if button is pressed down, false if the button is being released
 `mods` is an integer mask. masks are
-```
+```clojure
 SHIFT   0x0001  
 CONTROL   0x0002  
 ALT   0x0004  
@@ -625,7 +625,7 @@ The most interesting part of this example is the `:mouse-down` event handler whi
 What exactly is `$checked?`? The symbol `$checked?` is replaced by the `defui` macro with a value that specifies the path to `checked?`. In fact, the `defui` macro will replace all symbols that start with "$" that derive from a keyword parameter with a value that represents the path of the corresponding symbol.
 
 You can find the implementation of the `::toggle` effect by checking its `defeffect`.
-```
+```clojure
 (defeffect ::toggle [$checked?]
   (dispatch! :update $checked? not))
 ```
