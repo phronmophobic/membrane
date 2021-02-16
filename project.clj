@@ -78,6 +78,9 @@
 
                              [cljfx "1.7.11"]
 
+                             [com.fulcrologic/fulcro "3.4.10"]
+
+
                              ;; skija
                              [org.jetbrains.skija/skija-macos "0.6.45"]
                              [org.lwjgl/lwjgl "3.2.3"]
