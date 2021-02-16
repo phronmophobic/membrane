@@ -84,7 +84,7 @@ com.phronemophobic/membrane {:mvn/version "0.9.16-beta"}
 Screenshot:
 ![simple counter](/docs/images/counter1.gif?raw=true)
 
-```
+```clojure
 (ns counter
   (:require [membrane.skia :as skia]
             [membrane.ui :as ui
@@ -118,7 +118,7 @@ Screenshot:
 Screenshot:
 ![simple counter](/docs/images/counter2.gif?raw=true)
 
-```
+```clojure
 
 (ns counter
   (:require [membrane.skia :as skia]
@@ -135,7 +135,7 @@ Screenshot:
 
 ;; Display a "more!" button next to label showing num
 ;; clicking on "more!" will dispatch a ::counter-increment effect
-(defui counter [& {:keys [num]}]
+(defui counter [{:keys [num]}]
   (horizontal-layout
    (on :mouse-down (fn [[mouse-x mouse-y]]
                      [[::counter-increment $num]])
@@ -156,7 +156,7 @@ Here's an example of how you can use your `counter` component.
 Screenshot:
 ![couning counter](/docs/images/counter3.gif?raw=true)
 
-```
+```clojure
 ;; Display an "Add Counter" button
 ;; on top of a stack of counters
 ;;
@@ -165,14 +165,14 @@ Screenshot:
 ;; 
 ;; clicking on the counters' "more!" buttons will
 ;; update their respective numbers
-(defui counter-counter [& {:keys [nums]}]
+(defui counter-counter [{:keys [nums]}]
   (apply
    vertical-layout
    (on :mouse-down (fn [[mx my]]
                      [[::add-counter $nums]])
        (ui/button "Add Counter"))
    (for [num nums]
-     (counter :num num))))
+     (counter {:num num}))))
 
 (defeffect ::add-counter [$nums]
   (dispatch! :update $nums conj 0))
@@ -187,13 +187,13 @@ Screenshot:
 ## Fun Features
 
 
-```
+```clojure
 ;; graphical elements are values
 ;; no need to attach elements to the dom to get layout info
 (ui/bounds (vertical-layout
            (ui/label "hello")
            (ui/checkbox true)))
->> [30.867887496948242 29.489776611328125]
+>> [30.79296875 27.0]
 
 
 ;; events are pure functions that return effects which are also values
@@ -223,7 +223,7 @@ Screenshot:
              {:complete? true
               :description "third"}]]
   (skia/draw-to-image! "todoapp.png"
-                       (todo-app :todos todos :selected-filter :all)))
+                       (todo-app {:todos todos :selected-filter :all})))
 
 ;; use spec to generate images of variations of your app
 (doseq [[i todo-list] (map-indexed vector (gen/sample (s/gen ::todos)))]
@@ -233,7 +233,7 @@ Screenshot:
                                     (clojure.pprint/pprint todo-list)))
                         (ui/with-style :membrane.ui/style-stroke
                           (ui/path [0 0] [400 0]))
-                        (todo-app :todos todo-list :selected-filter :all))))
+                        (todo-app {:todos todo-list :selected-filter :all}))))
 
 ```
 ## Screenshots
@@ -254,7 +254,9 @@ Questions? Comments? Connect with us on clojurians slack in [#membrane](https://
 <!-- Design Philosophy   -->
 <!-- FAQ   -->
 
+# License
 
+Copyright 2021 Adrian Smith. Membrane is licensed under Apache License v2.0.
 
 
 
