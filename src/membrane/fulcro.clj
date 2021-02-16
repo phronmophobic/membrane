@@ -250,7 +250,7 @@
 
         arglists (:arglists fn-meta)
         first-arglist (first arglists)
-        [ampersand arg-map] first-arglist
+        arg-map (first first-arglist)
 
         args (disj (set (:keys arg-map))
                    'context)
@@ -287,15 +287,14 @@
                      [(keyword (str "$" (name arg)))
                       [ident `(list '~'keypath ~'id) (keyword prefix (name arg))]])
 
-        all-call-args (sequence cat
-                                (concat call-args
-                                        $call-args) )
+        all-call-args (concat call-args
+                              $call-args)
         all-call-args (if focusable?
-                        (concat all-call-args
-                                [:focus? (list '= 'focus [ident 'id])])
+                        (conj all-call-args
+                              [:focus? (list '= 'focus [ident 'id])])
                         all-call-args)
 
-        body `(~c ~@all-call-args)
+        body `(~c ~(into {} all-call-args))
         body (if focusable?
                `(ui/on ::basic/request-focus
                        (fn []
