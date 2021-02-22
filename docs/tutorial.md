@@ -39,10 +39,17 @@
 
 Add this dependency to your project:
 
+Leiningen dependency:
+
 ```
-[com.phronemophobic/membrane "0.9.16-beta"]
+[com.phronemophobic/membrane  "0.9.22-beta"]
 ```
 
+deps.edn dependency:
+
+```
+com.phronemophobic/membrane {:mvn/version "0.9.22-beta"}
+```
 
 ## Hello World
 
