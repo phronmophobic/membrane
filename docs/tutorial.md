@@ -47,7 +47,7 @@ Leiningen dependency:
 
 deps.edn dependency:
 
-```
+```clojure
 com.phronemophobic/membrane {:mvn/version "0.9.22-beta"}
 ```
 
