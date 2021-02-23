@@ -41,7 +41,7 @@ Add this dependency to your project:
 
 Leiningen dependency:
 
-```
+```clojure
 [com.phronemophobic/membrane  "0.9.22-beta"]
 ```
 
@@ -55,7 +55,7 @@ com.phronemophobic/membrane {:mvn/version "0.9.22-beta"}
 
 All examples below will use the following namespace requires. 
 
-```
+```clojure
 (:require   [membrane.skia :as skia]
             [membrane.ui :as ui
              :refer [vertical-layout
@@ -103,14 +103,14 @@ For more examples, check out the [kitchen sink](/src/membrane/example/kitchen_si
 
 ![Label Default](/docs/images/label-default.png?raw=true)
 
-```
+```clojure
 ;; label using default font
 (ui/label "Hello\nWorld!")
 ```
 
 
 ![Label with font](/docs/images/label-font.png?raw=true)
-```
+```clojure
 ;; label with specified font
 ;; font will check the default System font folder
 ;; on Mac osx, check /System/Library/Fonts/ for available fonts
@@ -118,14 +118,14 @@ For more examples, check out the [kitchen sink](/src/membrane/example/kitchen_si
 ```
 
 ![Label with font](/docs/images/label-font.png?raw=true)
-```
+```clojure
 ;; Use the default font, but change the size
 (ui/label "Hello\nWorld!" (ui/font nil 22))
 ```
 ### Lines and Shapes
 
 ![Star](/docs/images/star.png?raw=true)
-```
+```clojure
 ;; filled polygon
 (ui/path [24.20 177.98]
          [199.82 37.93]
@@ -139,7 +139,7 @@ For more examples, check out the [kitchen sink](/src/membrane/example/kitchen_si
 
 
 ![Star](/docs/images/sawtooth.png?raw=true)
-```
+```clojure
 ;; line
 (ui/with-style :membrane.ui/style-stroke
   (ui/with-stroke-width 3
@@ -153,7 +153,7 @@ For more examples, check out the [kitchen sink](/src/membrane/example/kitchen_si
 
 
 ![rectangle](/docs/images/rectangle.png?raw=true)
-```
+```clojure
 ;; draw a filled  rectangle
 (ui/with-style :membrane.ui/style-stroke
   (ui/with-stroke-width 3
@@ -164,7 +164,7 @@ For more examples, check out the [kitchen sink](/src/membrane/example/kitchen_si
 ```
 
 ![rounded rectangle](/docs/images/rounded-rectangle.png?raw=true)
-```
+```clojure
 ;; rounded rectangle
 (ui/rounded-rectangle 200 100 10)
 ```
@@ -172,7 +172,7 @@ For more examples, check out the [kitchen sink](/src/membrane/example/kitchen_si
 ### Color
 
 ![label with color](/docs/images/label-color.png?raw=true)
-```
+```clojure
 ;; colors are vectors of [red green blue] or [red green blue alpha]
 ;; with values from 0 - 1 inclusive
 
@@ -185,7 +185,7 @@ For more examples, check out the [kitchen sink](/src/membrane/example/kitchen_si
 To draw multiple elements, simply use a vector. The elements will be drawn in order.
 
 ![label with color](/docs/images/group.png?raw=true)
-```
+```clojure
 [(ui/with-color [1 0 0 0.75]
    (ui/label "red"))
  (ui/with-color [0 1 0 0.75]
@@ -200,7 +200,7 @@ To draw multiple elements, simply use a vector. The elements will be drawn in or
 `translate [x y drawable]`
 
 ![translate](/docs/images/translate.png?raw=true)
-```
+```clojure
 [(ui/with-style :membrane.ui/style-stroke
    [(ui/path [0 0] [0 100])
     (ui/path [0 0] [60 0])])
@@ -214,7 +214,7 @@ To draw multiple elements, simply use a vector. The elements will be drawn in or
 `scale [sx sy & drawables]` 
 
 ![scale](/docs/images/scale.png?raw=true)
-```
+```clojure
 (ui/scale 3 10
     (ui/label "sx: 3, sy: 10"))
 ```
@@ -224,7 +224,7 @@ To draw multiple elements, simply use a vector. The elements will be drawn in or
 `vertical-layout [& elems]`
 ![vertical layout](/docs/images/vertical-layout.png?raw=true)
 
-```
+```clojure
 (ui/vertical-layout
  (ui/button "hello")
  (ui/button "world"))
@@ -233,7 +233,7 @@ To draw multiple elements, simply use a vector. The elements will be drawn in or
 `horizontal-layout [& elems]`
 ![horizontal layout](/docs/images/horizontal-layout.png?raw=true)
 
-```
+```clojure
 (ui/horizontal-layout
  (ui/button "hello")
  (ui/button "world"))
@@ -241,7 +241,7 @@ To draw multiple elements, simply use a vector. The elements will be drawn in or
 
 ![horizontal layout spacing](/docs/images/horizontal-layout-spacing.png?raw=true)
 
-```
+```clojure
 (apply ui/horizontal-layout
        (interpose
         (spacer 10 0)
@@ -252,7 +252,7 @@ To draw multiple elements, simply use a vector. The elements will be drawn in or
 
 
 ![centering](/docs/images/center2.png?raw=true)
-```
+```clojure
 ;; most layouts can be created just by using bounds
 (defn center [elem [width height]]
   (let [[ewidth eheight] (bounds elem)]
@@ -276,7 +276,7 @@ Typically, the graphics for elements and their event handling code is intertwine
 
 ![checkbox](/docs/images/checkbox-elem.png?raw=true)
 
-```
+```clojure
 (ui/horizontal-layout
  (ui/padding 10 10
              (ui/checkbox false))
@@ -285,7 +285,7 @@ Typically, the graphics for elements and their event handling code is intertwine
 ```
 
 ![button](/docs/images/button-elem.png?raw=true)
-```
+```clojure
 (ui/horizontal-layout
  (ui/padding 10 10
              (ui/button "button"))
@@ -298,7 +298,7 @@ Typically, the graphics for elements and their event handling code is intertwine
 With membrane, events handlers are pure functions that take events and return a sequence of effects.
 Effects are a data description of what to do rather than a side effect.
 
-```
+```clojure
 ;; mouse-down event at location [15 15]
 (let [mpos [15 15]]
   (ui/mouse-down
@@ -322,11 +322,7 @@ The default behavior for most container components is #2, delegating to their ch
 
 Here are few illustrative examples:
 
-
-<!--  This example is currently broken 
-#### Ignore effects that would be generated by a mouse-down event on a child element
-
-```
+```clojure
 (let [elem (ui/on
             ;; return nil for any mouse-down event
             :mouse-down (fn [_] nil)
@@ -336,12 +332,12 @@ Here are few illustrative examples:
      (ui/mouse-down elem [20 20]))
 >>> nil
 ```
--->
+
 #### Ignore all events from a child element
 
 It's useful for graphical GUI builders and testing to be able to silence components. Use `membrane.ui/no-events` to silence all child elems.
 
-```
+```clojure
 (let [elem (ui/no-events
             (ui/button "Big Red Button"
                        (fn []
@@ -354,7 +350,7 @@ It's useful for graphical GUI builders and testing to be able to silence compone
 
 Here, we'll only ask `child-elem` what effects should occur if the key pressed is a lower case letter. No symbols, numbers, or upper case letters allowed!
 
-```
+```clojure
 (let [lower-case-letters (set (map str "abcdefghijklmnopqrstuvwxyz"))
       child-elem (ui/on :key-press
                         (fn [s]
@@ -374,7 +370,7 @@ Here, we'll only ask `child-elem` what effects should occur if the key pressed i
 
 #### Transform some events
 
-```
+```clojure
 (let [child-elem (ui/on :key-press
                         (fn [s]
                           [[:child-effect1 s]
@@ -404,7 +400,7 @@ Event handlers can be provided using `membrane.ui/on`.
 mpos is a vector of `[mx, my]` in the elements local coordinates.
 
 Will only be called if [mx my] is within the element's bounds
-```
+```clojure
 (on :mouse-down (fn [[mx my :as mpos]]
                   ;;return a sequence of effects
                   [[:hello mx my]])
@@ -416,7 +412,8 @@ Will only be called if [mx my] is within the element's bounds
 mpos is a vector of `[mx, my]` in the elements local coordinates.
 
 Will only be called if [mx my] is within the element's bounds
-```
+
+```clojure
 (on :mouse-up (fn [[mx my :as mpos]]
                 ;;return a sequence of effects
                 [[:hello mx my]])
@@ -429,7 +426,8 @@ Will only be called if [mx my] is within the element's bounds
 mpos is a vector of `[mx, my]` in the elements local coordinates.
 
 Will only be called if [mx my] is within the element's bounds
-```
+
+```clojure
 (on :mouse-move (fn [[mx my :as mpos]]
                   ;;return a sequence of effects
                   [[:hello mx my]])
@@ -443,7 +441,7 @@ Will only be called if [mx my] is within the element's bounds
 `button` is 0 if left click, 1 if right click. greater than 1 for more exotic mouse buttons
 `mouse-down?` is true if button is pressed down, false if the button is being released
 `mods` is an integer mask. masks are
-```
+```clojure
 SHIFT   0x0001  
 CONTROL   0x0002  
 ALT   0x0004  
@@ -454,8 +452,8 @@ NUM_LOCK   0x0020
 
 Will only be called if `[mx my]` is within the element's bounds
 
-```
-(on :mouse-event (fn [[mpos button mouse-down? mods]]
+```clojure
+(on :mouse-event (fn [[[mx my] button mouse-down? mods]]
                    ;;return a sequence of effects
                    [[:hello mx my]])
     (ui/label "Hello"))
@@ -465,7 +463,7 @@ Will only be called if `[mx my]` is within the element's bounds
 :key-event [key scancode action mods]
 `key` is a string if it is printable
 otherwise one of
-```
+```clojure
 :grave_accent :world_1 :world_2 :escape :enter :backspace :insert :delete :right :left :down :up :page_up :page_down :home :end :caps_lock :scroll_lock :num_lock :print_screen :pause :f1 :f2 :f3 :f4 :f5 :f6 :f7 :f8 :f9 :f10 :f11 :f12 :f13 :f14 :f15 :f16 :f17 :f18 :f19 :f20 :f21 :f22 :f23 :f24 :f25 :kp_0 :kp_1 :kp_2 :kp_3 :kp_4 :kp_5 :kp_6 :kp_7 :kp_8 :kp_9 :kp_decimal :kp_divide :kp_multiply :kp_subtract :kp_add :kp_enter :kp_equal :left_shift :left_control :left_alt :left_super :right_shift :right_control :right_alt :right_super :menu
 ```
 `scancode` The scancode is unique for every key, regardless of whether it has a key token. Scancodes are platform-specific but consistent over time, so keys will have different scancodes depending on the platform but they are safe to save to disk.
@@ -479,7 +477,7 @@ SUPER   0x0008
 CAPS LOCK   0x0010
 NUM LOCK   0x0020
 
-```
+```clojure
 (on :key-event (fn [key scancode action mods]
                  [[:hello key scancode action mods]])
     (ui/label "Hello"))
@@ -489,13 +487,15 @@ NUM LOCK   0x0020
 :key-press [key]
 `key` is a string if it is printable
 otherwise one of
-```
+```clojure
 :grave_accent :world_1 :world_2 :escape :enter :backspace :insert :delete :right :left :down :up :page_up :page_down :home :end :caps_lock :scroll_lock :num_lock :print_screen :pause :f1 :f2 :f3 :f4 :f5 :f6 :f7 :f8 :f9 :f10 :f11 :f12 :f13 :f14 :f15 :f16 :f17 :f18 :f19 :f20 :f21 :f22 :f23 :f24 :f25 :kp_0 :kp_1 :kp_2 :kp_3 :kp_4 :kp_5 :kp_6 :kp_7 :kp_8 :kp_9 :kp_decimal :kp_divide :kp_multiply :kp_subtract :kp_add :kp_enter :kp_equal :left_shift :left_control :left_alt :left_super :right_shift :right_control :right_alt :right_super :menu
 ```
 
+```clojure
 (on :key-press (fn [key]
                 [[:respond-to-key key]])
     (ui/label "Hello"))
+```
 
 
 #### :clipboard-copy
@@ -516,7 +516,7 @@ Called when a clipboard paste event occurs.
 Another benefit of having a value based event system is that you can also easily transform and filter effects.
 
 
-```
+```clojure
 (defn search-bar [s]
   (horizontal-layout
    (on
@@ -543,7 +543,7 @@ Another benefit of having a value based event system is that you can also easily
 
 The effects returned by event handlers are meant to be used in conjuction with UI frameworks. If you're making a simple UI, then you can just put your side effects in the event handler. Just note that you'll want to return nil from the handler since the event machinery expects a sequence of events. Nothing bad will happen if you don't, but you may see IllegalArgumentExceptions in the logs with the message "Don't know how to create ISeq from: ...".
 
-```
+```clojure
 (ui/translate 10 10
               (on :mouse-down (fn [[mx my]]
                                 ;; side effect
@@ -568,7 +568,7 @@ To explain how `membrane.component` helps, let's a take a simple example of crea
 
 Without using any framework, your code might look something like this:
 
-```
+```clojure
 (def app-state (atom false))
 
 (defn checkbox [checked?]
@@ -589,8 +589,8 @@ This works great for this simple example, but this checkbox has to know exactly 
 
 Let's see what this same ugly checkbox would look like with `membrane.component`
 
-```
-(defui checkbox [& {:keys [checked?]}]
+```clojure
+(defui checkbox [ {:keys [checked?]}]
   (on
    :mouse-down
    (fn [_]
@@ -602,11 +602,11 @@ Let's see what this same ugly checkbox would look like with `membrane.component`
 (defeffect ::toggle [$checked?]
   (dispatch! :update $checked? not))
 
-(defui checkbox-test [& {:keys [x y z]}]
+(defui checkbox-test [{:keys [x y z]}]
   (vertical-layout
-   (checkbox :checked? x)
-   (checkbox :checked? y)
-   (checkbox :checked? z)
+   (checkbox {:checked? x})
+   (checkbox {:checked? y})
+   (checkbox {:checked? z})
    (ui/label
     (with-out-str (clojure.pprint/pprint
                    {:x x
@@ -632,7 +632,7 @@ The most interesting part of this example is the `:mouse-down` event handler whi
 What exactly is `$checked?`? The symbol `$checked?` is replaced by the `defui` macro with a value that specifies the path to `checked?`. In fact, the `defui` macro will replace all symbols that start with "$" that derive from a keyword parameter with a value that represents the path of the corresponding symbol.
 
 You can find the implementation of the `::toggle` effect by checking its `defeffect`.
-```
+```clojure
 (defeffect ::toggle [$checked?]
   (dispatch! :update $checked? not))
 ```
@@ -664,8 +664,8 @@ Let's create the component to display and select individual items.
 
 ![item row](/docs/images/item-row.png?raw=true)
 
-```
-(defui item-row [ & {:keys [item-name selected?]}]
+```clojure
+(defui item-row [ {:keys [item-name selected?]}]
   (on
    :mouse-down
    (fn [_]
@@ -688,19 +688,19 @@ Next, we'll build a generic item selector. For our item selector, we'll have a v
 ![item selector](/docs/images/item-selector.gif?raw=true)
 
 
-```
+```clojure
 (defui item-selector
   "`item-names` a vector of choices to select from
 `selected` a set of selected items
 `str-filter` filter out item names that don't contain a case insensitive match for `str-filter` as a substring
 "
-  [& {:keys [item-names selected str-filter]
-      :or {str-filter ""
-           selected #{}}}]
+  [{:keys [item-names selected str-filter]
+    :or {str-filter ""
+         selected #{}}}]
   (let [filtered-items (filter #(clojure.string/includes? (clojure.string/lower-case %) str-filter) item-names)]
     (apply
      vertical-layout
-     (basic/textarea :text str-filter)
+     (basic/textarea {:text str-filter})
      (for [iname filtered-items]
        ;; override the default behaviour of updating the `selected?` value directly
        ;; instead, we'll keep the list of selected items in a set
@@ -710,7 +710,7 @@ Next, we'll build a generic item selector. For our item selector, we'll have a v
                                    (if (contains? selected iname)
                                      (disj selected iname)
                                      (conj selected iname)))]])
-           (item-row :item-name iname :selected? (get selected iname)))))))
+           (item-row {:item-name iname :selected? (get selected iname)}))))))
 
 (comment
   (skia/run (component/make-app #'item-selector {:item-names (->> (clojure.java.io/file ".")
@@ -720,7 +720,7 @@ Next, we'll build a generic item selector. For our item selector, we'll have a v
 
 Finally, we'll define a file-selector function using our `item-selector` ui.
 
-```
+```clojure
 (defn file-selector [path]
   (let [state (atom {:item-names
                      (->> (clojure.java.io/file path)

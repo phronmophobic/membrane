@@ -323,17 +323,17 @@
                     meta
                     :arglists
                     first)
-        m (second arglist)
+        m (first arglist)
         arg-names (disj (set (:keys m))
                         'extra
                         'context)
         defaults (:or m)
         top-level (membrane.component/top-level-ui
-                   :state state :$state []
-                   :body ui-var
-                   :arg-names arg-names
-                   :defaults defaults
-                   :handler handler)
+                   {:state state :$state []
+                    :body ui-var
+                    :arg-names arg-names
+                    :defaults defaults
+                    :handler handler})
         [width height] (ui/bounds top-level)]
     {:fx/type :canvas
      :width width

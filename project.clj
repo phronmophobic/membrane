@@ -1,4 +1,4 @@
-(defproject com.phronemophobic/membrane "0.9.22-beta-SNAPSHOT"
+(defproject com.phronemophobic/membrane "0.9.22-beta"
   :description "A platform agnostic library for creating user interfaces"
   :url "https://github.com/phronmophobic/membrane"
   :license {:name "Apache License, Version 2.0"
@@ -77,6 +77,9 @@
                              [com.cognitect/transit-cljs "0.8.264"]
 
                              [cljfx "1.7.11"]
+
+                             [com.fulcrologic/fulcro "3.4.10"]
+
 
                              ;; skija
                              [org.jetbrains.skija/skija-macos "0.6.45"]
