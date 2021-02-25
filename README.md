@@ -64,6 +64,7 @@ By applying clojure's principles, several "extras" were obtained for free
 For more info covering the design of membrane:  
 [What is a User Interface?](https://blog.phronemophobic.com/what-is-a-user-interface.html)  
 [Implementing a Functional UI Model](https://blog.phronemophobic.com/ui-model.html)  
+[Reusable UI Components](https://blog.phronemophobic.com/reusable-ui-components.html)
 
 ## Usage
 Leiningen dependency:
