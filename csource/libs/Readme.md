@@ -73,7 +73,7 @@ make
 
 Skia
 
-```
+```sh
 
 # install depot tools
 
