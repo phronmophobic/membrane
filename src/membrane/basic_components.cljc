@@ -55,16 +55,20 @@
 
 (defui on-mouse-out [{:keys [mouse-out body hover?]}]
   (if hover?
-    (ui/on-mouse-move-global
-       (fn [[x y]]
-         (let [[w h] (ui/bounds body)]
-           (when (or (neg? x)
-                     (> x w)
-                     (neg? y)
-                     (> y h))
-             (into
-              [[:set $hover? false]]
-              (mouse-out)))))
+    (ui/wrap-on
+     :mouse-move-global
+     (fn [handler [x y :as pos]]
+       (let [[w h] (ui/bounds body)
+             intents (handler pos)]
+         (if (or (neg? x)
+                 (> x w)
+                 (neg? y)
+                 (> y h))
+           (into
+            (conj intents
+                  [:set $hover? false])
+            (mouse-out))
+           intents)))
        body)
     (ui/wrap-on
      :mouse-move
