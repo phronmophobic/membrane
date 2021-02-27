@@ -427,7 +427,7 @@
                              (contains? @special-fns @full-sym)))]
             (if special?
               (let [args (second form)
-                    _ (assert (map? args) "membrane components must be called with a literal map.")
+                    _ (assert (map? args) (str "membrane components must be called with a literal map. Invalid call:\n" (pr-str form)))
                     fn-meta (get @special-fns @full-sym
                                  (or #?(:clj (meta (resolve first-form)))
                                      (meta first-form)
