@@ -316,7 +316,7 @@
     (string? obj))
   IGenEditor
   (gen-editor [this sym]
-    `(basic/textarea :text ~sym)))
+    `(basic/textarea {:text ~sym})))
 
 (defmethod re-gen SimpleTextAreaGen [_ specs spec context]
   (->SimpleTextAreaGen {} context))
@@ -326,7 +326,7 @@
      'cljs.core/string?} spec ))
 
 
-(defui number-counter-inspector [& {:keys [gen]}]
+(defui number-counter-inspector [{:keys [gen]}]
   (vertical-layout
    (let [min (get-in gen [:opts :min])
          min-checked? (get extra :min-checked?)
@@ -342,9 +342,9 @@
              [:set $last-min min]]
             [[:set $min (or last-min 0)]])
           [:membrane.basic-components/toggle $min-checked?]))
-       (basic/checkbox :checked? min-checked?))
+       (basic/checkbox {:checked? min-checked?}))
       (when min
-        (basic/counter :num min))))
+        (basic/counter {:num min}))))
    (let [max (get-in gen [:opts :max])
          max-checked? (get extra :max-checked?)
          last-max (get extra :last-max)]
@@ -359,9 +359,9 @@
              [:set $last-max max]]
             [[:set $max (or last-max 0)]])
           [:membrane.basic-components/toggle $max-checked?]))
-       (basic/checkbox :checked? max-checked?))
+       (basic/checkbox {:checked? max-checked?}))
       (when max
-        (basic/counter :num max))))))
+        (basic/counter {:num max}))))))
 
 (defgen NumberCounterGen [opts context]
 
@@ -375,7 +375,7 @@
   IGenEditor
   (gen-editor [this sym]
     `(if (number? ~sym)
-       (basic/counter :num ~sym)
+       (basic/counter {:num ~sym})
        (ui/label (str ~sym " is NaN!"))))
   )
 
@@ -387,24 +387,24 @@
      'cljs.core/integer?} spec ))
 
 
-(defui number-slider-inspector [& {:keys [gen]}]
+(defui number-slider-inspector [{:keys [gen]}]
   (vertical-layout
    (let [min (get-in gen [:opts :min] 0)]
      (horizontal-layout
       (ui/label "min: ")
-      (basic/counter :num min)))
+      (basic/counter {:num min})))
    (let [max (get-in gen [:opts :max] 100)]
      (horizontal-layout
       (ui/label "max: ")
-      (basic/counter :num max)))
+      (basic/counter {:num max})))
    (let [max-width (get-in gen [:opts :max-width] 100)]
      (horizontal-layout
       (ui/label "max-width: ")
-      (basic/counter :num max-width)))
+      (basic/counter {:num max-width})))
    (let [integer? (get-in gen [:opts :integer?] true)]
      (horizontal-layout
       (ui/label "integer? ")
-      (basic/checkbox :checked? integer?)))))
+      (basic/checkbox {:checked? integer?})))))
 
 (defgen NumberSliderGen [opts context]
 
@@ -418,11 +418,11 @@
   IGenEditor
   (gen-editor [this sym]
     `(if (number? ~sym)
-       (basic/number-slider :num ~sym
-                            :min ~(get opts :min 0)
-                            :max ~(get opts :max 100)
-                            :integer? ~(get opts :integer? true)
-                            :max-width ~(get opts :max-width 100))
+       (basic/number-slider {:num ~sym
+                             :min ~(get opts :min 0)
+                             :max ~(get opts :max 100)
+                             :integer? ~(get opts :integer? true)
+                             :max-width ~(get opts :max-width 100)})
        (ui/label (str ~sym " is not a NaN!"))))
   )
 
@@ -448,7 +448,7 @@
     (boolean? obj))
   IGenEditor
   (gen-editor [this sym]
-    `(basic/checkbox :checked? ~sym)))
+    `(basic/checkbox {:checked? ~sym})))
 
 
 (defmethod re-gen CheckboxGen [_ specs spec context]
@@ -656,7 +656,7 @@
                      (kv-all-vertical-img)
                      (vk-all-vertical-img)])))
 
-(defui option-toggle [& {:keys [flag true-text false-text]}]
+(defui option-toggle [{:keys [flag true-text false-text]}]
   (horizontal-layout
    (ui/button true-text
               (fn []
@@ -669,7 +669,7 @@
                   [[:set $flag false]]))
               (not flag))))
 
-(defui static-map-gen-inspector [& {:keys [gen]}]
+(defui static-map-gen-inspector [{:keys [gen]}]
   (let [horizontal-rows? (get-in gen [:opts :horizontal-rows?])
         horizontal-cols? (get-in gen [:opts :horizontal-cols?])
         kv-order? (get-in gen [:opts :kv-order?] true)]
@@ -698,17 +698,17 @@
                                outer-elem))])
 
      (ui/label "key value layout order")
-     (option-toggle :flag kv-order?
-                    :true-text "kv"
-                    :false-text "vk")
+     (option-toggle {:flag kv-order?
+                     :true-text "kv"
+                     :false-text "vk"})
      (ui/label "row direction")
-     (option-toggle :flag horizontal-rows?
-                    :true-text "horizontal"
-                    :false-text "vertical")
+     (option-toggle {:flag horizontal-rows?
+                     :true-text "horizontal"
+                     :false-text "vertical"})
      (ui/label "column direction")
-     (option-toggle :flag horizontal-cols?
-                    :true-text "horizontal"
-                    :false-text "vertical")
+     (option-toggle {:flag horizontal-cols?
+                     :true-text "horizontal"
+                     :false-text "vertical"})
      
      
      
@@ -908,12 +908,12 @@
        (#{'clojure.spec.alpha/coll-of
           'cljs.spec.alpha/coll-of} (first spec))))
 
-(defui keymap-gen-inspector [& {:keys [gen]}]
+(defui keymap-gen-inspector [{:keys [gen]}]
   (let [bordered? (get-in gen [:opts :bordered?] true)]
     (horizontal-layout
      (ui/label "bordered?")
      (ui/translate 5 5
-                   (basic/checkbox :checked? bordered?)))))
+                   (basic/checkbox {:checked? bordered?})))))
 
 (defgen KeyMapGen [opts context]
 
@@ -1143,8 +1143,8 @@
 
 
 
-(defui foldable-section [& {:keys [title body visible?]
-                            :or {visible? true}}]
+(defui foldable-section [{:keys [title body visible?]
+                          :or {visible? true}}]
   (vertical-layout
    (on
     :mouse-down
@@ -1181,39 +1181,39 @@
 
 
 ;; forward declare
-(defui gen-editor-inspector [& {:keys [ge]}])
-(defui gen-editor-inspector [& {:keys [ge]}]
+(defui gen-editor-inspector [{:keys [ge]}])
+(defui gen-editor-inspector [{:keys [ge]}]
   (let [sub (subgens ge)]
     (foldable-section
-     :title (if-let [spec (-> ge :context :spec)]
-              (pr-str spec)
-              (get-gen-name (type ge)))
-     :visible? (get extra [:foldable-visible $ge] true)
-     :body
-     (apply
-      vertical-layout
-      (when-let [spec (-> ge :context :spec)]
-        (when-let [specs (-> ge :context :specs)]
-          (vertical-layout
-           (pr-label spec)
-           (let [options (gen-options specs spec)]
-             (apply horizontal-layout
-                    (for [option options]
-                      (basic/button :text (get-gen-name option)
-                                    :hover? (get extra [:switch :hover? option])
-                                    :on-click
-                                    (fn []
-                                      [[:set $ge (re-gen option specs spec (:context ge))]]))))))))
-      (when-let [inspector (gen-inspector ge)]
-        (let [inspector-extra (get extra [$ge :extra])]
-          (inspector :gen ge :$gen $ge
-                     :extra inspector-extra
-                     :$extra $inspector-extra
-                     :context context
-                     :$context $context)))
-      (for [k sub]
-        (let [v (get-in ge k)]
-          (gen-editor-inspector :ge v)))))))
+     {:title (if-let [spec (-> ge :context :spec)]
+               (pr-str spec)
+               (get-gen-name (type ge)))
+      :visible? (get extra [:foldable-visible $ge] true)
+      :body
+      (apply
+       vertical-layout
+       (when-let [spec (-> ge :context :spec)]
+         (when-let [specs (-> ge :context :specs)]
+           (vertical-layout
+            (pr-label spec)
+            (let [options (gen-options specs spec)]
+              (apply horizontal-layout
+                     (for [option options]
+                       (basic/button {:text (get-gen-name option)
+                                      :hover? (get extra [:switch :hover? option])
+                                      :on-click
+                                      (fn []
+                                        [[:set $ge (re-gen option specs spec (:context ge))]])})))))))
+       (when-let [inspector (gen-inspector ge)]
+         (let [inspector-extra (get extra [$ge :extra])]
+           (inspector {:gen ge :$gen $ge
+                       :extra inspector-extra
+                       :$extra $inspector-extra
+                       :context context
+                       :$context $context})))
+       (for [k sub]
+         (let [v (get-in ge k)]
+           (gen-editor-inspector {:ge v}))))})))
 
 (defn find-under
   ([pos elem delta]
@@ -1286,96 +1286,96 @@
 
 
 (declare background-eval)
-(defui eval-form [& {:keys [form eval-context cache eval-key]}]
+(defui eval-form [{:keys [form eval-context cache eval-key]}]
   (let [cache (or cache {})
         result (background-eval form eval-context cache $cache eval-key)]
     ;; (prn "result:" result)
     result))
 
-(defui gen-editor-editor [& {:keys [ge obj selected-ge-path ge-options]}]
+(defui gen-editor-editor [{:keys [ge obj selected-ge-path ge-options]}]
   (horizontal-layout
    (basic/scrollview
-    :scroll-bounds [800 800]
-    :body
-    (let [body
-          (ui/no-events
-           (ui/try-draw
-            (let [drawable
-                  #?(:clj
-                     (binding [*obj* obj
-                               *$ge* []]
-                       ;; (clojure.pprint/pprint (gen-editor ge 'obj))
-                       (eval `(let [~'obj *obj*]
-                                (maybe-with-meta
-                                 ~(gen-editor ge 'obj)
-                                 {:identity *$ge*}))))
-                     :cljs
-                     (eval-form :form `(maybe-with-meta
-                                        ~(gen-editor ge 'obj)
-                                        {:identity ~'ident})
-                                :eval-context {'ident *$ge*
-                                               'obj obj}
-                                :eval-key ge)
-                     )
-                  ]
-              drawable)
-            (fn [draw e]
-              (println e)
-              (draw (ui/label "whoops!")))))
-          circles (delay
-                   (mapv (fn [[x y]]
-                           (ui/translate (- x 5) (- y 5)
-                                         (ui/filled-rectangle [1 0 0]
-                                                              10 10)))
-                         (draw-circles body)))]
+    {:scroll-bounds [800 800]
+     :body
+     (let [body
+           (ui/no-events
+            (ui/try-draw
+             (let [drawable
+                   #?(:clj
+                      (binding [*obj* obj
+                                *$ge* []]
+                        ;; (clojure.pprint/pprint (gen-editor ge 'obj))
+                        (eval `(let [~'obj *obj*]
+                                 (maybe-with-meta
+                                  ~(gen-editor ge 'obj)
+                                  {:identity *$ge*}))))
+                      :cljs
+                      (eval-form :form `(maybe-with-meta
+                                         ~(gen-editor ge 'obj)
+                                         {:identity ~'ident})
+                                 :eval-context {'ident *$ge*
+                                                'obj obj}
+                                 :eval-key ge)
+                      )
+                   ]
+               drawable)
+             (fn [draw e]
+               (println e)
+               (draw (ui/label "whoops!")))))
+           circles (delay
+                     (mapv (fn [[x y]]
+                             (ui/translate (- x 5) (- y 5)
+                                           (ui/filled-rectangle [1 0 0]
+                                                                10 10)))
+                           (draw-circles body)))]
 
-      [
-       (on
-        :mouse-down
-        (fn [pos]
-          (let [results (seq (find-under pos body 5))]
-            (if-let [results results]
-              (if (= (count results) 1)
-                (let [ident (:identity (first results))]
-                  [[:set $selected-ge-path ident]])
-                [[:set $ge-options
-                  {:pos pos
-                   :options (vec
-                             (for [{:keys [elem pos elem-index identity]} results]
-                               [identity (get-gen-name
-                                          (type (spec/select-one (component/path->spec [identity])
-                                                                 ge)))]))}]])
-              [[:set $selected-ge-path nil]
-               [:set $ge-options nil]])))
-        body)
-       ;; @circles
-       (when ge-options
-         (let [options-pos (:pos ge-options)
-               options (:options ge-options)]
-           (ui/translate
-            (first options-pos)
-            (second options-pos)
-            (on ::basic/select
-                (fn [_ $ident]
-                  [[:set $ge-options nil]
-                   [:set $selected-ge-path $ident]])
-                (basic/dropdown-list :options options)))))]))
+       [
+        (on
+         :mouse-down
+         (fn [pos]
+           (let [results (seq (find-under pos body 5))]
+             (if-let [results results]
+               (if (= (count results) 1)
+                 (let [ident (:identity (first results))]
+                   [[:set $selected-ge-path ident]])
+                 [[:set $ge-options
+                   {:pos pos
+                    :options (vec
+                              (for [{:keys [elem pos elem-index identity]} results]
+                                [identity (get-gen-name
+                                           (type (spec/select-one (component/path->spec [identity])
+                                                                  ge)))]))}]])
+               [[:set $selected-ge-path nil]
+                [:set $ge-options nil]])))
+         body)
+        ;; @circles
+        (when ge-options
+          (let [options-pos (:pos ge-options)
+                options (:options ge-options)]
+            (ui/translate
+             (first options-pos)
+             (second options-pos)
+             (on ::basic/select
+                 (fn [_ $ident]
+                   [[:set $ge-options nil]
+                    [:set $selected-ge-path $ident]])
+                 (basic/dropdown-list {:options options})))))])})
    (let [[edit-ge $edit-ge] (if selected-ge-path
                               [(spec/select-one (component/path->spec [selected-ge-path])
                                                 ge)
                                [$ge selected-ge-path]]
                               [ge $ge])]
      (basic/scrollview
-      :scroll-bounds [800 800]
-      :body
-      (gen-editor-inspector :ge edit-ge
-                            :$ge $edit-ge)))))
+        {:scroll-bounds [800 800]
+         :body
+         (gen-editor-inspector {:ge edit-ge
+                                :$ge $edit-ge})}))))
 
-(defui test-edit [& {:keys [title?]}]
+(defui test-edit [{:keys [title?]}]
   (vertical-layout
    (horizontal-layout
     (ui/label "title?")
-    (basic/checkbox :checked? title?))
+    (basic/checkbox {:checked? title?}))
    (let [testgen (if title?
                    (-> testgen
                        (assoc-in [:opts :k] (->TitleGen {} (:context (get-in testgen [:opts :k]))))
@@ -1397,7 +1397,7 @@
     (def editor-state (skia/run (component/make-app #'gen-editor-editor {:ge ge
                                                                          :obj obj})))))
 
-#_(defui blades-scroll [ & {:keys [obj]}]
+#_(defui blades-scroll [{:keys [obj]}]
     (basic/scrollview
      :scroll-bounds [800 800]
      :body
@@ -1567,8 +1567,8 @@
        (set! (.-evaltest js/window
                          )
              (fn []
-               (let [source '(membrane.component/defui my-foo [& {:keys [ a b]}]) ]
-                 (cljs/eval state source membrane.eval/default-compiler-options
+               (let [source '(membrane.component/defui my-foo [{:keys [ a b]}]) ]
+                (cljs/eval state source membrane.eval/default-compiler-options
                             #(prn %)))))
 
 
