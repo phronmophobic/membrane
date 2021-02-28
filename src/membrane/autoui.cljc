@@ -1048,17 +1048,17 @@
      (assert generator (str "No generator for " (pr-str obj)) )
      (gen-editor generator sym obj children context))))
 
-;; (defn auto-component [ui-name obj]
-;;   (let [arg-sym 'obj]
-;;     `(defui ~ui-name [ ~'& {:keys [~arg-sym]}]
-;;        ~(ui-code arg-sym obj {:depth 0}))))
+(defn auto-component [ui-name ge]
+  (let [arg-sym 'obj]
+    `(defui ~ui-name [{:keys [~arg-sym]}]
+       (basic/scrollview {:bounds [800 800]
+                          :body ~(gen-editor ge arg-sym)}))))
 
-(defmacro def-auto-component [ui-name obj]
-  `(let [code# (auto-component (quote ~ui-name) ~obj)]
-     (clojure.pprint/pprint code#)
-     (eval code#)))
+(defn def-auto-component [ui-name ge]
+  (let [code (auto-component ui-name ge)]
+     (eval code)))
 
-#_(def-auto-component testblades blades-json)
+#_(def-auto-component 'testblades (best-gen blades-json))
 
 #_(def-auto-component map-example {:a 1
                                  :b 2
