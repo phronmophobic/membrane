@@ -1169,6 +1169,9 @@
                     cljs.spec.alpha/keys)
                    (re-gen KeyMapGen specs spec context)
 
+                   (clojure.spec.alpha/map-of)
+                   (re-gen StaticMapGen specs spec context)
+
                    (clojure.spec.alpha/or
                     cljs.spec.alpha/or)
                    (let [key-preds (rest spec)]
@@ -1369,7 +1372,7 @@
 (defui gen-editor-editor [{:keys [ge obj selected-ge-path ge-options]}]
   (horizontal-layout
    (basic/scrollview
-    {:scroll-bounds [800 800]
+    {:scroll-bounds [400 800]
      :body
      (let [body
            (ui/no-events
@@ -1471,6 +1474,35 @@
     (def editor-state (skia/run (component/make-app #'gen-editor-editor {:ge ge
                                                                          :obj obj})))))
 
+(comment
+  (def test-data (with-open [rdr (clojure.java.io/reader "/var/tmp/test-savegame.json")]
+                   (clojure.data.json/read rdr :key-fn keyword))))
+
+(comment
+  (start-form-builder {:x 2,
+                       :y 10,
+                       :data ":/gamedata/enemies/test-enemy.json",
+                       :character
+                       {:role "Enemy",
+                        :wisdom 10,
+                        :weapon "",
+                        :firearm "",
+                        :experience 100,
+                        :mana 10,
+                        :inventory
+                        [{:data ":/gamedata/items/plants/healing-herb.json", :count 2}
+                         {:data ":/gamedata/items/weapons/sword.json", :count 2}],
+                        :strength 10,
+                        :healthMax 200,
+                        :manaMax 10,
+                        :health 200,
+                        :gender "male",
+                        :stealth 0}}))
+
+(defn start-form-builder [obj]
+  (let [ge (best-gen obj)]
+    (def editor-state (skia/run (component/make-app #'gen-editor-editor {:ge ge
+                                                                         :obj obj})))))
 
 
 (defn start-spec []
