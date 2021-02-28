@@ -974,6 +974,63 @@
           'cljs.spec.alpha/keys} (first spec))))
 
 
+(defui cat-gen-inspector [{:keys [gen]}]
+  (let [bordered? (get-in gen [:opts :bordered?] true)]
+    (horizontal-layout
+     (ui/label "bordered?")
+     (ui/translate 5 5
+                   (basic/checkbox {:checked? bordered?})))))
+
+(defgen CatGen [opts context]
+
+  IGenInspector
+  (gen-inspector [this]
+    #'cat-gen-inspector)
+
+  ISubGens
+  (subgens [this]
+    (map #(vector :opts :val-gens %) (range (count (:val-gens opts)))))
+  IGenPred
+  (gen-pred? [this obj]
+    (and (seqable? obj)
+         (not (or (map? obj)
+                  (string? obj)))))
+  IGenEditor
+  (gen-editor [this sym]
+    (let [body `(vertical-layout
+                ~@(apply concat
+                         (for [[i subgen] (map-indexed vector (:val-gens opts))]
+                           (let [v-sym (gensym "v-")]
+                             `[(let [~v-sym (nth ~sym ~i)]
+                                 (maybe-with-meta
+                                  ~(gen-editor subgen v-sym)
+                                  ~{:relative-identity [(quote '(keypath :opts))
+                                                        (quote '(keypath :val-gens))
+                                                        (list 'list
+                                                              (list 'quote 'nth)
+                                                              i)]}))]))))
+          body (if (get opts :bordered? true)
+                 `(ui/bordered [5 5] ~body)
+                 body)]
+      body)))
+
+
+(defmethod re-gen CatGen [_ specs spec context]
+  (assert (can-gen-from-spec? CatGen specs spec))
+  (let [subcontext (inc-context-depth context)
+        val-specs (take-nth 2 (drop 2 spec))]
+    (->CatGen {:val-gens (vec (for [val-spec val-specs]
+                                (best-gen specs (get specs val-spec val-spec) subcontext)))
+               :bordered? (if-let [depth (:depth context)]
+                            (pos? depth)
+                            true)}
+                 context)))
+
+(defmethod can-gen-from-spec? CatGen [this specs spec]
+  (and (seq? spec)
+       (= 'clojure.spec.alpha/cat (first spec))))
+
+
 (defn first-matching-gen [obj]
   (some #(when ((:pred %) obj)
            %)
@@ -1057,6 +1114,8 @@
                     'cljs.core/keyword?} spec )
                  (->TitleGen {} context)
 
+                 (#{'clojure.core/simple-symbol?} spec )
+                 (->TitleGen {} context)
 
                  (#{'clojure.core/integer?
                     'cljs.core/integer?
