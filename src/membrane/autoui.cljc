@@ -1150,6 +1150,21 @@
                                      context)
                      )
 
+                   clojure.spec.alpha/cat
+                   (let []
+                     (re-gen CatGen specs spec context))
+
+                   clojure.spec.alpha/?
+                   (let [pred (second spec)
+                         subcontext (inc-context-depth context)]
+                     (best-gen specs pred subcontext))
+
+                   clojure.spec.alpha/*
+                   (let [pred (second spec)
+                         subcontext (inc-context-depth context)]
+                     (->StaticSeqGen {:vals (best-gen specs pred subcontext)}
+                                     context))
+
                    (clojure.spec.alpha/keys
                     cljs.spec.alpha/keys)
                    (re-gen KeyMapGen specs spec context)
@@ -1453,6 +1468,25 @@
 (defn start-blades []
   (let [obj blades-json
         ge (best-gen obj)]
+    (def editor-state (skia/run (component/make-app #'gen-editor-editor {:ge ge
+                                                                         :obj obj})))))
+
+
+
+(defn start-spec []
+  (let [obj (list 10 "Asfa")
+        ge (let [specs {} #_(into {}
+                               (for [[k v] (s/registry)
+                                     :let [form (try
+                                                  (s/form v)
+                                                  (catch Exception e
+                                                    nil))]
+                                     :when form]
+                                 [k form]))]
+                   (best-gen specs
+                             `(s/cat :foo integer? :bar string?)
+                             {:depth 0
+                              :specs specs}))]
     (def editor-state (skia/run (component/make-app #'gen-editor-editor {:ge ge
                                                                          :obj obj})))))
 
