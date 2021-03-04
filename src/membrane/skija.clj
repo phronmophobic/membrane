@@ -722,13 +722,15 @@
    2 :repeat
    3 :release})
 
-(defn run* [view-fn]
+(defn run* [view-fn & [{:keys [window-start-width
+                               window-start-height]
+                        :as options}]]
   (.set (GLFWErrorCallback/createPrint System/err))
   (GLFW/glfwInit)
   (GLFW/glfwWindowHint GLFW/GLFW_VISIBLE GLFW/GLFW_FALSE)
   (GLFW/glfwWindowHint GLFW/GLFW_RESIZABLE GLFW/GLFW_TRUE)
-  (let [width 640
-        height 480
+  (let [width  (or window-start-width  640)
+        height (or window-start-height 480)
         window (GLFW/glfwCreateWindow width height "Skija LWJGL Demo" MemoryUtil/NULL MemoryUtil/NULL)]
     (GLFW/glfwMakeContextCurrent window)
     (GLFW/glfwSwapInterval 1)
@@ -931,8 +933,10 @@
 (defn my-view []
   (ui/filled-rectangle [1 0 0] 100 100))
 
-(defn run [view-fn]
-  (dispatch-sync #(run* view-fn)))
+(defn run
+  ([view-fn] (run view-fn {}))
+  ([view-fn options]
+   (dispatch-sync #(run* view-fn options))))
 
 (def counter-state (atom 0))
 (defn counter-ui []
