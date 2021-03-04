@@ -603,7 +603,9 @@
   (draw [this]
     (let [[sx sy] (:scalars this)]
       (save-canvas
-       (.scale ^Canvas *canvas* (float sx) (float sy))))))
+       (.scale ^Canvas *canvas* (float sx) (float sy))
+       (doseq [drawable (:drawables this)]
+         (draw drawable))))))
 
 
 (extend-type membrane.ui.Arc
