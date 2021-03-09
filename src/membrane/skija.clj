@@ -724,16 +724,22 @@
    2 :repeat
    3 :release})
 
-(defn run* [view-fn & [{:keys [window-start-width
+(defn run* [view-fn & [{:keys [window-title
+                               window-start-width
                                window-start-height]
                         :as options}]]
   (.set (GLFWErrorCallback/createPrint System/err))
   (GLFW/glfwInit)
   (GLFW/glfwWindowHint GLFW/GLFW_VISIBLE GLFW/GLFW_FALSE)
   (GLFW/glfwWindowHint GLFW/GLFW_RESIZABLE GLFW/GLFW_TRUE)
-  (let [width  (or window-start-width  640)
-        height (or window-start-height 480)
-        window (GLFW/glfwCreateWindow width height "Skija LWJGL Demo" MemoryUtil/NULL MemoryUtil/NULL)]
+  (let [width  (int (or window-start-width  640))
+        height (int (or window-start-height 480))
+        window-title (if window-title
+                       (do
+                         (assert (string? window-title) "If window title is provided, it must be a string")
+                         window-title)
+                       "Membrane")
+        window (GLFW/glfwCreateWindow width height window-title MemoryUtil/NULL MemoryUtil/NULL)]
     (GLFW/glfwMakeContextCurrent window)
     (GLFW/glfwSwapInterval 1)
     (GLFW/glfwShowWindow window)  
