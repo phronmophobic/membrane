@@ -725,6 +725,8 @@
    3 :release})
 
 (defn run* [view-fn & [{:keys [window-title
+                               window-start-x
+                               window-start-y
                                window-start-width
                                window-start-height]
                         :as options}]]
@@ -740,6 +742,12 @@
                          window-title)
                        "Membrane")
         window (GLFW/glfwCreateWindow width height window-title MemoryUtil/NULL MemoryUtil/NULL)]
+
+    (when (or window-start-x window-start-y)
+      (assert (and window-start-x window-start-y)
+        "If window-start-x or window-start-y are provided, both must be provided.")
+      (GLFW/glfwSetWindowPos window (int window-start-x) (int window-start-y)))
+
     (GLFW/glfwMakeContextCurrent window)
     (GLFW/glfwSwapInterval 1)
     (GLFW/glfwShowWindow window)  
