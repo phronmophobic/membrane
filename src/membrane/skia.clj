@@ -1178,7 +1178,7 @@
 (def key-action-map
   {1 :press
    2 :repeat
-   3 :release})
+   0 :release})
 (defn- -key-callback [window window-handle key scancode action mods]
   (let [action (get key-action-map action :unknown)
         ui @(:ui window)]
