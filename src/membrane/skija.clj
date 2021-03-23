@@ -914,6 +914,10 @@
 
       (Callbacks/glfwFreeCallbacks window)
       (GLFW/glfwHideWindow window)
+      (.close surface)
+      (.close target)
+
+      (.close context)
       (GLFW/glfwDestroyWindow window)
       (GLFW/glfwPollEvents)
       (GLFW/glfwTerminate)
