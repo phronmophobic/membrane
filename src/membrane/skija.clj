@@ -41,6 +41,7 @@
 (def ^:dynamic *font-cache* (atom {}))
 (def ^:dynamic *image-cache* nil)
 (def ^:dynamic *draw-cache* nil)
+(def ^:dynamic *window* nil)
 
 (def keycodes
   {:unknown -1
@@ -392,7 +393,7 @@
   (let [padding (float 5)]
     (if *already-drawing*
       (draw drawable)
-      (let [[xscale yscale :as content-scale] [1 1] ;; @(:window-content-scale *window*)
+      (let [[xscale yscale :as content-scale] (display-scale *window*) ;; @(:window-content-scale *window*)
             [img img-width img-height]
             (if-let [img-info (get @*draw-cache* [drawable content-scale *paint*])]
               img-info
@@ -764,6 +765,7 @@
       (.scale canvas scale-x scale-y)
       
       (binding [*canvas* canvas
+                *window* window
                 *paint* {}
                 *font-cache* (atom {})
                 *draw-cache* (atom {})
