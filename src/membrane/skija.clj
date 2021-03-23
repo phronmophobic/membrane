@@ -603,7 +603,9 @@
   (draw [this]
     (let [[sx sy] (:scalars this)]
       (save-canvas
-       (.scale ^Canvas *canvas* (float sx) (float sy))))))
+       (.scale ^Canvas *canvas* (float sx) (float sy))
+       (doseq [drawable (:drawables this)]
+         (draw drawable))))))
 
 
 (extend-type membrane.ui.Arc
@@ -722,14 +724,30 @@
    2 :repeat
    3 :release})
 
-(defn run* [view-fn]
+(defn run* [view-fn & [{:keys [window-title
+                               window-start-x
+                               window-start-y
+                               window-start-width
+                               window-start-height]
+                        :as options}]]
   (.set (GLFWErrorCallback/createPrint System/err))
   (GLFW/glfwInit)
   (GLFW/glfwWindowHint GLFW/GLFW_VISIBLE GLFW/GLFW_FALSE)
   (GLFW/glfwWindowHint GLFW/GLFW_RESIZABLE GLFW/GLFW_TRUE)
-  (let [width 640
-        height 480
-        window (GLFW/glfwCreateWindow width height "Skija LWJGL Demo" MemoryUtil/NULL MemoryUtil/NULL)]
+  (let [width  (int (or window-start-width  640))
+        height (int (or window-start-height 480))
+        window-title (if window-title
+                       (do
+                         (assert (string? window-title) "If window title is provided, it must be a string")
+                         window-title)
+                       "Membrane")
+        window (GLFW/glfwCreateWindow width height window-title MemoryUtil/NULL MemoryUtil/NULL)]
+
+    (when (or window-start-x window-start-y)
+      (assert (and window-start-x window-start-y)
+        "If window-start-x or window-start-y are provided, both must be provided.")
+      (GLFW/glfwSetWindowPos window (int window-start-x) (int window-start-y)))
+
     (GLFW/glfwMakeContextCurrent window)
     (GLFW/glfwSwapInterval 1)
     (GLFW/glfwShowWindow window)  
@@ -931,8 +949,10 @@
 (defn my-view []
   (ui/filled-rectangle [1 0 0] 100 100))
 
-(defn run [view-fn]
-  (dispatch-sync #(run* view-fn)))
+(defn run
+  ([view-fn] (run view-fn {}))
+  ([view-fn options]
+   (dispatch-sync #(run* view-fn options))))
 
 (def counter-state (atom 0))
 (defn counter-ui []
