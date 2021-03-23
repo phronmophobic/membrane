@@ -183,6 +183,10 @@
   (highlighter/highlight buf hl ))
 
 
+(defeffect ::insert-text [$buf s]
+  (dispatch! :update $buf (comp highlight
+                                #(buffer/insert-string % s))))
+
 (defeffect ::handle-key [$buf s]
   (case s
     :up
@@ -236,6 +240,10 @@
        (if focused?
          [[::update-cursor $buf pos]]
          [[:set $focus $buf]]))
+     :clipboard-paste
+     (fn [s]
+       (when focused?
+         [[::insert-text $buf s]]))
      (maybe-key-press
       focused?
       (on
