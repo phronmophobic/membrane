@@ -1,4 +1,4 @@
-(defproject com.phronemophobic/membrane "0.9.22-beta"
+(defproject com.phronemophobic/membrane "0.9.23-beta"
   :description "A platform agnostic library for creating user interfaces"
   :url "https://github.com/phronmophobic/membrane"
   :license {:name "Apache License, Version 2.0"
