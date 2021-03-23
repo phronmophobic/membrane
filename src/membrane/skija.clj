@@ -921,8 +921,7 @@
       (GLFW/glfwDestroyWindow window)
       (GLFW/glfwPollEvents)
       (GLFW/glfwTerminate)
-      ;; (GLFW/glfwSetErrorCallback nil)
-
+      (.free (GLFW/glfwSetErrorCallback nil))
       )))
 
 (def objlib (try
