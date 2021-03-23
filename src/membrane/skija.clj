@@ -38,6 +38,7 @@
 
 (def ^:dynamic *paint* {})
 (def ^:dynamic *canvas* {})
+(def ^:dynamic *context* nil)
 (def ^:dynamic *font-cache* (atom {}))
 (def ^:dynamic *image-cache* nil)
 (def ^:dynamic *draw-cache* nil)
@@ -753,138 +754,157 @@
     (GLFW/glfwSwapInterval 1)
     (GLFW/glfwShowWindow window)  
     (GL/createCapabilities)
-    (let [context (DirectContext/makeGL)
-          fb-id   (GL11/glGetInteger 0x8CA6)
-          [scale-x scale-y] (display-scale window)
-          target  (BackendRenderTarget/makeGL (* scale-x width) (* scale-y height) 0 8 fb-id FramebufferFormat/GR_GL_RGBA8)
-          surface (Surface/makeFromBackendRenderTarget context target SurfaceOrigin/BOTTOM_LEFT SurfaceColorFormat/RGBA_8888 (ColorSpace/getSRGB))
-          canvas  (.getCanvas surface)
-          view-atom (atom nil)
-          last-draw (atom nil)
-          mouse-position (atom [0 0])]
-      (.scale canvas scale-x scale-y)
-      
-      (binding [*canvas* canvas
-                *window* window
-                *paint* {}
-                *font-cache* (atom {})
-                *draw-cache* (atom {})
-                *image-cache* (atom {})
+
+    (binding [*canvas* nil
+              *context* nil
+              *window* window
+              *paint* {}
+              *font-cache* (atom {})
+              *draw-cache* (atom {})
+              *image-cache* (atom {})]
+      (let [skija-resources (atom nil)
+
+            view-atom (atom nil)
+            last-draw (atom nil)
+            mouse-position (atom [0 0])]
+        (letfn [(release-skija-resources []
+                  (set! *canvas* nil)
+                  (set! *context* nil)
+                  (when-let [[resources _] (swap-vals! skija-resources (constantly nil))]
+                    (doseq [[k resource] resources
+                            :when resource]
+                      (.close resource))))
+
+                (reshape! [width height]
+                  (release-skija-resources)
+
+                  (let [context (DirectContext/makeGL)
+                        fb-id (GL11/glGetInteger 0x8CA6)
+                        [scale-x scale-y] (display-scale window)
+                        target  (BackendRenderTarget/makeGL width height 0 8 fb-id FramebufferFormat/GR_GL_RGBA8)
+                        surface (Surface/makeFromBackendRenderTarget context target SurfaceOrigin/BOTTOM_LEFT SurfaceColorFormat/RGBA_8888 (ColorSpace/getSRGB))
+                        canvas  (.getCanvas surface)]
+                    (set! *context* context)
+                    (set! *canvas* canvas)
+                    ;; release in reverse order of creation
+                    (reset! skija-resources [[:surface surface]
+                                             [:target target]
+                                             [:context context]])
+                    (.scale canvas scale-x scale-y)))
+
+                (repaint! []
+                  (let [canvas *canvas*
+                        layer (.save canvas)
+
+                        view (view-fn)
+                        last-view @view-atom]
+                    (when (not= view last-view)
+                      (reset! view-atom view)
+                      (.clear canvas (color 0xFFFFFFFF))
+                      (draw view)
+                      (.restoreToCount canvas layer)
+                      (.flush *context*)
+                      (GLFW/glfwSwapBuffers window))))
+                (on-mouse-button [window button action mods]
+                  (try
+                    (ui/mouse-event @view-atom @mouse-position button (= 1 action) mods)
+                    (catch Exception e
+                      (println e))))
+                (on-scroll [window offset-x offset-y]
+                  (ui/scroll @view-atom [(* 2 offset-x) (* 2 offset-y)] @mouse-position)
+                  (repaint!))
+                (on-framebuffer-size [window width height]
+                  (reshape! width height)
+                  (reset! view-atom nil)
+                  (repaint!))
+                (on-window-refresh [window]
+                  (repaint!))
+                (on-drop [window paths]
+                  (try
+                    (ui/drop @view-atom (vec paths) @mouse-position)
+                    (catch Exception e
+                      (println e))))
+                (on-cursor-pos [window x y]
+                  (try
+                    (doall (ui/mouse-move @view-atom [x y]))
+                    (doall (ui/mouse-move-global @view-atom [x y]))
+                    (catch Exception e
+                      (println e)))
+
+
+                  (reset! mouse-position [(double x)
+                                          (double y)])
+
+                  (repaint!))
+
+                (on-key [window key scancode action mods]
+                  (let [action (get key-action-map action :unknown)
+                        ui @view-atom]
+                    (ui/key-event ui key scancode action mods)
+                    (cond
+
+                      ;; paste
+                      (and (= key 86)
+                           (= action :press)
+                           (= mods 8))
+                      (let [nodes (->> (tree-seq (fn [n]
+                                                   true)
+                                                 ui/children
+                                                 ui)
+                                       (filter #(satisfies? ui/IClipboardPaste %)))]
+                        (when-let [s (GLFW/glfwGetClipboardString window)]
+                          (doseq [node nodes]
+                            (ui/-clipboard-paste node s))))
+
+                      ;; cut
+                      (and (= key 88)
+                           (= action :press)
+                           (= mods 8))
+                      (let [node (->> (tree-seq (fn [n]
+                                                  true)
+                                                ui/children
+                                                ui)
+                                      (filter #(satisfies? ui/IClipboardCut %))
+                                      ;; maybe should be last?
+                                      first)]
+                        (when-let [s (ui/-clipboard-cut node)]
+                          #_(GLFW/glfwSetClipboardString window s )))
+
+                      ;; copy
+                      (and (= key 67)
+                           (= action :press)
+                           (= mods 8))
+                      (ui/clipboard-copy ui)
+
+                      ;; special keys
+                      (or (= :press action)
+                          (= :repeat action))
+                      (let [k (get keymap key)]
+                        (when (keyword? k)
+                          (try
+                            (ui/key-press ui k)
+                            (catch Exception e
+                              (println e)))
+
+                          ))
+                      ))
+
+                  (repaint!))
+
+                (on-char [window codepoint]
+                  (let [k (String. ^bytes (int->bytes codepoint) "utf-32")
+                        ui @view-atom]
+                    (try
+                      (ui/key-press ui k)
+                      (catch Exception e
+                        (println e))))
+
+                  (repaint!))
                 ]
-        (try
-          (letfn [(repaint! []
-                    (assert (identical? canvas *canvas*))
-                    
-                    (let [layer (.save canvas)
-
-                          view (view-fn)
-                          last-view @view-atom]
-                      (when (not= view last-view)
-                        (reset! view-atom view)
-                        (.clear canvas (color 0xFFFFFFFF))
-                        (draw view)
-                        (.restoreToCount canvas layer)
-                        (.flush context)
-                        (GLFW/glfwSwapBuffers window)))
-                    
-                    )
-                  (on-mouse-button [window button action mods]
-                    (assert (identical? canvas *canvas*))
-                    (try
-                      (ui/mouse-event @view-atom @mouse-position button (= 1 action) mods)
-                      (catch Exception e
-                        (println e))))
-                  (on-scroll [window offset-x offset-y]
-                    (ui/scroll @view-atom [(* 2 offset-x) (* 2 offset-y)] @mouse-position)
-                    (repaint!))
-                  (on-framebuffer-size [window width height]
-                    ;; should be reshaping here
-                    )
-                  (on-window-refresh [window]
-                    (repaint!))
-
-                  (on-drop [window paths]
-                    (try
-                      (ui/drop @view-atom (vec paths) @mouse-position)
-                      (catch Exception e
-                        (println e))))
-                  (on-cursor-pos [window x y]
-                    (try
-                      (doall (ui/mouse-move @view-atom [x y]))
-                      (doall (ui/mouse-move-global @view-atom [x y]))
-                      (catch Exception e
-                        (println e)))
-
-
-                    (reset! mouse-position [(double x)
-                                            (double y)])
-
-                    (repaint!))
-
-                  (on-key [window key scancode action mods]
-                    (let [action (get key-action-map action :unknown)
-                          ui @view-atom]
-                      (ui/key-event ui key scancode action mods)
-                      (cond
-
-                        ;; paste
-                        (and (= key 86)
-                             (= action :press)
-                             (= mods 8))
-                        (let [nodes (->> (tree-seq (fn [n]
-                                                     true)
-                                                   ui/children
-                                                   ui)
-                                         (filter #(satisfies? ui/IClipboardPaste %)))]
-                          (when-let [s (GLFW/glfwGetClipboardString window)]
-                            (doseq [node nodes]
-                              (ui/-clipboard-paste node s))))
-
-                        ;; cut
-                        (and (= key 88)
-                             (= action :press)
-                             (= mods 8))
-                        (let [node (->> (tree-seq (fn [n]
-                                                    true)
-                                                  ui/children
-                                                  ui)
-                                        (filter #(satisfies? ui/IClipboardCut %))
-                                        ;; maybe should be last?
-                                        first)]
-                          (when-let [s (ui/-clipboard-cut node)]
-                            #_(GLFW/glfwSetClipboardString window s )))
-
-                        ;; copy
-                        (and (= key 67)
-                             (= action :press)
-                             (= mods 8))
-                        (ui/clipboard-copy ui)
-
-                        ;; special keys
-                        (or (= :press action)
-                            (= :repeat action))
-                        (let [k (get keymap key)]
-                          (when (keyword? k)
-                            (try
-                              (ui/key-press ui k)
-                              (catch Exception e
-                                (println e)))
-
-                            ))
-                        ))
-
-                    (repaint!))
-
-                  (on-char [window codepoint]
-                    (let [k (String. ^bytes (int->bytes codepoint) "utf-32")
-                          ui @view-atom]
-                      (try
-                        (ui/key-press ui k)
-                        (catch Exception e
-                          (println e))))
-
-                    (repaint!))
-                  ]
+          (try
+            (let [[scale-x scale-y] (display-scale window)]
+              (reshape! (* scale-x width)
+                        (* scale-y height)))
             (GLFW/glfwSetMouseButtonCallback window
                                              (mouse-button-callback
                                               on-mouse-button))
@@ -908,21 +928,19 @@
               (when (not (GLFW/glfwWindowShouldClose window))
                 (repaint!)
                 (GLFW/glfwPollEvents)
-                (recur))))
-          (catch Exception e
-            (prn "crash in event loop" e))))
+                (recur)))
+            (catch Exception e
+              (prn "crash in event loop" e))
+            (finally
+              (Callbacks/glfwFreeCallbacks window)
+              (GLFW/glfwHideWindow window)
 
-      (Callbacks/glfwFreeCallbacks window)
-      (GLFW/glfwHideWindow window)
-      (.close surface)
-      (.close target)
+              (release-skija-resources)
 
-      (.close context)
-      (GLFW/glfwDestroyWindow window)
-      (GLFW/glfwPollEvents)
-      (GLFW/glfwTerminate)
-      (.free (GLFW/glfwSetErrorCallback nil))
-      )))
+              (GLFW/glfwDestroyWindow window)
+              (GLFW/glfwPollEvents)
+              (GLFW/glfwTerminate)
+              (.free (GLFW/glfwSetErrorCallback nil)))))))))
 
 (def objlib (try
               (com.sun.jna.NativeLibrary/getInstance "CoreFoundation")
