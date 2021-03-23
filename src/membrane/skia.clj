@@ -1543,10 +1543,10 @@
 (defonce window-chan (chan 1))
 
 (defn run-sync
-  "Open a window and call `make-ui` to draw. Returns when the window is closed.
+  "Open a window and call `view-fn` to draw. Returns when the window is closed.
 
-  `make-ui` should be a 0 argument function that returns an object satisfying `IDraw`.
-  `make-ui` will be called for every repaint. Repaints occur on every event. You can also trigger a repaint by calling `glfw-post-empty-event`.
+  `view-fn` should be a 0 argument function that returns an object satisfying `IDraw`.
+  `view-fn` will be called for every repaint. Repaints occur on every event. You can also trigger a repaint by calling `glfw-post-empty-event`.
 
   `options` is a map that can contain the following keys
   Optional parameters
@@ -1575,9 +1575,9 @@
   For each handler, `window` is the GlfwSkiaWindow and window-handle is a jna pointer to the glfw pointer.
   
   "
-  ([make-ui]
-   (run-sync make-ui {}))
-  ([make-ui {:keys [window-start-width
+  ([view-fn]
+   (run-sync view-fn {}))
+  ([view-fn {:keys [window-start-width
                     window-start-height
                     window-start-x
                     window-start-y
@@ -1586,7 +1586,7 @@
    (assert membraneskialib "Could not run because membraneskia could not be loaded.")
 
    (async/>!! window-chan (map->GlfwSkiaWindow (merge
-                                                {:view-fn make-ui}
+                                                {:view-fn view-fn}
                                                 options)))
 
    (dispatch-sync!
@@ -1597,10 +1597,10 @@
              (println e)))))))
 
 (defn run
-  "Open a window and call `make-ui` to draw. Returns a channel that is closed when the window is closed.
+  "Open a window and call `view-fn` to draw. Returns a channel that is closed when the window is closed.
 
-  `make-ui` should be a 0 argument function that returns an object satisfying `IDraw`.
-  `make-ui` will be called for every repaint. Repaints occur on every event. You can also trigger a repaint by calling `glfw-post-empty-event`.
+  `view-fn` should be a 0 argument function that returns an object satisfying `IDraw`.
+  `view-fn` will be called for every repaint. Repaints occur on every event. You can also trigger a repaint by calling `glfw-post-empty-event`.
 
   `options` is a map that can contain the following keys
   Optional parameters
@@ -1629,9 +1629,9 @@
   For each handler, `window` is the GlfwSkiaWindow and window-handle is a jna pointer to the glfw pointer.
   
   "
-  ([make-ui]
-   (run make-ui {}))
-  ([make-ui {:keys [window-start-width
+  ([view-fn]
+   (run view-fn {}))
+  ([view-fn {:keys [window-start-width
                     window-start-height
                     window-start-x
                     window-start-y
@@ -1640,7 +1640,7 @@
    (assert membraneskialib "Could not run because membraneskia could not be loaded.")
 
    (async/thread
-     (run-sync make-ui options))))
+     (run-sync view-fn options))))
 
 (defn- run-helper [window-chan]
   (with-local-vars [windows #{}]
