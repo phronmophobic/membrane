@@ -723,7 +723,7 @@
 (def key-action-map
   {1 :press
    2 :repeat
-   3 :release})
+   0 :release})
 
 (defn run* [view-fn & [{:keys [window-title
                                window-start-x
