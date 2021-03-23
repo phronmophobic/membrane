@@ -950,6 +950,25 @@
   (ui/filled-rectangle [1 0 0] 100 100))
 
 (defn run
+  "Open a window and call `view-fn` to draw. Returns when the window is closed.
+
+  `view-fn` should be a 0 argument function that returns a view.
+  `view-fn` will be called for every repaint.
+
+  `options` is a map that can contain the following keys
+  Optional parameters
+
+  `window-title`: The string that appears in the title bar of the window.
+
+  `window-start-width`: the starting width of the window
+  `window-start-height`: the starting height of the window
+  note: The window may be resized.
+
+  `window-start-x`: the starting x coordinate of the top left corner of the window
+  `window-start-y`: the starting y coordinate of the top left corner of the window
+  note: The window may be moved.
+
+  "
   ([view-fn] (run view-fn {}))
   ([view-fn options]
    (dispatch-sync #(run* view-fn options))))
@@ -980,7 +999,12 @@
              :description "second"}
             {:complete? true
              :description "third"}]
-           :next-todo-text ""}))
+           :next-todo-text ""})
+    {:window-title "Todo App"
+     :window-start-width 600
+     :window-start-height 700
+     :window-start-x 50
+     :window-start-y 100})
   (shutdown-agents)
   )
 (comment
