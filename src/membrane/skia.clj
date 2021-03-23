@@ -842,8 +842,7 @@
 
 
 (def messages (atom []))
-(declare run-helper
-         make-ui)
+(declare run-helper)
 
 
 
@@ -1541,7 +1540,6 @@
     (Skia/skia_flush skia-resource)
     (glfw-call Void/TYPE glfwSwapBuffers window)))
 
-(declare run-helper)
 (defonce window-chan (chan 1))
 
 (defn run-sync
