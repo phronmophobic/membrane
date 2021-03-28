@@ -21,11 +21,11 @@
 
 (def canvas (.getElementById js/document "canvas"))
 
-(defui test-ui [& {:keys [a b]}]
+(defui test-ui [{:keys [a b]}]
   (let [l (label a)
 ]
     [(translate 20 20
-                (membrane.basic-components/textarea :text a))]
+                (membrane.basic-components/textarea {:text a}))]
     #_(translate 20 20
                  )
     #_(ui/with-color [255 0 0]
@@ -72,5 +72,5 @@
 (defn -main []
   (defonce start-todo-app (webgl/run
                             (membrane.component/make-app #'todo/todo-app todo/todo-state)
-                              {:canvas canvas}))
+                            {:container canvas}))
   )
