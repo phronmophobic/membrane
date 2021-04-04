@@ -813,7 +813,10 @@
                   (let [[w h] (bounds drawable)
                         img-width (int (+ (* 2 padding) (max 0 w)))
                         img-height (int (+ (* 2 padding) (max 0 h)))
-                        canvas (Canvas. (* xscale img-width) (* yscale img-height))
+
+                        max-texture-size 4096
+                        canvas (Canvas. (min max-texture-size (* xscale img-width))
+                                        (min max-texture-size (* yscale img-height)))
                         ctx (doto (.getGraphicsContext2D canvas)
                               (.setStroke (.getStroke ^GraphicsContext *ctx*))
                               (.setFill (.getFill ^GraphicsContext *ctx*)))
