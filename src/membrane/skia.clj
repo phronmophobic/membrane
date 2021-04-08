@@ -63,7 +63,13 @@
 (def opengl (try
               (com.sun.jna.NativeLibrary/getInstance "opengl")
               (catch java.lang.UnsatisfiedLinkError e
-                (com.sun.jna.NativeLibrary/getInstance "GL"))))
+                (try
+                  (com.sun.jna.NativeLibrary/getInstance "GL")
+                  (catch java.lang.UnsatisfiedLinkError e
+                    (try
+                      (com.sun.jna.NativeLibrary/getInstance "OpenGL")
+                      (catch java.lang.UnsatisfiedLinkError e
+                        nil)))))))
 (def objlib (try
               (com.sun.jna.NativeLibrary/getInstance "CoreFoundation")
               (catch java.lang.UnsatisfiedLinkError e
