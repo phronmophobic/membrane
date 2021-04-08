@@ -42,7 +42,7 @@
 
              ;; for testing graalvm
              ;; "-Dclojure.compiler.direct-linking=true"
-
+             ;; "-XstartOnFirstThread"
              ;; useful for clj-async-profiler
              ;; "-Djdk.attach.allowAttachSelf"
              ;; "-XX:+UnlockDiagnosticVMOptions"
