@@ -8,7 +8,7 @@
 
                  [net.n01se/clojure-jna "1.0.0"
                   :exclusions [net.java.dev.jna/jna]]
-                 [net.java.dev.jna/jna "5.2.0"]
+                 [net.java.dev.jna/jna "5.8.0"]
                  [org.clojure/core.async "0.4.490"]
 
                  [com.rpl/specter "1.1.3"]
