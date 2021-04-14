@@ -551,12 +551,12 @@ extern "C" {
             SkDebugf("SkSurface::MakeRenderTarget returned null\n");
         }
 
-        SkiaResource* gpuResource = new SkiaResource(resource->grContext, cpuSurface);
+        SkiaResource* cpuResource = new SkiaResource(resource->grContext, cpuSurface);
 
-        gpuResource->paints.pop();
-        gpuResource->paints.emplace(SkPaint(resource->getPaint()));
+        cpuResource->paints.pop();
+        cpuResource->paints.emplace(SkPaint(resource->getPaint()));
 
-        return gpuResource;
+        return cpuResource;
     }
 
     SkImage* skia_offscreen_image(SkiaResource* resource){
