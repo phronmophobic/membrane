@@ -30,6 +30,9 @@
 #import <CoreFoundation/CoreFoundation.h>
 #endif
 
+#define LOG(fmt, ...) \
+            do {FILE *fp; fp = fopen("/var/tmp/cef.log", "a");fprintf(fp, fmt, __VA_ARGS__); fclose(fp);} while (0)
+
 class SimpleFontCollection : public skia::textlayout::FontCollection {
 public:
     SimpleFontCollection(sk_sp<SkTypeface> typeface)
