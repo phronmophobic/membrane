@@ -33,6 +33,13 @@
 #define LOG(fmt, ...) \
             do {FILE *fp; fp = fopen("/var/tmp/cef.log", "a");fprintf(fp, fmt, __VA_ARGS__); fclose(fp);} while (0)
 
+typedef struct _cef_rect_t {
+  int x;
+  int y;
+  int width;
+  int height;
+} cef_rect_t;
+
 class SimpleFontCollection : public skia::textlayout::FontCollection {
 public:
     SimpleFontCollection(sk_sp<SkTypeface> typeface)
@@ -281,6 +288,48 @@ extern "C" {
             *height = std::max(std::max(*height, y0), y1);
         }
 
+    }
+
+    SkiaResource* skia_browser_buffer(int width, int height){
+
+        SkImageInfo info = SkImageInfo::Make(width, height, kBGRA_8888_SkColorType, kUnpremul_SkAlphaType);
+
+
+        sk_sp<SkSurface> cpuSurface(SkSurface::MakeRaster(info));
+
+        if (!cpuSurface) {
+            SkDebugf("SkSurface::MakeRenderTarget returned null\n");
+        }
+
+        SkiaResource* bufResource = new SkiaResource(NULL, cpuSurface);
+
+        return bufResource;
+    }
+
+    void skia_browser_draw(SkiaResource* resource, const void* buffer, int width, int height){
+
+        SkImageInfo info = SkImageInfo::Make(width, height, kBGRA_8888_SkColorType, kUnpremul_SkAlphaType);
+        SkPixmap pixmap(info, buffer, info.width() * info.bytesPerPixel());
+        resource->surface->writePixels(pixmap, 0, 0);
+    }
+
+    void skia_browser_update(SkiaResource* resource,int dirtyRectsCount, cef_rect_t const* dirtyRects, const void* buffer, int width, int height){
+
+        SkImageInfo info = SkImageInfo::Make(width, height, kBGRA_8888_SkColorType, kUnpremul_SkAlphaType);
+        SkPixmap pixmap(info, buffer, info.width() * info.bytesPerPixel());
+
+        for (int i = 0; i < dirtyRectsCount; i ++){
+
+            const cef_rect_t& rect = dirtyRects[i];
+            SkPixmap dirtyPixmap;
+            if(pixmap.extractSubset(&dirtyPixmap, {rect.x, rect.y, rect.x+rect.width, rect.y+rect.height})){
+                resource->surface->writePixels(dirtyPixmap, rect.x, rect.y);
+            }
+        }
+    }
+
+    void skia_draw_surface(SkiaResource* destinationResource, SkiaResource* sourceResource){
+        sourceResource->surface->draw(destinationResource->surface->getCanvas(), 0, 0, &destinationResource->getPaint());
     }
 
     // void skia_text_bounds2(SkFont* font, const char* text, int text_length, float* ox, float* oy, float* width, float* height){
