@@ -3,6 +3,9 @@
 set -e
 set -x
 
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+cd "$DIR"
+
 export SDKROOT="/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"
 
 # gcc -I ./libs/freetype/include \
