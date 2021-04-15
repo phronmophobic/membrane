@@ -769,7 +769,10 @@
     ;; need turn detach back on so that
     ;; we don't prevent the jvm exiting
     ;; now that we're done
-    (com.sun.jna.Native/detach true)))
+    (try
+      (com.sun.jna.Native/detach true)
+      (catch IllegalStateException e
+        nil))))
 
 
 
