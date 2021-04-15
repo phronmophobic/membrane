@@ -173,8 +173,16 @@
 
     IBounds
     (-bounds [this]
-        (let [[x y] (bounds (ui/label (buffer/text buf) buffer-font))]
-          [(max 50 x) (max lh y)])))
+      (let [
+            line-count (buffer/line-count buf)
+            max-col-count (reduce
+                           #(max %1 (buffer/col-count buf %2))
+                           0
+                           (map inc (range line-count)))]
+        [(max 50 (* lw
+                    ;; extend past end a bit
+                    (+ 3 max-col-count)))
+         (* lh line-count)])))
 
 (defonce buffer-cache (atom nil))
 
