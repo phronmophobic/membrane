@@ -247,7 +247,8 @@
      (fn [pos]
        (if focused?
          [[::update-cursor $buf pos]]
-         [[:set $focus $buf]]))
+         [[:set $focus $buf]
+          [::update-cursor $buf pos]]))
      :clipboard-paste
      (fn [s]
        (when focused?
