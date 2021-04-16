@@ -10,17 +10,14 @@
              :refer [defui
                      defeffect]]
             [membrane.ui :as ui
-             :refer [
+             :refer [IChildren
                      IOrigin
                      bounds
                      IBounds
                      vertical-layout
                      horizontal-layout
                      maybe-key-press
-                     on]]
-            [membrane.skia :as skia
-             :refer [IDraw
-                     draw]])
+                     on]])
   #_(:import [java.awt Font Color GraphicsEnvironment Dimension GraphicsDevice Window]
            [java.awt.event InputEvent KeyListener ComponentListener WindowAdapter]
            [java.awt.image BufferedImage]
@@ -100,8 +97,8 @@
 
 
 (def buffer-font (ui/font "Menlo.ttc" 11))
-(def lw (#'skia/skia-advance-x buffer-font "8"))
-(def lh (#'skia/skia-line-height buffer-font))
+(def lw 6.6225586)
+(def lh 12.8046875)
 
 (def open-chars
   #{\( \{ \[})
@@ -135,30 +132,29 @@
 (defn draw-buffer [buf focused?]
   (let [buf (highlight-paren buf)
         ]
-    (draw
-     [
-      (let [cursor (::buffer/cursor buf)
-            row (::buffer/row cursor)
-            col (::buffer/col cursor)
-            ]
-        (ui/translate (* lw (dec col))
-                      (+ 2 (* lh (dec row)))
-                      (ui/filled-rectangle [0 0 0 (if focused?
-                                                    0.5
-                                                    0.1)]
-                                           lw lh)))
-      (vec
-       (for [[row line] (map-indexed vector (::buffer/lines buf))]
-         (ui/translate
-          0 (* lh row)
-          (vec
-           (for [[col cm] (map-indexed vector line)
-                 :let [c (::buffer/char cm)
-                       style (get cm ::buffer/style :plain)]]
-             (ui/translate
-              (* lw col) 0
-              (ui/with-color (get colors style plain-color)
-                (ui/label (str c) buffer-font))))))))])))
+    [
+     (let [cursor (::buffer/cursor buf)
+           row (::buffer/row cursor)
+           col (::buffer/col cursor)
+           ]
+       (ui/translate (* lw (dec col))
+                     (+ 2 (* lh (dec row)))
+                     (ui/filled-rectangle [0 0 0 (if focused?
+                                                   0.5
+                                                   0.1)]
+                                          lw lh)))
+     (vec
+      (for [[row line] (map-indexed vector (::buffer/lines buf))]
+        (ui/translate
+         0 (* lh row)
+         (vec
+          (for [[col cm] (map-indexed vector line)
+                :let [c (::buffer/char cm)
+                      style (get cm ::buffer/style :plain)]]
+            (ui/translate
+             (* lw col) 0
+             (ui/with-color (get colors style plain-color)
+               (ui/label (str c) buffer-font))))))))]))
 
 
 
@@ -167,9 +163,9 @@
     (-origin [_]
         [0 0])
 
-    IDraw
-    (draw [this]
-        (draw-buffer buf focused?))
+    IChildren
+    (-children [this]
+      (draw-buffer buf focused?))
 
     IBounds
     (-bounds [this]
@@ -277,7 +273,8 @@
 (defn initial-buf-state []
   {:buf (buffer/buffer "" {:rows 40 :cols 5
                            :mode :insert})})
-(defn test-buf []
+
+#_(defn test-buf []
   (reset! buf-state (initial-buf-state))
   (skia/run (component/make-app #'buf-ui
                                 buf-state))
