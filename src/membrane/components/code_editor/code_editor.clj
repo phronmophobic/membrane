@@ -255,7 +255,8 @@
        :key-press
        (fn [s]
          [[::handle-key $buf s]])
-       (Buffer. nil focused? buf))))))
+       (ui/->Cached
+        (Buffer. nil focused? buf)))))))
 
 
 (buffer/text (buffer/buffer "adsf\nadsfa"))
