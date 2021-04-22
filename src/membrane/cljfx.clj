@@ -854,6 +854,11 @@
   (draw [this]
     (cached-draw drawable)))
 
+(extend-type membrane.ui.Cached
+    IDraw
+    (draw [this]
+      (cached-draw (:drawable this))))
+
 (defn index-for-position-line [jfont text px]
   
   (let [max-index (dec (.length ^String text))]

@@ -450,6 +450,11 @@
 
     ))
 
+(extend-type membrane.ui.Cached
+    IDraw
+    (draw [this]
+      (cached-draw (:drawable this))))
+
 (extend-type membrane.ui.Label
   IBounds
   (-bounds [this]

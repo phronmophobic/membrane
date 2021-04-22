@@ -2326,6 +2326,19 @@
 (defn try-draw [body error-draw]
   (TryDraw. body error-draw))
 
+(defrecord Cached [drawable]
+    IOrigin
+    (-origin [_]
+        (origin drawable))
+
+    IBounds
+    (-bounds [_]
+        (bounds drawable))
+
+  IChildren
+  (-children [this]
+      [drawable]))
+
 
 (defn index-for-position [font text x y]
   (assert false "image size should be replaced by implementation"))

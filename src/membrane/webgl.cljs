@@ -125,6 +125,11 @@
     )
   )
 
+(extend-type membrane.ui.Cached
+    IDraw
+    (draw [this]
+      (cached-draw (:drawable this))))
+
 (defonce freetype-callbacks (atom []))
 (defn on-freetype-loaded [callback]
   (if freetype-font

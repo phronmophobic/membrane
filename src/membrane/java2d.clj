@@ -210,7 +210,6 @@
 
 
 
-(declare ->Cached rectangle)
 (extend-type membrane.ui.Label
   IBounds
   (-bounds [this]

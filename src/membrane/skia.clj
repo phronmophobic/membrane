@@ -991,6 +991,11 @@
     )
   )
 
+(extend-type membrane.ui.Cached
+    IDraw
+    (draw [this]
+      (cached-draw (:drawable this))))
+
 (defn- get-framebuffer-size [window-handle]
   (let [pix-width (IntByReference.)
         pix-height (IntByReference.)]
