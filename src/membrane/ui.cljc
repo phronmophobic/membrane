@@ -276,18 +276,18 @@
     [0 0]))
 
 
-#?
-(:clj
- (do
-   (defprotocol PWrapped
-     (-unwrap [this]))
+;; #?
+;; (:clj
+;;  (do
+;;    (defprotocol PWrapped
+;;      (-unwrap [this]))
 
-   (defn wrap [o]
-     (reify
-       Object
-       (hashCode [_] (System/identityHashCode o))
-       PWrapped
-       (-unwrap [_] o)))))
+;;    (defn wrap [o]
+;;      (reify
+;;        Object
+;;        (hashCode [_] (System/identityHashCode o))
+;;        PWrapped
+;;        (-unwrap [_] o)))))
 
 
 (defn memoize-var
