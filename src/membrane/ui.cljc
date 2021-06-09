@@ -678,8 +678,11 @@
   "An empty graphical element with width x and height y.
 
   Useful for layout."
-  [x y]
-  (Spacer. x y))
+
+  ([x]
+   (Spacer. x x))
+  ([x y]
+   (Spacer. x y)))
 
 
 (defrecord FixedBounds [size drawable]
