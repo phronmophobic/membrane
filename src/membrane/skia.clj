@@ -1657,7 +1657,9 @@
    (assert membraneskialib "Could not run because membraneskia could not be loaded.")
 
    (async/thread
-     (run-sync view-fn options))))
+     (run-sync view-fn options))
+
+   {::repaint glfw-post-empty-event}))
 
 (defn- run-helper [window-chan]
   (with-local-vars [windows #{}]
