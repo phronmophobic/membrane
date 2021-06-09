@@ -2212,11 +2212,21 @@
 
 (defn no-events [body]
   (let [do-nothing (constantly nil)]
-    (on :mouse-down do-nothing
-        :key-press do-nothing
+    (on :mouse-event do-nothing
         :mouse-up do-nothing
-        :mouse-event do-nothing
+        :mouse-down do-nothing
+
+        :drop do-nothing
+        :scroll do-nothing
+        :key-event do-nothing
+        :key-press do-nothing
+
         :mouse-move do-nothing
+        :mouse-move-global do-nothing
+        :clipboard-copy do-nothing
+        :clipboard-cut do-nothing
+        :clipboard-paste do-nothing
+
         body)))
 
 (defrecord NoKeyEvent [drawable]
