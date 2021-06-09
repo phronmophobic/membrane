@@ -329,9 +329,10 @@
   (-children [this]
     nil))
 
-(def ^{:arglists '([elem])
-       :doc "Returns sub elements of elem. Useful for traversal."}
-  children -children)
+(defn children
+  "Returns sub elements of elem. Useful for traversal."
+  [elem]
+  (-children elem))
 
 (defn width
   "Returns the width of elem."
