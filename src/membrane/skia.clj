@@ -298,13 +298,6 @@
 (declare load-font)
 
 
-(defmacro push-matrix [& args]
-  `(try
-     (glPushMatrix)
-     ~@args
-     (finally
-       (glPopMatrix))))
-
 (defc skia_save membraneskialib Void/TYPE [skia-resource])
 (defc skia_restore membraneskialib Void/TYPE [skia-resource])
 (defc skia_translate membraneskialib Void/TYPE [skia-resource x y])
@@ -594,6 +587,7 @@
      (loop [lines (seq lines)
             cursor cursor]
        (if (and lines (>= cursor 0))
+         ;; todo: we're doing extra work when not drawing a cursor
          (let [line (first lines)
                line-bytes (.getBytes ^String line "utf-8")
                line-count (count line)]

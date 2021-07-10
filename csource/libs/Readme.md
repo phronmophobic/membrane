@@ -78,6 +78,8 @@ Skia
 # install depot tools
 
 export MACOSX_DEPLOYMENT_TARGET=10.10
+
+export IOS_MIN_TARGET=14.1
 git clone 'https://chromium.googlesource.com/chromium/tools/depot_tools.git'
 export PATH="${PWD}/depot_tools:${PATH}"
 
