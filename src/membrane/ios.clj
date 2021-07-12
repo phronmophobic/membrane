@@ -26,8 +26,6 @@
                      -scroll]]
             [tech.v3.datatype.ffi :as dt-ffi]
             [tech.v3.datatype :as dtype]
-            ;; tech.v3.datatype.nio-buffer
-            ;; [tech.v3.datatype.protocols :as dtype-proto]
             tech.v3.datatype.ffi.graalvm-runtime
             [tech.v3.datatype.native-buffer :as native-buffer]
 
@@ -42,7 +40,6 @@
   (:gen-class))
 
 (set! *warn-on-reflection* true)
-;; (tech.v3.datatype.nio-buffer/extend-nio-types)
 
 (def membraneskialib-fns
   {
@@ -1106,7 +1103,6 @@
 
 (defn initialize-ios
   []
-  (println "initializing")
   ;;ensure to reference the encoders
   (if-class membrane.ios.Bindings
     (if (first (swap-vals!
@@ -1114,13 +1110,9 @@
                 (fn [init]
                   (when-not init
                     (set-library-instance! (membrane.ios.Bindings.))
-                    (println "instance set!")
                     true))))
-      (do (println "initialized")
-          1)
-      (do
-        (println "initialize failed")
-        0))))
+      1
+      0)))
 
 
 (defn is-ios-initialized
