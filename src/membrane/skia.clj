@@ -85,7 +85,8 @@
                        (catch java.lang.UnsatisfiedLinkError e
                          nil)))
 
-(def skia-buf (Memory. 4096))
+(def ^:private skia-buf (Memory. 4096))
+(def ^:private skia-buf-size (.size skia-buf))
 
 (def ^:dynamic *paint* {})
 
@@ -411,15 +412,17 @@
 (defc skia_render_line membraneskialib Void/TYPE [resource font-ptr line text-length x y])
 (defc skia_next_line membraneskialib Void/TYPE [resource font-ptr])
 (def byte-array-class (type (byte-array 0)))
+
 (defn- label-draw [{:keys [text font] :as label}]
   (let [lines (clojure.string/split-lines text)
         font-ptr (get-font font)]
     (save-canvas
      (doseq [line lines
-             :let [line-bytes (.getBytes ^String line "utf-8")]]
-       (.write ^Memory skia-buf 0 line-bytes 0 (alength ^bytes line-bytes))
+             :let [line-bytes (.getBytes ^String line "utf-8")
+                   size (min skia-buf-size (alength ^bytes line-bytes))]]
+       (.write ^Memory skia-buf 0 line-bytes 0 size)
        (Skia/skia_next_line *skia-resource* font-ptr)
-       (Skia/skia_render_line *skia-resource* font-ptr skia-buf (alength line-bytes) (float 0) (float 0))))))
+       (Skia/skia_render_line *skia-resource* font-ptr skia-buf size (float 0) (float 0))))))
 
 
 (defrecord LabelRaw [text font]
@@ -528,6 +531,38 @@
      (Skia/skia_translate *skia-resource* (float (:x this)) (float (:y this)))
      (draw (:drawable this)))))
 
+
+(defrecord Transform [matrix drawable]
+  IOrigin
+  (-origin [this]
+    [0 0])
+
+  ui/IMakeNode
+  (make-node [this childs]
+    (assert (= (count childs) 1))
+    (Transform. matrix (first childs)))
+
+  IChildren
+  (-children [this]
+    [drawable])
+
+  IBounds
+  (-bounds [this]
+    [0 0])
+
+  IDraw
+  (draw [this]
+    (save-canvas
+     (Skia/skia_transform *skia-resource*
+                          (float (nth matrix 0))
+                          (float (nth matrix 1))
+                          (float (nth matrix 2))
+                          (float (nth matrix 3))
+                          (float (nth matrix 4))
+                          (float (nth matrix 5)))
+     (draw (:drawable this)))))
+(defn transform [matrix drawable]
+  (Transform. matrix drawable))
 
 (defgl glPixelStorei void [pname param])
 
