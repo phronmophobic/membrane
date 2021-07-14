@@ -15,7 +15,6 @@ export SDKROOT="/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"
     # -I ./libs/skia/include/utils \
     # -I ./libs/skia/include/private \
 
-# skia_root=/Users/adrian/Downloads/Skia-m92-f46c37ba85-2-macos-Release-x64
 skia_root=./libs/skia
 
 clang++ \
@@ -36,18 +35,13 @@ clang++ \
     -framework Foundation \
     -framework Metal \
     -mmacosx-version-min=10.13 \
-    /Users/adrian/Downloads/Skia-m92-f46c37ba85-2-macos-Release-x64/out/Release-x64/libskia.a \
+    ./libs/skia/out/Static/libskia.a \
     -DSK_GL=1 \
     -arch x86_64 \
     -dynamiclib \
     -std=c++17 \
     -o libmembraneskia.dylib \
     skia.cpp
-
-    # ./libs/skia/out/Static/libskia.a \
-
-
-
 
 # cd ./libs/libtmt && ./compile.sh
 # cd -
