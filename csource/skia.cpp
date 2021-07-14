@@ -127,27 +127,31 @@ extern "C" {
 
     void skia_reshape(SkiaResource* resource, int frameBufferWidth, int frameBufferHeight, float xscale, float yscale){
 
-        // sk_sp<GrDirectContext> grContext = GrDirectContext::MakeGL(NULL);
-        // SkASSERT(grContext);
-        // SkImageInfo info = SkImageInfo:: MakeN32Premul(frameBufferWidth, frameBufferHeight);
-        // sk_sp<SkSurface> surface(
-        //     SkSurface::MakeRenderTarget(grContext.get(), SkBudgeted::kNo, info));
-        // if (!surface) {
-        //     SkDebugf("SkSurface::MakeRenderTarget returned null\n");
-        //     return;
-        // }
+        #ifdef SK_GL
+
+        sk_sp<GrDirectContext> grContext = GrDirectContext::MakeGL(NULL);
+        SkASSERT(grContext);
+        SkImageInfo info = SkImageInfo:: MakeN32Premul(frameBufferWidth, frameBufferHeight);
+        sk_sp<SkSurface> surface(
+            SkSurface::MakeRenderTarget(grContext.get(), SkBudgeted::kNo, info));
+        if (!surface) {
+            SkDebugf("SkSurface::MakeRenderTarget returned null\n");
+            return;
+        }
         
 
-        // grContext->ref();
+        grContext->ref();
 
-        // surface->ref();
+        surface->ref();
 
-        // SkCanvas* canvas = surface->getCanvas();
+        SkCanvas* canvas = surface->getCanvas();
         
-        // canvas->scale(xscale, yscale);
+        canvas->scale(xscale, yscale);
 
-        // resource->grContext = grContext;
-        // resource->surface = surface;
+        resource->grContext = grContext;
+        resource->surface = surface;
+
+        #endif
 
     }
 

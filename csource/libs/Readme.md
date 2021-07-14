@@ -90,7 +90,24 @@ python2 tools/git-sync-deps
 # on linux
 # tools/install_dependencies.sh
 
-bin/gn gen out/Static --args='is_official_build=true skia_use_system_libwebp=false skia_use_system_libjpeg_turbo=false skia_use_system_libpng=false skia_use_system_harfbuzz=false skia_use_system_icu=false skia_use_system_expat=false skia_use_system_zlib=false skia_use_system_freetype2=false cc="clang" cxx="clang++"'
+# mac/linux
+bin/gn gen out/Static --args='target_cpu="x86_64" is_official_build=true skia_use_system_libwebp=false skia_use_system_libjpeg_turbo=false skia_use_system_libpng=false skia_use_system_harfbuzz=false skia_use_system_icu=false skia_use_system_expat=false skia_use_system_zlib=false cc="clang" cxx="clang++"'
+
+#ios sim
+# bin/gn gen out/ios64  --args='target_os="ios" is_official_build=true skia_use_system_expat=false skia_use_system_libjpeg_turbo=false skia_use_system_libpng=false skia_use_system_libwebp=false skia_use_system_zlib=false'
+
+# ios device
+
+#  add is_component_build=true for shared
+# shared library doesn't export all symbols needed, but ios app needs shared library. need to build both
+# may need to comment out ios_min app in BUILD.gn
+bin/gn gen out/ios64Static --args='target_os="ios" is_official_build=true skia_use_system_expat=false skia_use_system_harfbuzz=false skia_use_system_icu=false skia_use_system_libjpeg_turbo=false skia_use_system_libpng=false skia_use_system_libwebp=false skia_use_system_zlib=false ios_min_target="14.1" skia_enable_skottie=false skia_use_metal=true'
+
+bin/gn gen out/ios64Shared --args='target_os="ios" is_official_build=true is_component_build=true skia_use_system_expat=false skia_use_system_harfbuzz=false skia_use_system_icu=false skia_use_system_libjpeg_turbo=false skia_use_system_libpng=false skia_use_system_libwebp=false skia_use_system_zlib=false ios_min_target="14.1" skia_enable_skottie=false skia_use_metal=true '
+
+
+
+
 
 ninja -C out/Static/
 

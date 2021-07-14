@@ -53,13 +53,13 @@ export SDKROOT="/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"
 #     shader_utils.cpp platform.c vertex-attribute.c vector.c vertex-buffer.c texture-font.c utf8-utils.c distance-field.c edtaa3func.c texture-atlas.c mat4.c shader.c text.cpp testtext.cpp
 
 clang++ \
-    -I ./libs/glfw-3.3.bin.MACOS/include \
     -I ./libs/skia \
     -I ./libs/skia/include/gpu \
     -I ./libs/skia/include/gpu/gl \
     -I ./libs/skia/include/core \
     -I ./libs/skia/include/utils \
     -I ./libs/skia/include/private \
+    -DSK_GL=1 \
     -framework OpenGL \
     -framework Cocoa \
     -framework IOKit \
@@ -70,6 +70,7 @@ clang++ \
     -framework CoreServices \
     -framework Foundation \
     -mmacosx-version-min=10.10 \
+    -arch x86_64 \
     -dynamiclib \
     ./libs/skia/out/Static/libskia.a \
     -std=c++17 \
