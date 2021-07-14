@@ -1,10 +1,13 @@
 #include "skia.h"
 // #include <GLFW/glfw3.h>
-// #include <OpenGL/gl.h>
+#include <OpenGL/gl.h>
 #include "modules/skparagraph/include/FontCollection.h"
 #include "modules/skparagraph/include/TypefaceFontProvider.h"
 #include <iostream>
 #include <fstream>
+
+#include "src/gpu/gl/GrGLDefines.h"
+#include "gl/GrGLInterface.h"
 
 #include "src/core/SkFontPriv.h"
 #include "src/core/SkStrikeSpec.h"
@@ -127,31 +130,85 @@ extern "C" {
 
     void skia_reshape(SkiaResource* resource, int frameBufferWidth, int frameBufferHeight, float xscale, float yscale){
 
-        #ifdef SK_GL
+        LOG("makinggl: %d, %d, %f, %f\n", frameBufferWidth, frameBufferHeight, xscale, yscale);
 
-        sk_sp<GrDirectContext> grContext = GrDirectContext::MakeGL(NULL);
+        #ifdef SK_GL
+        if ( resource->surface){
+            // return;
+            // GrBackendRenderTarget* lastTarget = resource->surface->getBackendRenderTarget(SkSurface::BackendHandleAccess::kDiscardWrite_BackendHandleAccess);
+            // delete lastTarget;
+            resource->surface.reset();
+            resource->grContext.reset();
+        }
+
+
+        LOG("makinggl\n", NULL);
+        sk_sp<GrDirectContext> grContext = GrDirectContext::MakeGL();
+        if (!grContext){
+            LOG("gr context creation failed", NULL);
+        }
+        LOG("made gl\n", NULL);
         SkASSERT(grContext);
-        SkImageInfo info = SkImageInfo:: MakeN32Premul(frameBufferWidth, frameBufferHeight);
-        sk_sp<SkSurface> surface(
-            SkSurface::MakeRenderTarget(grContext.get(), SkBudgeted::kNo, info));
+
+        // if ( resource->surface){
+        //     return;
+        // }
+
+        GrGLFramebufferInfo* info = new GrGLFramebufferInfo();
+        info->fFBOID = (GrGLuint) 0;
+        info->fFormat = GL_RGBA8;
+        SkColorType colorType  = kRGBA_8888_SkColorType;
+
+        int kStencilBits = 8;  // Skia needs 8 stencil bits
+        int kMsaaSampleCount = 0;
+
+        LOG("makinggl target\n", NULL);
+        GrBackendRenderTarget* target = new GrBackendRenderTarget(frameBufferWidth, frameBufferHeight, kMsaaSampleCount, kStencilBits, *info);
+
+        LOG("made target\n", NULL);
+
+        // SkImageInfo info = SkImageInfo:: MakeN32Premul(frameBufferWidth, frameBufferHeight);
+        // sk_sp<SkColorSpace> colorSpace(SkColorSpace::MakeSRGB());
+        SkSurfaceProps* surfaceProps = new SkSurfaceProps(0, kUnknown_SkPixelGeometry);
+        // SkSurfaceProps surfaceProps = SkSurfaceProps();//= new SkSurfaceProps();
+
+        LOG("making surface\n", NULL);
+        sk_sp<SkSurface> surface(SkSurface::MakeFromBackendRenderTarget(grContext.get(), *target,
+                                                                        kBottomLeft_GrSurfaceOrigin,
+                                                                        colorType, nullptr, surfaceProps));
+
+
+
+        
+        // sk_sp<SkSurface> surface(
+        //     SkSurface::MakeRenderTarget(grContext.get(), SkBudgeted::kNo, info));
+        
         if (!surface) {
+            LOG("SkSurface::MakeRenderTarget returned null\n", NULL);
             SkDebugf("SkSurface::MakeRenderTarget returned null\n");
             return;
         }
+        LOG("made surface\n", NULL);
+
+        // LOG("resize: %d, %d\n", frameBufferWidth, frameBufferHeight);
         
 
-        grContext->ref();
-
-        surface->ref();
+        // grContext->ref();
+        // surface->ref();
 
         SkCanvas* canvas = surface->getCanvas();
         
         canvas->scale(xscale, yscale);
 
+        // LOG("resize: %d, %d\n", frameBufferWidth, frameBufferHeight, );
         resource->grContext = grContext;
         resource->surface = surface;
 
+
+
         #endif
+
+        LOG("later\n", NULL);
 
     }
 
@@ -187,6 +244,7 @@ extern "C" {
 
     void skia_flush(SkiaResource* resource){
         resource->surface->getCanvas()->flush();
+        resource->grContext->flush();
     }
 
     void skia_cleanup(SkiaResource* resource){
