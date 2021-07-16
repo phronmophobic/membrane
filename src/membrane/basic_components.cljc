@@ -431,9 +431,11 @@
 (defui textarea
   "Textarea component."
   [{:keys [text
+           border?
            font
            ^:membrane.component/contextual focus
-           textarea-state]}]
+           textarea-state]
+    :or {border? true}}]
   (on
    ::request-focus
    (fn []
@@ -444,7 +446,8 @@
                    :font font
                    :down-pos (:down-pos textarea-state)
                    :mpos (:mpos textarea-state)
-                   :border? true
+                   :border? (or border?
+                                (nil? border?))
                    :select-cursor (:select-cursor textarea-state)}))
   )
 

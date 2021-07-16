@@ -715,15 +715,15 @@
 (defn fixed-bounds [size drawable]
   (FixedBounds. size drawable))
 
-(defrecord Padding [px py drawable]
+(defrecord Padding [top right bottom left drawable]
     IOrigin
     (-origin [this]
-        [px py])
+        [left top])
 
     IMakeNode
     (make-node [this childs]
       (assert (= (count childs) 1))
-      (Padding. px py (first childs)))
+      (Padding. left right bottom top (first childs)))
 
   IChildren
   (-children [this]
@@ -732,8 +732,8 @@
   IBounds
   (-bounds [this]
       (let [[w h] (bounds drawable)]
-        [(+ w px)
-         (+ h py)])))
+        [(+ w left right)
+         (+ h top bottom)])))
 
 (swap! default-draw-impls
        assoc Padding
@@ -743,8 +743,13 @@
                 (translate (:px this) (:py this)
                            (:drawable this))))))
 
-(defn padding [px py elem]
-  (Padding. px py elem))
+(defn padding
+  ([p elem]
+   (Padding. p p p p elem))
+  ([px py elem]
+   (Padding. py px py px elem))
+  ([top right bottom left elem]
+   (Padding. top right bottom left elem)))
 
 
 (defrecord Path [points]
