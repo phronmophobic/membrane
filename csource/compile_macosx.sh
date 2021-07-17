@@ -8,13 +8,6 @@ cd "$DIR"
 
 export SDKROOT="/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"
 
-    # -I ./libs/skia \
-    # -I ./libs/skia/include/gpu \
-    # -I ./libs/skia/include/gpu/gl \
-    # -I ./libs/skia/include/core \
-    # -I ./libs/skia/include/utils \
-    # -I ./libs/skia/include/private \
-
 skia_root="./libs/skia"
 
 clang++ \

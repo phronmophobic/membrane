@@ -38,3 +38,28 @@ jobs:
       # - run: ./release.sh
       #   env:
       #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  linux:
+    runs-on: ubuntu-latest
+    container: ubuntu:14.04
+    strategy:
+      matrix:
+        build_type: [Release]
+      fail-fast: false
+    env:
+      platform: linux
+      build_type: ${{ matrix.build_type }}
+    steps:
+      - uses: actions/checkout@v2
+      # - run: ./check_release.sh
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: ./csource/download_skia.sh
+      - run: ./csource/compile_linux.sh
+      - uses: actions/upload-artifact@v2
+        with:
+          name: libmembraneskia.so
+          path: csource/libmembraneskia.so
+      # - run: ./release.sh
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

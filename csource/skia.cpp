@@ -16,28 +16,12 @@
 #include "src/core/SkStrikeSpec.h"
 #include "src/utils/SkUTF.h"
 
-// pty stufff
-#define DEFAULT_TERMINAL "screen-bce"
-#define DEFAULT_256_COLOR_TERMINAL "xterm-256color"
-#include <fcntl.h>
-#ifndef FORKPTY_INCLUDE_H
-    #if defined(__APPLE__)
-        #define FORKPTY_INCLUDE_H <util.h>
-    #elif defined(__FreeBSD__)
-        #define FORKPTY_INCLUDE_H <libutil.h>
-    #else
-        #define FORKPTY_INCLUDE_H <pty.h>
-    #endif
-#endif
-#include FORKPTY_INCLUDE_H
-
-
 #if defined(__APPLE__)
 #import <CoreFoundation/CoreFoundation.h>
 #endif
 
 #define LOG(fmt, ...) \
-            do {FILE *fp; fp = fopen("/var/tmp/cef.log", "a");fprintf(fp, fmt, __VA_ARGS__); fclose(fp);} while (0)
+            do {FILE *fp; fp = fopen("/var/tmp/membrane.log", "a");fprintf(fp, fmt, __VA_ARGS__); fclose(fp);} while (0)
 
 typedef struct _cef_rect_t {
   int x;
@@ -712,25 +696,27 @@ extern "C" {
 
 
     int skia_fork_pty(unsigned short rows, unsigned short columns){
-        struct winsize ws = {.ws_row = rows, .ws_col = columns};
-        int pt;
-        pid_t pid = forkpty(&pt, NULL, NULL, &ws);
+        // struct winsize ws = {.ws_row = rows, .ws_col = columns};
+        // int pt;
+        // pid_t pid = forkpty(&pt, NULL, NULL, &ws);
 
-        if (pid < 0){
-            return -1;
-        } else if (pid == 0){
+        // if (pid < 0){
+        //     return -1;
+        // } else if (pid == 0){
 
-            setsid();
-            // setenv("MTM", buf, 1);
-            setenv("TERM", DEFAULT_256_COLOR_TERMINAL
-                   , 1);
-            // signal(SIGCHLD, SIG_DFL);
-            execl("/bin/bash", "/bin/bash", NULL);
-            return 0;
-        }
+        //     setsid();
+        //     // setenv("MTM", buf, 1);
+        //     setenv("TERM", DEFAULT_256_COLOR_TERMINAL
+        //            , 1);
+        //     // signal(SIGCHLD, SIG_DFL);
+        //     execl("/bin/bash", "/bin/bash", NULL);
+        //     return 0;
+        // }
 
-        // fcntl(pt, F_SETFL, O_NONBLOCK);
-        return pt;
+        // // fcntl(pt, F_SETFL, O_NONBLOCK);
+        // return pt;
+
+        return -1;
 
     }
 
