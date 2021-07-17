@@ -76,9 +76,6 @@ clang++ \
 #     -o testglfw \
 #     testglfw.cpp skia.cpp
 
-
-
-cp libmembrane.dylib ../resources/darwin
 cp libmembraneskia.dylib ../resources/darwin
 
 echo 'done'
