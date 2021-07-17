@@ -1,0 +1,40 @@
+on:
+  workflow_dispatch:
+  # push:
+  #   branches:
+  #     - master
+  #   paths:
+  #     - .github/workflows/**
+  #     - "*.sh"
+
+# env:
+#   # version: m88
+#   skia_branch: chrome/m92
+#   skia_commit: a77a4620d2
+#   release: m92-a77a4620d2
+#   archive: true
+
+jobs:
+  macos:
+    runs-on: macos-10.15
+    strategy:
+      matrix:
+        build_type: [Release]
+      fail-fast: false
+    env:
+      platform: macos
+      build_type: ${{ matrix.build_type }}
+    steps:
+      - uses: actions/checkout@v2
+      # - run: ./check_release.sh
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: ./csource/download_skia.sh
+      - run: ./csource/compile_macosx.sh
+      - uses: actions/upload-artifact@v2
+        with:
+          name: libmembraneskia.dylib
+          path: csource/libmembraneskia.dylib
+      # - run: ./release.sh
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
