@@ -8,7 +8,7 @@ cd "$DIR"
 
 skia_root="./libs/skia"
 
-clang++ \
+c++ \
     -fPIC \
     -I ./libs/skia \
     -I ./libs/skia/include/gpu \
