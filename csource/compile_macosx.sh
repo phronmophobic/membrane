@@ -15,7 +15,7 @@ export SDKROOT="/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"
     # -I ./libs/skia/include/utils \
     # -I ./libs/skia/include/private \
 
-skia_root=./libs/skia
+skia_root="./libs/skia"
 
 clang++ \
     -I "$skia_root" \
@@ -35,7 +35,7 @@ clang++ \
     -framework Foundation \
     -framework Metal \
     -mmacosx-version-min=10.13 \
-    ./libs/skia/out/Static/libskia.a \
+    "$skia_root"/out/Release-x64/libskia.a \
     -DSK_GL=1 \
     -arch x86_64 \
     -dynamiclib \
