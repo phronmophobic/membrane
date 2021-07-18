@@ -739,9 +739,9 @@
        assoc Padding
        (fn [draw]
          (fn [this]
-               (draw
-                (translate (:px this) (:py this)
-                           (:drawable this))))))
+           (draw
+            (translate (:left this) (:top this)
+                       (:drawable this))))))
 
 (defn padding
   ([p elem]
