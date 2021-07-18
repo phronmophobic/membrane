@@ -4,7 +4,6 @@
 #include <GLFW/glfw3.h>
 #include <stdio.h>
 
-#include "GrContext.h"
 #include "gl/GrGLInterface.h"
 #include "SkData.h"
 #include "SkImage.h"
@@ -28,6 +27,10 @@
 extern "C" {
 #include <tmt.h>
 }
+
+#define LOG(fmt, ...) \
+            do {FILE *fp; fp = fopen("/var/tmp/cef.log", "a");fprintf(fp, fmt, __VA_ARGS__); fclose(fp);} while (0)
+
 
 /* Includes needed to make forkpty(3) work. */
 #ifndef FORKPTY_INCLUDE_H
@@ -259,6 +262,7 @@ callback(tmt_msg_t m, TMT *vt, const void *a, void *p)
                         case TMT_COLOR_MAGENTA: skia_set_color(termresource, 1,0,0,1); break;
                         case TMT_COLOR_CYAN: skia_set_color(termresource, 1,0,0,1); break;
                         case TMT_COLOR_WHITE: skia_set_color(termresource, 1,0,0,1); break;
+                        default: break;
                         }
                         
                         if ( s->lines[r]->chars[c].a.invisible ){
@@ -575,14 +579,15 @@ static void glMessageCallback(GLenum, GLenum, GLuint, GLenum, GLsizei,
 
 SkCanvas* initCanvas(int width, int height){
 
+
     glViewport(0, 0, width, height);
     glClearColor(1, 1, 1, 1);
     glClearStencil(0);
     glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-    auto interface = GrGLMakeNativeInterface();
+    // auto interface = GrGLMakeNativeInterface();
 
-    sk_sp<GrContext> grContext(GrContext::MakeGL(interface));
+    sk_sp<GrDirectContext> grContext(GrDirectContext::MakeGL());
     SkASSERT(grContext);
 
     grContext->ref();
@@ -592,34 +597,38 @@ SkCanvas* initCanvas(int width, int height){
     GrGLFramebufferInfo info;
     info.fFBOID = (GrGLuint) buffer;
     SkColorType colorType;    
-        info.fFormat = GL_RGBA8;
-        colorType = kRGBA_8888_SkColorType;
+    info.fFormat = GL_RGBA8;
+    colorType = kRGBA_8888_SkColorType;
 
     // If you want multisampling, uncomment the below lines and set a sample count
-    static const int kStencilBits = 8;  // Skia needs 8 stencil bits
-    static const int kMsaaSampleCount = 0; //4;
+    int kStencilBits = 8;  // Skia needs 8 stencil bits
+    int kMsaaSampleCount = 0; //4;
 
     int frameBufferWidth, frameBufferHeight;
     glfwGetFramebufferSize(window, &frameBufferWidth, &frameBufferHeight);
 
-    GrBackendRenderTarget target(frameBufferWidth, frameBufferHeight, kMsaaSampleCount, kStencilBits, info);
+    GrBackendRenderTarget* target = new GrBackendRenderTarget(frameBufferWidth, frameBufferHeight, kMsaaSampleCount, kStencilBits, info);
 
+    
     // setup SkSurface
     // To use distance field text, use commented out SkSurfaceProps instead
     // SkSurfaceProps props(SkSurfaceProps::kUseDeviceIndependentFonts_Flag,
     //                      SkSurfaceProps::kLegacyFontHost_InitType);
-    SkSurfaceProps props(SkSurfaceProps::kLegacyFontHost_InitType);
 
-    sk_sp<SkSurface> surface(SkSurface::MakeFromBackendRenderTarget(grContext.get(), target,
+    // sk_sp<SkColorSpace> colorSpace(SkColorSpace::MakeSRGB());
+    SkSurfaceProps surfaceProps(0, kUnknown_SkPixelGeometry);
+
+    sk_sp<SkSurface> surface(SkSurface::MakeFromBackendRenderTarget(grContext.get(), *target,
                                                                     kBottomLeft_GrSurfaceOrigin,
-                                                                    colorType, nullptr, &props));
+                                                                    colorType, nullptr, &surfaceProps));
     surface->ref();
+    delete target;
 
     SkCanvas* canvas = surface->getCanvas();
     canvas->scale((float)frameBufferWidth/width, (float)frameBufferHeight/height);
 
-    /* run(canvas); */
 
+    /* run(canvas); */
     return canvas;
 
 }
@@ -655,13 +664,46 @@ int main() {
 
     /* initCanvas(width, height); */
 
-    SkiaResource* resource = skia_init();
+    SkCanvas* canvas = initCanvas(width, height);
+
+    LOG("CANVAS: %p\n", canvas);
+
+      do {
+
+          LOG("CANVAS: %p\n", canvas);
+
+          canvas->clear(SK_ColorGREEN);
+
+          SkPaint paint;
+          paint.setColor(SK_ColorBLACK);
+          paint.setAntiAlias(true);
+    
+          canvas->save();
+          canvas->translate(100,80);
+          canvas->drawRect(SkRect::MakeXYWH(0, 0, 800,800), paint);
+          canvas->restore();
+
+          canvas->flush();
+	LOG("flush: %p\n", canvas);
+      
+
+      } while (swapAndPollInput());    
+
+      return 1;
+
+
+    SkiaResource* resource = NULL; //skia_init();
+
+
+
 
     int frameBufferWidth, frameBufferHeight;
     glfwGetFramebufferSize(window, &frameBufferWidth, &frameBufferHeight);
 
     float xscale, yscale;
     glfwGetWindowContentScale(window, &xscale, &yscale);
+
+
     skia_reshape(resource, frameBufferWidth, frameBufferHeight, xscale, yscale);
 
     menlo = skia_load_font("/System/Library/Fonts/Menlo.ttc", cursorh);
