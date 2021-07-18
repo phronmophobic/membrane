@@ -1,7 +1,16 @@
 #include "skia.h"
 
 #ifdef SK_GL
+
+#if defined(__APPLE__)
 #include <OpenGL/gl.h>
+#else
+
+#include <GL/gl.h>
+
+#endif
+
+
 #endif
 
 #include "modules/skparagraph/include/FontCollection.h"
