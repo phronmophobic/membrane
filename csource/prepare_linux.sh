@@ -3,11 +3,8 @@ set -o errexit -o nounset -o pipefail
 
 apt-get update -y
 apt-get install fontconfig libfontconfig1-dev curl zip -y
-apt-get install lsb-release wget software-properties-common -y
 
-bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
+apt-get install gcc-9 g++-9 -y
+update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 60 --slave /usr/bin/g++ g++ /usr/bin/g++-9
+update-alternatives --config gcc
 
-ls /usr/bin/clang*
-
-# update-alternatives --install /usr/bin/cc cc /usr/bin/clang-3.5 100
-# update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++-3.5 100
