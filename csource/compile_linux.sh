@@ -8,6 +8,10 @@ cd "$DIR"
 
 skia_root="./libs/skia"
 
+which c++
+
+c++ --version
+
 c++ \
     -fPIC \
     -I ./libs/skia \
