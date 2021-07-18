@@ -134,6 +134,7 @@ extern "C" {
 
         sk_sp<GrDirectContext> grContext = GrDirectContext::MakeGL();
         SkASSERT(grContext);
+        grContext->ref();
 
         GrGLFramebufferInfo info;
         info.fFBOID = (GrGLuint) 0;
@@ -195,7 +196,6 @@ extern "C" {
 
     void skia_flush(SkiaResource* resource){
         resource->surface->getCanvas()->flush();
-        resource->grContext->flush();
     }
 
     void skia_cleanup(SkiaResource* resource){
