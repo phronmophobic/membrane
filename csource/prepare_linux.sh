@@ -2,7 +2,8 @@
 set -o errexit -o nounset -o pipefail
 
 apt-get update -y
-apt-get install fontconfig libfontconfig1-dev curl zip wget -y
+apt-get install fontconfig libfontconfig1-dev curl zip -y
+apt-get install lsb-release wget software-properties-common -y
 
 bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
 
