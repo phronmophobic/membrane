@@ -737,7 +737,7 @@
        (fn [draw]
          (fn [this]
                (draw
-                (translate (:px this) (:py this)
+                (translate (:left this) (:top this)
                            (:drawable this))))))
 
 (defn padding
