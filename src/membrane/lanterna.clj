@@ -48,6 +48,7 @@
 ;; before the nrepl server starts so that System/in and out can be stored.
 (defn
   preserve-system-io
+  {:nrepl.middleware/descriptor {}}
   [h]
   (fn [msg]
     (h msg)))
