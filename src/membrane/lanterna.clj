@@ -605,14 +605,15 @@
         term (doto (UnixTerminal. in out (Charset/defaultCharset))
                (.setMouseCaptureMode MouseCaptureMode/CLICK_RELEASE_DRAG_MOVE))
         screen (TerminalScreen. term)
+        ui (volatile! nil)
+        last-ui (volatile! nil)
         input-future (future
                        (try
-                         (loop [ui (make-ui)
-                                last-ui nil]
-                           (when (not= ui last-ui) 
-                             (>!! repaint-ch ui))
-                           (handler ui (.readInput screen))
-                           (recur (make-ui) ui))
+                         (loop []
+                           (let [input (.readInput screen)]
+                             (handler @ui input)
+                             (>!! repaint-ch true))
+                           (recur))
                          (catch Exception e
                            (log e))
                          (finally
@@ -631,20 +632,22 @@
 
         (>!! repaint-ch (make-ui))
         (loop []
-          (let [[ui port] (async/alts!! [close-ch repaint-ch]
-                                        :priority true)]
+          (let [[_ port] (async/alts!! [close-ch repaint-ch (async/timeout 500)]
+                                       :priority true)]
 
-            (when (= port repaint-ch)
-              (binding [*tg* tg
-                        *context* {:translate {:x 0 :y 0}}
-                        *screen* screen]
-                (log "repainting")
-                (.clear screen)
-                (.setCursorPosition screen nil)
-                (draw ui)
+            (when (not= port close-ch)
+              (let [current-ui (vreset! ui (make-ui))]
+                (when (not= current-ui @last-ui)
+                  (binding [*tg* tg
+                            *context* {:translate {:x 0 :y 0}}
+                            *screen* screen]
+                    (log "repainting")
+                    (.clear screen)
+                    (.setCursorPosition screen nil)
+                    (draw current-ui)
 
-                (.refresh screen)
-                )
+                    (.refresh screen)
+                    (vreset! last-ui current-ui))))
               (recur))))
         (catch Exception e
           (log e)
