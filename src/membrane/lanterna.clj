@@ -606,14 +606,14 @@
                (.setMouseCaptureMode MouseCaptureMode/CLICK_RELEASE_DRAG_MOVE))
         screen (TerminalScreen. term)
         ui (volatile! nil)
-        last-ui (volatile! nil)
         input-future (future
                        (try
                          (loop []
                            (let [input (.readInput screen)]
                              (handler @ui input)
                              (>!! repaint-ch true))
-                           (recur))
+                           (when (not (Thread/interrupted))
+                             (recur)))
                          (catch Exception e
                            (log e))
                          (finally
@@ -630,24 +630,30 @@
           (.setForegroundColor TextColor$ANSI/BLACK)
           (.setBackgroundColor TextColor$ANSI/DEFAULT))
 
-        (>!! repaint-ch (make-ui))
+        (>!! repaint-ch true)
         (loop []
           (let [[_ port] (async/alts!! [close-ch repaint-ch (async/timeout 500)]
                                        :priority true)]
 
             (when (not= port close-ch)
-              (let [current-ui (vreset! ui (make-ui))]
-                (when (not= current-ui @last-ui)
+              (let [last-ui @ui
+                    current-ui (vreset! ui (try
+                                             (make-ui)
+                                             (catch Exception e
+                                               (label (str e)))))]
+                (when (not= current-ui last-ui)
                   (binding [*tg* tg
                             *context* {:translate {:x 0 :y 0}}
                             *screen* screen]
                     (log "repainting")
                     (.clear screen)
                     (.setCursorPosition screen nil)
-                    (draw current-ui)
+                    (draw (ui/try-draw
+                           current-ui
+                           (fn [& args]
+                             nil)))
 
-                    (.refresh screen)
-                    (vreset! last-ui current-ui))))
+                    (.refresh screen))))
               (recur))))
         (catch Exception e
           (log e)
