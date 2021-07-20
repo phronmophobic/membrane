@@ -21,7 +21,7 @@ For membrane to run on a platform, the only requirements are
 
 #### Experimental platforms
 - Windows (see skija, swing, and javafx backends)
-- Terminal (see [example project](https://github.com/phronmophobic/terminal-todo-mvc))
+- Terminal ([extra docs](/docs/terminal-uis.md),  [example project](https://github.com/phronmophobic/terminal-todo-mvc))
 - virtual dom
 - java swing
 - [skija](https://github.com/JetBrains/skija) (see [example project](https://github.com/phronmophobic/membrane-skija-example))
