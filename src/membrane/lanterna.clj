@@ -724,6 +724,8 @@
                close-ch (async/promise-chan)]
            {:handler default-handler
             :repaint-ch repaint-ch
+            :in System/in
+            :out System/out
             :close-ch close-ch})]
      (run-helper make-ui
                  (merge default-options
