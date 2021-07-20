@@ -587,9 +587,9 @@
 
 
 
-(defn run-helper [make-ui repaint-ch close-ch handler]
+(defn run-helper [make-ui {:keys [repaint-ch close-ch handler in out] :as options}]
   (let [
-        term (doto (UnixTerminal. System/in System/out (Charset/defaultCharset))
+        term (doto (UnixTerminal. in out (Charset/defaultCharset))
                (.setMouseCaptureMode MouseCaptureMode/CLICK_RELEASE_DRAG_MOVE))
         screen (TerminalScreen. term)
         input-future (future
@@ -641,79 +641,80 @@
           (.close screen)
           (future-cancel input-future))))))
 
+(defn default-handler [ui event]
+  (log event)
+  ;; (log (.getKeyType event))
+  (condp = (.getKeyType ^KeyStroke event)
+
+
+    KeyType/MouseEvent
+    ;; mouse
+    (do
+      (let [pos (.getPosition ^MouseAction event)]
+        (log (pr-str [:mx [(.getColumn ^TerminalPosition pos)
+                           (.getRow ^TerminalPosition pos)]])))
+      (condp = (.getActionType ^MouseAction event)
+        
+        MouseActionType/CLICK_DOWN
+        (let [pos (.getPosition ^MouseAction event)]
+          (ui/mouse-down ui [(.getColumn ^TerminalPosition pos)
+                             (.getRow ^TerminalPosition pos)]))
+
+        MouseActionType/CLICK_RELEASE
+        (let [pos (.getPosition ^MouseAction event)]
+          (ui/mouse-up ui [(.getColumn ^TerminalPosition pos)
+                           (.getRow ^TerminalPosition pos)]))
+        MouseActionType/DRAG
+        (let [pos (.getPosition ^MouseAction event)]
+          (ui/mouse-move ui [(.getColumn ^TerminalPosition pos)
+                             (.getRow ^TerminalPosition pos)]))
+        MouseActionType/MOVE
+        (let [pos (.getPosition ^MouseAction event)]
+          (ui/mouse-move ui [(.getColumn ^TerminalPosition pos)
+                             (.getRow ^TerminalPosition pos)]))
+        MouseActionType/SCROLL_DOWN nil
+        MouseActionType/SCROLL_UP nil))
+
+    KeyType/Character
+    (do
+      ;; (ui/key-event ui key scancode action mods)
+      (when-let [c (.getCharacter ^KeyStroke event)]
+        (ui/key-press ui (str c))))
+
+    KeyType/Backspace
+    (ui/key-press ui :backspace)
+
+    KeyType/Enter
+    (ui/key-press ui :enter)
+
+    KeyType/ArrowDown
+    (ui/key-press ui :down)
+    KeyType/ArrowLeft
+    (ui/key-press ui :left)
+    KeyType/ArrowRight
+    (ui/key-press ui :right)
+    KeyType/ArrowUp
+    (ui/key-press ui :up)
+
+    ;;default
+    nil))
+
 (defn run-sync
   ([make-ui]
    (run-sync make-ui nil))
-  ([make-ui {:keys [handler repaint-ch close-ch] :as options}]
-   (let [options
-         (or options
-             (let [repaint-ch (async/chan (async/sliding-buffer 1))
-                   close-ch (async/promise-chan)]
-               {:handler (fn [ui event]
-                           (log event)
-                           ;; (log (.getKeyType event))
-                           (condp = (.getKeyType ^KeyStroke event)
-
-
-                             KeyType/MouseEvent
-                             ;; mouse
-                             (do
-                               (let [pos (.getPosition ^MouseAction event)]
-                                 (log (pr-str [:mx [(.getColumn ^TerminalPosition pos)
-                                                    (.getRow ^TerminalPosition pos)]])))
-                               (condp = (.getActionType ^MouseAction event)
-                                 
-                                 MouseActionType/CLICK_DOWN
-                                 (let [pos (.getPosition ^MouseAction event)]
-                                   (ui/mouse-down ui [(.getColumn ^TerminalPosition pos)
-                                                      (.getRow ^TerminalPosition pos)]))
-
-                                 MouseActionType/CLICK_RELEASE
-                                 (let [pos (.getPosition ^MouseAction event)]
-                                   (ui/mouse-up ui [(.getColumn ^TerminalPosition pos)
-                                                      (.getRow ^TerminalPosition pos)]))
-                                 MouseActionType/DRAG
-                                 (let [pos (.getPosition ^MouseAction event)]
-                                   (ui/mouse-move ui [(.getColumn ^TerminalPosition pos)
-                                                        (.getRow ^TerminalPosition pos)]))
-                                 MouseActionType/MOVE
-                                 (let [pos (.getPosition ^MouseAction event)]
-                                   (ui/mouse-move ui [(.getColumn ^TerminalPosition pos)
-                                                        (.getRow ^TerminalPosition pos)]))
-                                 MouseActionType/SCROLL_DOWN nil
-                                 MouseActionType/SCROLL_UP nil))
-
-                             KeyType/Character
-                             (do
-                               ;; (ui/key-event ui key scancode action mods)
-                               (when-let [c (.getCharacter ^KeyStroke event)]
-                                 (ui/key-press ui (str c))))
-
-                             KeyType/Backspace
-                             (ui/key-press ui :backspace)
-
-                             KeyType/Enter
-                             (ui/key-press ui :enter)
-
-                             KeyType/ArrowDown
-                             (ui/key-press ui :down)
-                             KeyType/ArrowLeft
-                             (ui/key-press ui :left)
-                             KeyType/ArrowRight
-                             (ui/key-press ui :right)
-                             KeyType/ArrowUp
-                             (ui/key-press ui :up)))
-                :repaint-ch repaint-ch
-                :close-ch close-ch}))]
+  ([make-ui {:keys [handler repaint-ch close-ch in out] :as options}]
+   (let [default-options
+         (let [repaint-ch (async/chan (async/sliding-buffer 1))
+               close-ch (async/promise-chan)]
+           {:handler default-handler
+            :repaint-ch repaint-ch
+            :close-ch close-ch})]
      (run-helper make-ui
-                 (:repaint-ch options)
-                 (:close-ch options)
-                 (:handler options)))))
-
-
+                 (merge default-options
+                        options)))))
 
 (defn run
-  ([make-ui options]
+  ([make-ui {:keys [handler repaint-ch close-ch in out] :as options}]
    (async/thread
      (run-sync make-ui options)))
   ([make-ui]
