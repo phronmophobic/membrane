@@ -44,10 +44,10 @@
 (defonce in System/in)
 (defonce out System/out)
 
+;; The whole goal of this middleware is to make it easy to load this namespace
+;; before the nrepl server starts so that System/in and out can be stored.
 (defn
   preserve-system-io
-  {:nrepl.middleware/descriptor
-   {:expects #{(requiring-resolve 'cider.nrepl/wrap-out)}}}
   [h]
   (fn [msg]
     (h msg)))
