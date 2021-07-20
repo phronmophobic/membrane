@@ -41,8 +41,20 @@
    java.nio.charset.Charset)
   (:gen-class))
 
+(defonce in System/in)
+(defonce out System/out)
+
+(defn
+  preserve-system-io
+  {:nrepl.middleware/descriptor
+   {:expects #{(requiring-resolve 'cider.nrepl/wrap-out)}}}
+  [h]
+  (fn [msg]
+    (h msg)))
+
 (defonce log-lines (atom []))
 (defn log [s]
+  ;; (println s)
   #_(spit "/var/tmp/graal.log" (str s "\n")  :append true)
   #_(swap! log-lines (fn [lines]
                      (let [lines (conj lines (str s))
