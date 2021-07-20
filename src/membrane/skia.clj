@@ -299,13 +299,6 @@
 (declare load-font)
 
 
-(defmacro push-matrix [& args]
-  `(try
-     (glPushMatrix)
-     ~@args
-     (finally
-       (glPopMatrix))))
-
 (defc skia_save membraneskialib Void/TYPE [skia-resource])
 (defc skia_restore membraneskialib Void/TYPE [skia-resource])
 (defc skia_translate membraneskialib Void/TYPE [skia-resource x y])
@@ -539,6 +532,38 @@
      (draw (:drawable this)))))
 
 
+(defrecord Transform [matrix drawable]
+  IOrigin
+  (-origin [this]
+    [0 0])
+
+  ui/IMakeNode
+  (make-node [this childs]
+    (assert (= (count childs) 1))
+    (Transform. matrix (first childs)))
+
+  IChildren
+  (-children [this]
+    [drawable])
+
+  IBounds
+  (-bounds [this]
+    [0 0])
+
+  IDraw
+  (draw [this]
+    (save-canvas
+     (Skia/skia_transform *skia-resource*
+                          (float (nth matrix 0))
+                          (float (nth matrix 1))
+                          (float (nth matrix 2))
+                          (float (nth matrix 3))
+                          (float (nth matrix 4))
+                          (float (nth matrix 5)))
+     (draw (:drawable this)))))
+(defn transform [matrix drawable]
+  (Transform. matrix drawable))
+
 (defgl glPixelStorei void [pname param])
 
 (defc skia_render_selection membraneskialib Void/TYPE [skia-resource font-ptr text text-length selection-start selection-end])
@@ -597,6 +622,7 @@
      (loop [lines (seq lines)
             cursor cursor]
        (if (and lines (>= cursor 0))
+         ;; todo: we're doing extra work when not drawing a cursor
          (let [line (first lines)
                line-bytes (.getBytes ^String line "utf-8")
                line-count (count line)]

@@ -1,5 +1,5 @@
 #include <stack>
-#include "GrContext.h"
+#include "GrDirectContext.h"
 #include "gl/GrGLInterface.h"
 #include "SkData.h"
 #include "SkImage.h"
@@ -21,7 +21,7 @@ class SkiaResource {
 
 public:
 
-    sk_sp<GrContext> grContext;
+    sk_sp<GrDirectContext> grContext;
     sk_sp<SkSurface> surface;
     std::stack<SkPaint> paints;
 
@@ -30,7 +30,7 @@ public:
         surface.reset();
     }
 
-    SkiaResource(sk_sp<GrContext> _grContext, sk_sp<SkSurface> _surface):grContext(_grContext), surface(_surface){
+    SkiaResource(sk_sp<GrDirectContext> _grContext, sk_sp<SkSurface> _surface):grContext(_grContext), surface(_surface){
         paints.emplace(SkPaint());
         SkPaint& paint = paints.top();
         paint.setAntiAlias(true);

@@ -8,58 +8,15 @@ cd "$DIR"
 
 export SDKROOT="/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"
 
-# gcc -I ./libs/freetype/include \
-#     -I './libs/libSOIL/' \
-#     -L './libs/libSOIL' \
-#     -framework OpenGL \
-#     -framework Cocoa \
-#     -framework IOKit \
-#     -framework CoreFoundation \
-#     -framework CoreVideo \
-#     -framework AppKit \
-#     -framework CoreGraphics \
-#     -framework CoreServices \
-#     -framework Foundation \
-#     -lSOIL \
-#     -mmacosx-version-min=10.10 \
-#     -dynamiclib \
-#     ./libs/zlib-1.2.11/libz.a \
-#     ./libs/libpng-1.6.37/.libs/libpng16.a \
-#     ./libs/bzip2-1.0.8/libbz2.a \
-#     ./libs/freetype-2.10.1/objs/.libs/libfreetype.a \
-#     -o libmembrane.dylib shader_utils.cpp platform.c vertex-attribute.c vector.c vertex-buffer.c texture-font.c utf8-utils.c distance-field.c edtaa3func.c texture-atlas.c mat4.c shader.c text.cpp image.cpp
-
-
-# test
-# gcc -I ~/workspace/freetype-2.10.1/include \
-#     -I ./libs/glfw-3.3.bin.MACOS/include \
-#     -mmacosx-version-min=10.10 \
-#     -framework OpenGL \
-#     -framework Cocoa \
-#     -framework IOKit \
-#     -framework CoreFoundation \
-#     -framework CoreVideo \
-#     -framework AppKit \
-#     -framework CoreGraphics \
-#     -framework CoreServices \
-#     -framework Foundation \
-#     -DTESTING \
-#     ./libs/glfw-3.3.bin.MACOS/lib-macos/libglfw3.a \
-#     ./libs/zlib-1.2.11/libz.a \
-#     ./libs/libpng-1.6.37/.libs/libpng16.a \
-#     ./libs/bzip2-1.0.8/libbz2.a \
-#     ./libs/freetype-2.10.1/objs/.libs/libfreetype.a \
-#     -o testtext \
-#     shader_utils.cpp platform.c vertex-attribute.c vector.c vertex-buffer.c texture-font.c utf8-utils.c distance-field.c edtaa3func.c texture-atlas.c mat4.c shader.c text.cpp testtext.cpp
+skia_root="./libs/skia"
 
 clang++ \
-    -I ./libs/glfw-3.3.bin.MACOS/include \
-    -I ./libs/skia \
-    -I ./libs/skia/include/gpu \
-    -I ./libs/skia/include/gpu/gl \
-    -I ./libs/skia/include/core \
-    -I ./libs/skia/include/utils \
-    -I ./libs/skia/include/private \
+    -I "$skia_root" \
+    -I "$skia_root"/include/gpu \
+    -I "$skia_root"/include/gpu/gl \
+    -I "$skia_root"/include/core \
+    -I "$skia_root"/include/utils \
+    -I "$skia_root"/include/private \
     -framework OpenGL \
     -framework Cocoa \
     -framework IOKit \
@@ -69,9 +26,12 @@ clang++ \
     -framework CoreGraphics \
     -framework CoreServices \
     -framework Foundation \
-    -mmacosx-version-min=10.10 \
+    -framework Metal \
+    -mmacosx-version-min=10.13 \
+    "$skia_root"/out/Release-x64/libskia.a \
+    -DSK_GL=1 \
+    -arch x86_64 \
     -dynamiclib \
-    ./libs/skia/out/Static/libskia.a \
     -std=c++17 \
     -o libmembraneskia.dylib \
     skia.cpp
@@ -97,18 +57,18 @@ clang++ \
 #     -framework CoreGraphics \
 #     -framework CoreServices \
 #     -framework Foundation \
-#     -mmacosx-version-min=10.10 \
+#     -framework Metal \
+#     -mmacosx-version-min=10.13 \
 #     -DTESTING \
 #     ./libs/glfw-3.3.bin.MACOS/lib-macos/libglfw3.a \
-#     ./libs/skia/out/Static/libskia.a \
+#     /Users/adrian/Downloads/Skia-m92-f46c37ba85-2-macos-Release-x64/out/Release-x64/libskia.a \
 #     ./libs/libtmt/tmt.o \
+#     -DSK_GL=1 \
 #     -std=c++17 \
+#     -arch x86_64 \
 #     -o testglfw \
 #     testglfw.cpp skia.cpp
 
-
-
-cp libmembrane.dylib ../resources/darwin
 cp libmembraneskia.dylib ../resources/darwin
 
 echo 'done'

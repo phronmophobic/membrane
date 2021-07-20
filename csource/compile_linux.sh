@@ -3,8 +3,16 @@
 set -e
 set -x
 
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+cd "$DIR"
 
-clang++ \
+skia_root="./libs/skia"
+
+which c++
+
+c++ --version
+
+c++ \
     -fPIC \
     -I ./libs/skia \
     -I ./libs/skia/include/gpu \
@@ -12,14 +20,15 @@ clang++ \
     -I ./libs/skia/include/core \
     -I ./libs/skia/include/utils \
     -I ./libs/skia/include/private \
-    -L ./libs/skia/out/Static \
+    -L ./libs/skia/out/Release-x64 \
     -shared \
     -std=c++17 \
     -o libmembraneskia.so \
-    skia.cpp \
+    -DSK_GL=1 \
     -lskia \
     -lGL \
-    -lfontconfig  
+    -lfontconfig \
+    skia.cpp
 
 
 # c++ \

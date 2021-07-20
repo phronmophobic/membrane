@@ -229,7 +229,7 @@
     (if-let [result (cljs-resolve {:ns (get-in @(cljs-env-compiler) [:cljs.analyzer/namespaces (symbol (ns-name *ns*))])}  sym)]
       (:name result))
     #?(:clj (if-let [v (resolve sym)]
-              (symbol (name (ns-name (.ns v))) (name (.sym v)))))))
+              (symbol (name (ns-name (.ns ^clojure.lang.Var v))) (name (.sym ^clojure.lang.Var v)))))))
 
 
  (defn path-replace

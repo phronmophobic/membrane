@@ -1,37 +1,36 @@
 #include "skia.h"
-#include <GLFW/glfw3.h>
-// #include <OpenGL/gl.h>
+
+#ifdef SK_GL
+
+#if defined(__APPLE__)
+#include <OpenGL/gl.h>
+#else
+
+#include <GL/gl.h>
+
+#endif
+
+
+#endif
+
 #include "modules/skparagraph/include/FontCollection.h"
 #include "modules/skparagraph/include/TypefaceFontProvider.h"
 #include <iostream>
 #include <fstream>
 
+#include "src/gpu/gl/GrGLDefines.h"
+#include "gl/GrGLInterface.h"
+
 #include "src/core/SkFontPriv.h"
 #include "src/core/SkStrikeSpec.h"
 #include "src/utils/SkUTF.h"
-
-// pty stufff
-#define DEFAULT_TERMINAL "screen-bce"
-#define DEFAULT_256_COLOR_TERMINAL "xterm-256color"
-#include <fcntl.h>
-#ifndef FORKPTY_INCLUDE_H
-    #if defined(__APPLE__)
-        #define FORKPTY_INCLUDE_H <util.h>
-    #elif defined(__FreeBSD__)
-        #define FORKPTY_INCLUDE_H <libutil.h>
-    #else
-        #define FORKPTY_INCLUDE_H <pty.h>
-    #endif
-#endif
-#include FORKPTY_INCLUDE_H
-
 
 #if defined(__APPLE__)
 #import <CoreFoundation/CoreFoundation.h>
 #endif
 
 #define LOG(fmt, ...) \
-            do {FILE *fp; fp = fopen("/var/tmp/cef.log", "a");fprintf(fp, fmt, __VA_ARGS__); fclose(fp);} while (0)
+            do {FILE *fp; fp = fopen("/var/tmp/membrane.log", "a");fprintf(fp, fmt, __VA_ARGS__); fclose(fp);} while (0)
 
 typedef struct _cef_rect_t {
   int x;
@@ -126,45 +125,42 @@ extern "C" {
     }
 
     void skia_reshape(SkiaResource* resource, int frameBufferWidth, int frameBufferHeight, float xscale, float yscale){
-        auto interface = GrGLMakeNativeInterface();
 
-        sk_sp<GrContext> grContext(GrContext::MakeGL(interface));
+        #ifdef SK_GL
+        if ( resource->surface){
+            resource->surface.reset();
+            resource->grContext.reset();
+        }
+
+        sk_sp<GrDirectContext> grContext = GrDirectContext::MakeGL();
         SkASSERT(grContext);
-
         grContext->ref();
 
-        GrGLint buffer = 0;
-
         GrGLFramebufferInfo info;
-        info.fFBOID = (GrGLuint) buffer;
-        SkColorType colorType;    
+        info.fFBOID = (GrGLuint) 0;
         info.fFormat = GL_RGBA8;
-        colorType = kRGBA_8888_SkColorType;
+        SkColorType colorType  = kRGBA_8888_SkColorType;
 
-        // If you want multisampling, uncomment the below lines and set a sample count
-        static const int kStencilBits = 8;  // Skia needs 8 stencil bits
-        static const int kMsaaSampleCount = 0; //4;
+        int kStencilBits = 8;  // Skia needs 8 stencil bits
+        int kMsaaSampleCount = 0;
 
         GrBackendRenderTarget target(frameBufferWidth, frameBufferHeight, kMsaaSampleCount, kStencilBits, info);
 
-        // setup SkSurface
-        // To use distance field text, use commented out SkSurfaceProps instead
-        // SkSurfaceProps props(SkSurfaceProps::kUseDeviceIndependentFonts_Flag,
-        //                      SkSurfaceProps::kLegacyFontHost_InitType);
-        SkSurfaceProps props(SkSurfaceProps::kLegacyFontHost_InitType);
-
+        SkSurfaceProps surfaceProps(0, kUnknown_SkPixelGeometry);
         sk_sp<SkSurface> surface(SkSurface::MakeFromBackendRenderTarget(grContext.get(), target,
                                                                         kBottomLeft_GrSurfaceOrigin,
-                                                                        colorType, nullptr, &props));
-        surface->ref();
+                                                                        colorType, nullptr, &surfaceProps));
+        
+        SkASSERT(surface);
 
         SkCanvas* canvas = surface->getCanvas();
         
         canvas->scale(xscale, yscale);
 
-        // resource = new SkiaResource(grContext, surface);
         resource->grContext = grContext;
         resource->surface = surface;
+
+        #endif
 
     }
 
@@ -232,7 +228,7 @@ extern "C" {
         const int glyphCount = atg.count();
         const SkGlyphID* glyphIDs = atg.glyphs();
 
-        SkStrikeSpec strikeSpec = SkStrikeSpec::MakeCanonicalized(*font, nullptr);
+        SkStrikeSpec strikeSpec = SkStrikeSpec::MakeCanonicalized(*font);
         SkBulkGlyphMetrics metrics{strikeSpec};
         SkSpan<const SkGlyph*> glyphs = metrics.glyphs(SkMakeSpan(glyphIDs, glyphCount));
 
@@ -480,6 +476,23 @@ extern "C" {
         resource->surface->getCanvas()->translate(tx, ty);
     }
 
+    void skia_transform(SkiaResource* resource, 
+                        float  	scaleX,
+                        float  	skewX,
+                        float  	transX,
+                        float  	skewY,
+                        float  	scaleY,
+                        float  	transY
+    ){
+        SkMatrix matrix;
+        // float affine[] = {scaleX, skewX, transX, skewY, scaleY, transY};
+
+        // column major order
+        float affine[] = {scaleX, skewY, skewX, scaleY, transX, transY};
+        matrix.setAffine(affine);
+        resource->surface->getCanvas()->concat(matrix);
+    }
+
     void skia_clip_rect(SkiaResource* resource, float ox, float oy, float width, float height){
         resource->surface->getCanvas()->clipRect(SkRect::MakeXYWH(ox, oy, width, height));
     }
@@ -527,7 +540,7 @@ extern "C" {
     }
 
     void skia_draw_image_rect(SkiaResource* resource, SkImage* image, float w, float h){
-        resource->surface->getCanvas()->drawImageRect(image, SkRect::MakeXYWH(0.f, 0.f, w, h), &resource->getPaint());
+        resource->surface->getCanvas()->drawImageRect(image, SkRect::MakeXYWH(0.f, 0.f, w, h), SkSamplingOptions(), &resource->getPaint());
     }
 
     void skia_draw_path(SkiaResource* resource, float* points, int count){
@@ -558,6 +571,46 @@ extern "C" {
 
         }
     
+    }
+
+    SkPath* skia_make_path(){
+        return new SkPath();
+    }
+
+    void skia_delete_path(SkPath* path){
+        delete path;
+    }
+
+    void skia_reset_path(SkPath* path){
+        path->reset();
+    }
+
+    void skia_skpath_moveto(SkPath* path, double x, double y){
+        path->moveTo(x, y);
+    }
+
+    void skia_skpath_lineto(SkPath* path, double x, double y){
+        path->lineTo(x, y);
+    }
+
+    void skia_skpath_arcto(SkPath* path, double x1, double y1, double x2, double y2, double radius){
+        path->arcTo(x1, y1, x2, y2, radius);
+    }
+
+    void skia_skpath_cubicto(SkPath* path, double x1, double y1, double x2, double y2, double x3, double y3){
+        path->cubicTo(x1, y1, x2, y2, x3, y3);
+    }
+
+    void skia_skpath_conicto(SkPath* path, double x1, double y1, double x2, double y2, double w){
+        path->conicTo(x1, y1, x2, y2, w);
+    }
+
+    void skia_skpath_close(SkPath* path){
+        path->close();
+    }
+
+    void skia_skpath_draw(SkiaResource* resource, SkPath* path){
+        resource->surface->getCanvas()->drawPath(*path, resource->getPaint());
     }
 
     void skia_draw_rounded_rect(SkiaResource* resource, float width, float height, float radius){
@@ -652,25 +705,27 @@ extern "C" {
 
 
     int skia_fork_pty(unsigned short rows, unsigned short columns){
-        struct winsize ws = {.ws_row = rows, .ws_col = columns};
-        int pt;
-        pid_t pid = forkpty(&pt, NULL, NULL, &ws);
+        // struct winsize ws = {.ws_row = rows, .ws_col = columns};
+        // int pt;
+        // pid_t pid = forkpty(&pt, NULL, NULL, &ws);
 
-        if (pid < 0){
-            return -1;
-        } else if (pid == 0){
+        // if (pid < 0){
+        //     return -1;
+        // } else if (pid == 0){
 
-            setsid();
-            // setenv("MTM", buf, 1);
-            setenv("TERM", DEFAULT_256_COLOR_TERMINAL
-                   , 1);
-            // signal(SIGCHLD, SIG_DFL);
-            execl("/bin/bash", "/bin/bash", NULL);
-            return 0;
-        }
+        //     setsid();
+        //     // setenv("MTM", buf, 1);
+        //     setenv("TERM", DEFAULT_256_COLOR_TERMINAL
+        //            , 1);
+        //     // signal(SIGCHLD, SIG_DFL);
+        //     execl("/bin/bash", "/bin/bash", NULL);
+        //     return 0;
+        // }
 
-        // fcntl(pt, F_SETFL, O_NONBLOCK);
-        return pt;
+        // // fcntl(pt, F_SETFL, O_NONBLOCK);
+        // return pt;
+
+        return -1;
 
     }
 

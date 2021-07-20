@@ -736,9 +736,9 @@
        assoc Padding
        (fn [draw]
          (fn [this]
-               (draw
-                (translate (:left this) (:top this)
-                           (:drawable this))))))
+           (draw
+            (translate (:left this) (:top this)
+                       (:drawable this))))))
 
 (defn padding
   ([p elem]
@@ -2359,8 +2359,12 @@
       [drawable]))
 
 
+(def index-for-position* (atom nil))
+
 (defn index-for-position [font text x y]
-  (assert false "image size should be replaced by implementation"))
+  (let [f @index-for-position*]
+    (assert f "index-for-position should be replaced by implementation")
+    (f font text x y)))
 
 (defn copy-to-clipboard [s])
 
