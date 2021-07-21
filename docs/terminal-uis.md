@@ -9,7 +9,7 @@ Terminal UIs can be created using the `membrane.lanterna` backend. For a full ex
 
 Compared to most of the other backends, there are a few major differences:
 - Terminal UIs have an integer coordinate system. Most other backends have a floating point coordinate system
-- Terminals don't really have a way to draw multiple elements on top of each other. There is a foreground and a background, but the background can only consist a solid color.
+- Terminals don't really have a way to draw multiple elements on top of each other. There is a foreground and a background, but the background is just a solid color
 - Terminals often have a limited color palette
 - Text is always monospaced and 1 unit high
 
