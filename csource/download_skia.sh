@@ -11,8 +11,8 @@ mkdir -p libs
 pushd libs
 
 
-
-URL="https://github.com/phronmophobic/skia-build/releases/download/m92-a77a4620d2/Skia-m92-a77a4620d2-3-${platform}-Release-x86_64.zip"
+RELEASE="m92-a77a4620d2-3"
+URL="https://github.com/phronmophobic/skia-build/releases/download/${RELEASE}/Skia-${RELEASE}-${platform}-Release-x86_64.zip"
 
 curl -L -o skia.zip "${URL}"
 
