@@ -28,7 +28,7 @@ clang++ \
     -framework Foundation \
     -framework Metal \
     -mmacosx-version-min=10.13 \
-    "$skia_root"/out/Release-x64/libskia.a \
+    "$skia_root"/out/Release-x86_64/libskia.a \
     -DSK_GL=1 \
     -arch x86_64 \
     -dynamiclib \
