@@ -1,14 +1,12 @@
 {:paths ["src" "target/classes" "generated_classes"]
  :deps {org.clojure/clojure {:mvn/version "1.10.3"}
 
-        ;; net.java.dev.jna/jna {:mvn/version "5.8.0"}
-        ;; net.n01se/clojure-jna {:mvn/version "1.0.0"}
-        ;; org.clojure/core.async {:mvn/version "0.4.490"}
-        cnuernber/dtype-next {:mvn/version "8.09"
-                              ;;:local/root "/Users/adrian/workspace/dtype-next"
-                              }
+        net.java.dev.jna/jna {:mvn/version "5.8.0"}
+        net.n01se/clojure-jna {:mvn/version "1.0.0"}
+        org.clojure/core.async {:mvn/version "0.4.490"}
+        cnuernber/dtype-next {:mvn/version "8.09"}
         com.rpl/specter {:mvn/version "1.1.3"}
-        ;;org.apache.commons/commons-text {:mvn/version "1.8"}
+        org.apache.commons/commons-text {:mvn/version "1.8"}
         }
  :mvn/repos
  {"space-maven" {:url "https://packages.jetbrains.team/maven/p/skija/maven"}
@@ -19,6 +17,9 @@
   {:extra-deps {codox/codox {:mvn/version "0.10.5"}}
    :extra-paths ["script"]
    :exec-fn gen-doc/-main}
+
+  :skialib
+  {:extra-deps {com.phronemophobic.membrane/skialib-macosx {:mvn/version "0.9.27-beta"}}}
 
   :ios-uberjar
   {:replace-deps {com.github.seancorfield/depstar {:mvn/version "2.0.216"}}
