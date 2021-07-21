@@ -55,7 +55,7 @@ In some cases, you may want to restart the UI or display a different UI. You can
        :out membrane.lanterna/out
        :close-ch close-ch}))
 
-  ;; Some time later, stop the UI. You can call `lanterna/run` to start a new UI.
+  ;; Some time later, stop the UI. You can call `lanterna/run` again to start a new UI.
   (async/close! close-ch)
   
   ,)
