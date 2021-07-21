@@ -23,7 +23,7 @@ jobs:
       artifact_name: "libmembraneskia.dylib"
     steps:
       - uses: actions/checkout@v2
-      - run: ./check_release.sh
+      - run: ./csource/check_release.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./csource/download_skia.sh
@@ -32,7 +32,7 @@ jobs:
         with:
           name: libmembraneskia.dylib
           path: csource/libmembraneskia.dylib
-      - run: ./release.sh
+      - run: ./csource/release.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -46,11 +46,12 @@ jobs:
     env:
       platform: linux
       build_type: ${{ matrix.build_type }}
+      artifact_name: "libmembraneskia.so"
     steps:
       - uses: actions/checkout@v2
-      # - run: ./check_release.sh
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: ./csource/check_release.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./csource/prepare_linux.sh
       - run: ./csource/download_skia.sh
       - run: ./csource/compile_linux.sh
@@ -58,6 +59,6 @@ jobs:
         with:
           name: libmembraneskia.so
           path: csource/libmembraneskia.so
-      # - run: ./release.sh
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: ./csource/release.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
