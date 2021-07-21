@@ -22,7 +22,6 @@ c++ \
     -std=c++17 \
     -o libmembraneskia.so \
     -DSK_GL=1 \
-    -lskia \
     -lGL \
     -lfontconfig \
     skia.cpp
