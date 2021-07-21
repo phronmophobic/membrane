@@ -180,3 +180,20 @@
 
 
 
+#?
+(:clj
+ (defn save-image [{:keys [path]
+                    :or {path "todo.png"}}]
+   ((requiring-resolve 'membrane.skia/draw-to-image!)
+    path
+    (todo-app
+     {:selected-filter :all
+      :todos
+      [{:complete? false
+        :description "first"}
+       {:complete? false
+        :description "second"}
+       {:complete? true
+        :description "third"}]
+      :next-todo-text ""}))
+   ))
