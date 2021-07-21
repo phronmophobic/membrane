@@ -5,7 +5,6 @@ apt-get update -y
 apt-get install build-essential software-properties-common -y
 add-apt-repository ppa:ubuntu-toolchain-r/test -y
 apt-get update -y
-apt-get install binutils-2.26
 apt-get install build-essential software-properties-common -y
 apt-get update
 
