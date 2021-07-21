@@ -25,13 +25,18 @@ Below is the setup for cider/nrepl. If you need support for a different REPL, pl
 
 #### Cider/nREPL
 
+##### 1. Start your repl
+
 To setup a repl driven workflow, start up the nrepl server in the terminal that will be displaying your UI. Probably something like:
 ```sh
 clojure -Sdeps '{:deps {nrepl/nrepl {:mvn/version "0.8.3"} cider/cider-nrepl {:mvn/version "0.25.6"}}}' -M:dev:nrepl --middleware '["cider.nrepl/cider-middleware" "membrane.lanterna/preserve-system-io"]' --port 7888
 ```
 This command will start an nrepl server on port 7888. The default nrepl middleware will replace `System/in` and `System/out`. Add the `membrane.lanterna/preserve-system-io` to store `System/in` and `System/out` in the respective vars: `membrane.lanterna/in` and `membrane.lanterna/out`.
 
+##### 2. Connect to your repl
 To connect to nrepl server in emacs, use `M-x cider-connect` and pass `localhost` as the host and `7888` for the port.
+
+##### 3. Run your UI
 
 To run a UI that uses the correct I/O streams, pass the `:in` and `:out` as options like so:
 ```clojure
@@ -39,6 +44,8 @@ To run a UI that uses the correct I/O streams, pass the `:in` and `:out` as opti
       {:in membrane.lanterna/in
        :out membrane.lanterna/out})
 ```
+
+##### Stopping/Restarting your UI
 
 In some cases, you may want to restart the UI or display a different UI. You can stop a UI by passing a channel as the `:close-ch` option that will stop rendering when it receives a value.
 
