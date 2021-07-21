@@ -19,6 +19,6 @@ fi
 upload_url="${BASH_REMATCH[0]}?name=${artifact_name}"
 rm release.json
 
-echo "Uploading ${archive} to ${upload_url}"
+echo "Uploading ${artifact_name} to ${upload_url}"
 # --header "Content-Type: application/zip" 
 curl --fail --location --silent --show-error --header "${auth}" --header "${accept}" --request POST --data-binary "@${artifact_name}" ${upload_url}
