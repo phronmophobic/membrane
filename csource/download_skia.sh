@@ -12,7 +12,7 @@ pushd libs
 
 
 
-URL="https://github.com/phronmophobic/skia-build/releases/download/m92-a77a4620d2/Skia-m92-a77a4620d2-${platform}-Release-x64.zip"
+URL="https://github.com/phronmophobic/skia-build/releases/download/m92-a77a4620d2/Skia-m92-a77a4620d2-3-${platform}-Release-x86_64.zip"
 
 curl -L -o skia.zip "${URL}"
 
