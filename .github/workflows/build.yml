@@ -41,7 +41,7 @@ jobs:
 
   linux:
     runs-on: ubuntu-latest
-    container: ubuntu:14.04
+    container: ubuntu:18.04
     strategy:
       matrix:
         build_type: [Release]
