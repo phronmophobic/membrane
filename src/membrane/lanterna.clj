@@ -29,6 +29,7 @@
    com.googlecode.lanterna.input.KeyStroke
    com.googlecode.lanterna.input.KeyType
    com.googlecode.lanterna.screen.Screen
+   com.googlecode.lanterna.screen.Screen$RefreshType
    com.googlecode.lanterna.screen.TerminalScreen
    com.googlecode.lanterna.TerminalPosition
    com.googlecode.lanterna.terminal.DefaultTerminalFactory
@@ -653,7 +654,8 @@
                            (fn [& args]
                              nil)))
 
-                    (.refresh screen))))
+                    (.refresh screen
+                              com.googlecode.lanterna.screen.Screen$RefreshType/DELTA))))
               (recur))))
         (catch Exception e
           (log e)
