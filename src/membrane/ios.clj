@@ -156,7 +156,10 @@
                                      ['image :pointer]
                                      ['w :float32]
                                      ['h :float32]]}
-
+   :skia_image_bounds {:rettype :void
+                       :argtypes [['image :pointer]
+                                  ['width :pointer]
+                                  ['height :pointer]]}
 
    :skia_draw_path {:rettype :void
                     :argtypes [['resource :pointer]
@@ -560,7 +563,10 @@
     (if-let [image (get @*image-cache* image-url)]
       image
       (let [bytes (slurp-bytes image-url)
-            image (skia_load_image_from_memory bytes (alength ^bytes bytes))]
+            image (skia_load_image_from_memory
+                   (dtype/make-container :native-heap :int8
+                                         bytes)
+                   (alength ^bytes bytes))]
         (swap! *image-cache* assoc image-url image)
         image))))
 
@@ -569,10 +575,13 @@
   (Class/forName "[B")
   (get-image-texture [bytes]
     (if-let [image (get @*image-cache* bytes)]
-        image
-        (let [image (skia_load_image_from_memory bytes (alength ^bytes bytes))]
-          (swap! *image-cache* assoc bytes image)
-          image))))
+      image
+      (let [image (skia_load_image_from_memory
+                   (dtype/make-container :native-heap :int8
+                                         bytes)
+                   (alength ^bytes bytes))]
+        (swap! *image-cache* assoc bytes image)
+        image))))
 
 (defn- image-draw [{:keys [image-path size opacity] :as image}]
   (when-let [image-texture (get-image-texture image-path)]
@@ -588,8 +597,19 @@
   (draw [this]
     (image-draw this)))
 
+(declare image-cache)
+(defn image-size [img-source]
+  (let [width (dt-ffi/make-ptr :int32 0)
+        height (dt-ffi/make-ptr :int32 0)
+        image (if *image-cache*
+                (get-image-texture img-source)
+                (binding [*image-cache* image-cache]
+                  (get-image-texture img-source)))]
+    (when image
+      (skia_image_bounds image width height)
+      [(nth width 0) (nth height 0)])))
 
-
+(reset! membrane.ui/image-size* (memoize image-size))
 
 (extend-type membrane.ui.Translate
   IDraw
@@ -1079,7 +1099,8 @@
     ((requiring-resolve 'tech.v3.datatype.ffi.graalvm/define-library)
      membraneskialib-fns
      nil
-     {:header-files ["<skia.h>"]
+     {:header-files [;;"<skia.h>"
+                     ]
       :libraries ["@rpath/libmembraneiosskia.so"]
       :classname 'membrane.ios.Bindings})))
 

@@ -543,6 +543,11 @@ extern "C" {
         resource->surface->getCanvas()->drawImageRect(image, SkRect::MakeXYWH(0.f, 0.f, w, h), SkSamplingOptions(), &resource->getPaint());
     }
 
+    void skia_image_bounds(SkImage* image, int* width, int* height){
+        *width = image->width();
+        *height = image->height();
+    }
+
     void skia_draw_path(SkiaResource* resource, float* points, int count){
 
         if ( count >= 2){

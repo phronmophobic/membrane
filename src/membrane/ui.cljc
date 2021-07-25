@@ -519,9 +519,13 @@
        (catch Exception e
          (.printStackTrace e)
          [0 0])))
-   (def ^{:arglists '([image-path])
-          :doc "Returns the [width, height] of the file at image-path."}
-     image-size (memoize image-size-raw)))
+
+   (def image-size* (atom (memoize image-size-raw)))
+
+   (defn image-size
+     "Returns the [width, height] of the file at image-path."
+     [image-path]
+     (@image-size* image-path)))
 
  :cljs
  (defn image-size [image-path]
