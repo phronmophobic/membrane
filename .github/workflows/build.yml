@@ -8,7 +8,7 @@ on:
   #     - "*.sh"
 
 env:
-  release: 0.9.27-beta
+  release: ${{ GITHUB_SHA }}
 
 jobs:
   macos:
