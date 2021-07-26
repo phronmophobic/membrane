@@ -9,36 +9,21 @@ cd "$DIR"
 export SDKROOT="/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk"
 
 clang++ \
-    -I ./libs/skia \
-    -I ./libs/skia/include/gpu \
-    -I ./libs/skia/include/gpu/gl \
-    -I ./libs/skia/include/core \
-    -I ./libs/skia/include/utils \
-    -I ./libs/skia/include/private \
+    -I ./libs/skia.bak \
+    -I ./libs/skia.bak/include/gpu \
+    -I ./libs/skia.bak/include/gpu/gl \
+    -I ./libs/skia.bak/include/core \
+    -I ./libs/skia.bak/include/utils \
+    -I ./libs/skia.bak/include/private \
     -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk \
-    -framework CoreFoundation \
-    -framework ImageIO \
-    -framework MobileCoreServices \
-    -framework CoreGraphics \
-    -framework CoreText \
-    -framework UIKit \
-    -framework Metal \
-    -framework Foundation \
-    -framework CoreServices \
     -DTARGET_OS_IOS=1 \
     -DSK_METAL=1 \
     -DSK_SUPPORT_GPU=1 \
     -target arm64-apple-ios14.1 \
-    -dynamiclib \
-    -L ./libs/skia/out/ios64Static/ \
-    -lskia \
-    -lskparagraph \
-    -lskshaper \
-    -lsktext \
+    -c \
     -std=c++17 \
-    -install_name @rpath/libmembraneiosskia.so \
     -arch arm64 \
-    -o libmembraneiosskia.so \
+    -o libmembraneiosskia.o \
     skia.cpp
 
 
