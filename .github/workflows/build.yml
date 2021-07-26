@@ -18,7 +18,6 @@ jobs:
         build_type: [Release]
       fail-fast: false
     env:
-      release: ${{ GITHUB_SHA }}
       platform: macos
       build_type: ${{ matrix.build_type }}
       artifact_name: "libmembraneskia.dylib"
@@ -45,7 +44,6 @@ jobs:
         build_type: [Release]
       fail-fast: false
     env:
-      release: ${{ GITHUB_SHA }}
       platform: linux
       build_type: ${{ matrix.build_type }}
       artifact_name: "libmembraneskia.so"

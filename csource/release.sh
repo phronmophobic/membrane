@@ -5,13 +5,13 @@ cd "`dirname $0`"
 auth="Authorization: token ${GITHUB_TOKEN}"
 accept="Accept: application/vnd.github.v3+json"
 
-if ! curl --fail --location --silent --show-error --header "${auth}" --header "${accept}" https://api.github.com/repos/phronmophobic/membrane/releases/tags/${release} > release.json ; then
-  echo "> Creating release ${release}"
+if ! curl --fail --location --silent --show-error --header "${auth}" --header "${accept}" https://api.github.com/repos/phronmophobic/membrane/releases/tags/${GITHUB_SHA} > release.json ; then
+  echo "> Creating release ${GITHUB_SHA}"
   curl --fail --location --silent --show-error --header "${auth}" --header "${accept}" --request POST \
-    --data "{\"tag_name\":\"${release}\",\"name\":\"${release}\"}" \
+    --data "{\"tag_name\":\"${GITHUB_SHA}\",\"name\":\"${GITHUB_SHA}\"}" \
     https://api.github.com/repos/phronmophobic/membrane/releases > release.json
 else
-  echo "> Release ${release} exists"
+  echo "> Release ${GITHUB_SHA} exists"
   cat release.json
 fi
 
