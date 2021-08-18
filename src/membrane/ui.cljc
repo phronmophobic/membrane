@@ -91,6 +91,11 @@
 (defprotocol IHasMouseMoveGlobal
   (has-mouse-move-global [this]))
 
+(defprotocol IBubble
+  "Allows an element add, remove, modify effects emitted from its children."
+  (-bubble [_ effects]
+    "Called when an effect is being emitted by a child element. The parent element can either return the same effects or allow them to continue to bubble."))
+
 (extend-type nil
   IKeyPress
   (-key-press [this info]
@@ -117,12 +122,12 @@
   (-scroll [elem offset local-pos])
   IDrop
   (-drop [elem paths local-pos]
+    nil)
+  IBubble
+  (-bubble [elem effects]
     nil))
 
-(defprotocol IBubble
-  "Allows an element add, remove, modify effects emitted from its children."
-  (-bubble [_ effects]
-    "Called when an effect is being emitted by a child element. The parent element can either return the same effects or allow them to continue to bubble."))
+
 
 (defn -default-mouse-move-global [elem offset]
   (let [[ox oy] (origin elem)
