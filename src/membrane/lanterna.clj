@@ -746,38 +746,34 @@
           (future-cancel input-future))))))
 
 (defn default-handler [ui event]
-  (log event)
+  ;; (log event)
   ;; (log (.getKeyType event))
   (condp = (.getKeyType ^KeyStroke event)
 
 
     KeyType/MouseEvent
     ;; mouse
-    (do
+    (condp = (.getActionType ^MouseAction event)
+      
+      MouseActionType/CLICK_DOWN
       (let [pos (.getPosition ^MouseAction event)]
-        (log (pr-str [:mx [(.getColumn ^TerminalPosition pos)
-                           (.getRow ^TerminalPosition pos)]])))
-      (condp = (.getActionType ^MouseAction event)
-        
-        MouseActionType/CLICK_DOWN
-        (let [pos (.getPosition ^MouseAction event)]
-          (ui/mouse-down ui [(.getColumn ^TerminalPosition pos)
-                             (.getRow ^TerminalPosition pos)]))
-
-        MouseActionType/CLICK_RELEASE
-        (let [pos (.getPosition ^MouseAction event)]
-          (ui/mouse-up ui [(.getColumn ^TerminalPosition pos)
+        (ui/mouse-down ui [(.getColumn ^TerminalPosition pos)
                            (.getRow ^TerminalPosition pos)]))
-        MouseActionType/DRAG
-        (let [pos (.getPosition ^MouseAction event)]
-          (ui/mouse-move ui [(.getColumn ^TerminalPosition pos)
-                             (.getRow ^TerminalPosition pos)]))
-        MouseActionType/MOVE
-        (let [pos (.getPosition ^MouseAction event)]
-          (ui/mouse-move ui [(.getColumn ^TerminalPosition pos)
-                             (.getRow ^TerminalPosition pos)]))
-        MouseActionType/SCROLL_DOWN nil
-        MouseActionType/SCROLL_UP nil))
+
+      MouseActionType/CLICK_RELEASE
+      (let [pos (.getPosition ^MouseAction event)]
+        (ui/mouse-up ui [(.getColumn ^TerminalPosition pos)
+                         (.getRow ^TerminalPosition pos)]))
+      MouseActionType/DRAG
+      (let [pos (.getPosition ^MouseAction event)]
+        (ui/mouse-move ui [(.getColumn ^TerminalPosition pos)
+                           (.getRow ^TerminalPosition pos)]))
+      MouseActionType/MOVE
+      (let [pos (.getPosition ^MouseAction event)]
+        (ui/mouse-move ui [(.getColumn ^TerminalPosition pos)
+                           (.getRow ^TerminalPosition pos)]))
+      MouseActionType/SCROLL_DOWN nil
+      MouseActionType/SCROLL_UP nil)
 
     KeyType/Character
     (do
