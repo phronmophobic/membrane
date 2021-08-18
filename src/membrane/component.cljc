@@ -879,6 +879,9 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
                      :context context
                      :$context $context}
                     args))]
+   (membrane.ui/on-bubble
+    (fn [intents]
+       (run! #(apply handler %) intents))
     (membrane.ui/on-scroll
      (fn [offset mpos]
        (let [intents (membrane.ui/scroll main-view offset mpos)]
@@ -925,7 +928,7 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
               (fn [paths pos]
                 (let [intents (membrane.ui/drop main-view paths pos)]
                   (run! #(apply handler %) intents)))
-              main-view))))))))))))
+              main-view)))))))))))))
 
 
 
