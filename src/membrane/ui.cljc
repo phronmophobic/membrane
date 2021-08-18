@@ -2004,7 +2004,14 @@
            (draw (:drawable this)))))
 
 
+(defmulti on-handler
+  (fn [event-type handler body]
+    event-type)
+  :default :membrane.ui/on-handler-default)
 
+(defmethod on-handler :membrane.ui/on-handler-default
+  [event-type handler body]
+  (EventHandler. event-type handler body))
 
 (defn on
   "Wraps an elem with event handlers.
@@ -2071,7 +2078,7 @@
                  
                  
                  ;; else
-                 (EventHandler. event-type handler body))))
+                 (on-handler event-type handler body))))
       body)))
 
 
