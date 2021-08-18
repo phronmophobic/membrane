@@ -216,16 +216,12 @@
   IKeyPress
   (-key-press [this info]
     (let [intents (mapcat #(-key-press % info) (children this))]
-      (if (satisfies? IBubble this)
-        (-bubble this intents)
-        intents)))
+      (-bubble this intents)))
 
   IKeyEvent
   (-key-event [this key scancode action mods]
     (let [intents (mapcat #(-key-event % key scancode action mods) (children this))]
-      (if (satisfies? IBubble this)
-        (-bubble this intents)
-        intents))))
+      (-bubble this intents))))
 
 
 
@@ -417,9 +413,7 @@
                     into
                     []
                     (children elem#))]
-         (if (satisfies? IBubble elem#)
-           (-bubble elem# intents#)
-           intents#)))))
+         (-bubble elem# intents#)))))
 
 (def
   ^{:arglists '([elem key]),
