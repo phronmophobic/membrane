@@ -1,4 +1,4 @@
-{:paths ["src" "target/classes" "generated_classes"]
+{:paths ["src" "target/classes" "generated_classes" "resources"]
  :deps {org.clojure/clojure {:mvn/version "1.10.3"}
 
         net.java.dev.jna/jna {:mvn/version "5.8.0"}
