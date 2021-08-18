@@ -38,6 +38,7 @@
    com.googlecode.lanterna.TextColor$ANSI
    com.googlecode.lanterna.TextColor$RGB
    com.googlecode.lanterna.TextColor$Indexed
+   com.googlecode.lanterna.terminal.TerminalResizeListener
 
    java.nio.charset.Charset)
   (:gen-class))
@@ -606,7 +607,14 @@
         term (doto (UnixTerminal. in out (Charset/defaultCharset))
                (.setMouseCaptureMode MouseCaptureMode/CLICK_RELEASE_DRAG_MOVE))
         screen (TerminalScreen. term)
+        _ (.addResizeListener term
+           (reify TerminalResizeListener
+             (onResized [_ terminal size]
+               (.doResizeIfNecessary screen)
+               (>!! repaint-ch true))))
+
         ui (volatile! nil)
+        last-term-size (volatile! nil)
         input-future (future
                        (try
                          (loop []
@@ -641,8 +649,11 @@
                     current-ui (vreset! ui (try
                                              (make-ui)
                                              (catch Exception e
-                                               (label (str e)))))]
-                (when (not= current-ui last-ui)
+                                               (label (str e)))))
+                    term-size (.getTerminalSize screen)
+                    size-change? (not= @last-term-size term-size)]
+                (when (or size-change?
+                          (not= current-ui last-ui))
                   (binding [*tg* tg
                             *context* {:translate {:x 0 :y 0}}
                             *screen* screen]
@@ -653,9 +664,11 @@
                            current-ui
                            (fn [& args]
                              nil)))
-
-                    (.refresh screen
-                              com.googlecode.lanterna.screen.Screen$RefreshType/DELTA))))
+                    (if size-change?
+                      (do (.refresh screen)
+                          (vreset! last-term-size term-size))
+                      (.refresh screen
+                                com.googlecode.lanterna.screen.Screen$RefreshType/DELTA)))))
               (recur))))
         (catch Exception e
           (log e)
