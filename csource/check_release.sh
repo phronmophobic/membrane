@@ -5,7 +5,9 @@ cd "`dirname $0`"
 auth="Authorization: token ${GITHUB_TOKEN}"
 accept="Accept: application/vnd.github.v3+json"
 
-if ! curl --fail --location --silent --show-error --header "${auth}" --header "${accept}" https://api.github.com/repos/phronmophobic/membrane/releases/tags/${release} > release.json ; then
+release="release-${GITHUB_RUN_ID}"
+
+if ! curl --fail --location --silent --show-error --header "${auth}" --header "${accept}" "https://api.github.com/repos/phronmophobic/membrane/releases/tags/${release}" > release.json ; then
   exit 0
 fi
 

@@ -7,8 +7,8 @@ on:
   #     - .github/workflows/**
   #     - "*.sh"
 
-env:
-  release: 0.9.27-beta
+# env:
+#   release: ${{ GITHUB_SHA }}
 
 jobs:
   macos:

@@ -1095,14 +1095,16 @@
 
 (defn compile-bindings [& args]
   ;;(require '[tech.v3.datatype.ffi.graalvm :as graalvm])
-  (with-bindings {#'*compile-path* "generated_classes"}
-    ((requiring-resolve 'tech.v3.datatype.ffi.graalvm/define-library)
-     membraneskialib-fns
-     nil
-     {:header-files [;;"<skia.h>"
-                     ]
-      :libraries ["@rpath/libmembraneiosskia.so"]
-      :classname 'membrane.ios.Bindings})))
+  ((requiring-resolve 'tech.v3.datatype.ffi.graalvm/define-library)
+   membraneskialib-fns
+   nil
+   {:header-files [;;"<skia.h>"
+                   ]
+    :libraries ["@rpath/libmembraneiosskia.so"]
+    :classname 'membrane.ios.Bindings}))
+
+(when *compile-files*
+  (compile-bindings))
 
 
 (def initialized?* (atom false))
