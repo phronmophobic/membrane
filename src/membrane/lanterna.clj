@@ -40,11 +40,16 @@
    com.googlecode.lanterna.TextColor$Indexed
    com.googlecode.lanterna.terminal.TerminalResizeListener
 
+   sun.misc.Signal
+   sun.misc.SignalHandler
+
    java.nio.charset.Charset)
   (:gen-class))
 
 (defonce in System/in)
 (defonce out System/out)
+
+;; (set! *warn-on-reflection* true)
 
 ;; The whole goal of this middleware is to make it easy to load this namespace
 ;; before the nrepl server starts so that System/in and out can be stored.
@@ -646,17 +651,23 @@
   [event-type handler body]
   (on-terminal-resized handler body))
 
+;; https://github.com/mabe02/lanterna/issues/440#issuecomment-639410790
+(defn add-resize-listener [^UnixTerminal terminal ch]
+  (Signal/handle (Signal. "WINCH")
+                 (reify
+                   sun.misc.SignalHandler
+                   (handle [_ sig]
+                     (log "got resize signal")
+                     (async/put! ch true)))))
 
 (defn run-helper [make-ui {:keys [repaint-ch close-ch handler in out] :as options}]
   (let [
         term (doto (UnixTerminal. in out (Charset/defaultCharset))
                (.setMouseCaptureMode MouseCaptureMode/CLICK_RELEASE_DRAG_MOVE))
         screen (TerminalScreen. term)
-        _ (.addResizeListener term
-                              (reify TerminalResizeListener
-                                (onResized [_ terminal size]
-                                  (.doResizeIfNecessary screen)
-                                  (>!! repaint-ch true))))
+        resize-ch (async/chan (async/dropping-buffer 1))
+        _ (add-resize-listener term
+                               resize-ch)
 
         ui (volatile! nil)
         last-term-size (volatile! nil)
@@ -686,10 +697,15 @@
 
         (>!! repaint-ch true)
         (loop []
-          (let [[_ port] (async/alts!! [close-ch repaint-ch (async/timeout 500)]
+          (let [[_ port] (async/alts!! [close-ch repaint-ch resize-ch (async/timeout 500)]
                                        :priority true)]
 
             (when (not= port close-ch)
+
+              (when (= port resize-ch)
+                (.getTerminalSize term)
+                (.doResizeIfNecessary ^TerminalScreen screen))
+
               (let [last-ui @ui
                     current-ui (vreset! ui (try
                                              (make-ui)
@@ -725,6 +741,7 @@
           (throw e))
         (finally
           (log "stopping repaint")
+          (async/close! resize-ch)
           (.close screen)
           (future-cancel input-future))))))
 
