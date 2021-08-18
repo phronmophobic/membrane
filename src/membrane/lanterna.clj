@@ -599,7 +599,52 @@
 
 
 
+(defprotocol ITerminalResized (-terminal-resized [elem size]))
 
+(defrecord OnTerminalResized [on-terminal-resized drawables]
+  IOrigin
+  (-origin [_]
+    [0 0])
+
+  IBounds
+  (-bounds [this]
+    (reduce
+     (fn [[max-width max-height] elem]
+       (let [[ox oy] (ui/origin elem)
+             [w h] (ui/bounds elem)]
+         [(max max-width (+ ox w))
+          (max max-height (+ oy h))]))
+     [0 0]
+     drawables))
+
+  ITerminalResized
+  (-terminal-resized [this size]
+    (when on-terminal-resized
+      (on-terminal-resized size)))
+
+  ui/IMakeNode
+  (make-node [this childs]
+    (OnTerminalResized. on-terminal-resized childs))
+
+  IDraw
+  (draw [this]
+    (run! draw drawables))
+
+  ui/IChildren
+  (-children [this]
+    drawables))
+
+(def
+  ^{:arglists '([elem size]),
+    :doc "Returns the effects of a terminal resized event on elem."}
+  terminal-resized (ui/make-event-handler "ITerminalResized" ITerminalResized -terminal-resized))
+
+(defn on-terminal-resized [on-terminal-resized & drawables]
+  (OnTerminalResized. on-terminal-resized drawables))
+
+(defmethod ui/on-handler :terminal-resized
+  [event-type handler body]
+  (on-terminal-resized handler body))
 
 
 (defn run-helper [make-ui {:keys [repaint-ch close-ch handler in out] :as options}]
@@ -608,10 +653,10 @@
                (.setMouseCaptureMode MouseCaptureMode/CLICK_RELEASE_DRAG_MOVE))
         screen (TerminalScreen. term)
         _ (.addResizeListener term
-           (reify TerminalResizeListener
-             (onResized [_ terminal size]
-               (.doResizeIfNecessary screen)
-               (>!! repaint-ch true))))
+                              (reify TerminalResizeListener
+                                (onResized [_ terminal size]
+                                  (.doResizeIfNecessary screen)
+                                  (>!! repaint-ch true))))
 
         ui (volatile! nil)
         last-term-size (volatile! nil)
@@ -654,6 +699,11 @@
                     size-change? (not= @last-term-size term-size)]
                 (when (or size-change?
                           (not= current-ui last-ui))
+
+                  (when size-change?
+                    (terminal-resized current-ui [(.getColumns term-size)
+                                                  (.getRows term-size)]))
+
                   (binding [*tg* tg
                             *context* {:translate {:x 0 :y 0}}
                             *screen* screen]
