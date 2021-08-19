@@ -42,6 +42,24 @@
    (def cljs-resolve-var cljs.analyzer/resolve-var)
    (def cljs-env-compiler (fn [] cljs.env/*compiler*))))
 
+;; support for sci
+(def ^:dynamic *sci-ctx* nil)
+#?(:clj
+   (do
+     (def sci-eval-form (delay (try
+                                 (requiring-resolve 'sci.core/eval-form)
+                                 (catch Exception e
+                                   nil))))
+     (defn resolve-sci-meta [sym]
+       (when-let [sci-eval @sci-eval-form]
+         (when *sci-ctx*
+           (sci-eval *sci-ctx*
+                     `(-> (resolve (quote ~sym))
+                          meta))))))
+
+   :default (defn resolve-sci-var []
+              nil))
+
 (def special-syms
   {'ATOM spec/ATOM
    'ALL spec/ALL
@@ -419,9 +437,11 @@
           (let [full-sym (delay
                           (fully-qualified first-form))
                 special? (if (symbol? first-form)
+                           ;; should change `(meta first-form) to be first
                            (if-let [m (or (when (cljs-env-compiler)
                                             (:meta (cljs-resolve-var *env* first-form)))
                                           #?(:clj (meta (resolve first-form)))
+                                          (resolve-sci-meta first-form)
                                           (meta first-form))]
                              (::special? m)
                              (contains? @special-fns @full-sym)))]
@@ -430,8 +450,8 @@
                     _ (assert (map? args) (str "membrane components must be called with a literal map. Invalid call:\n" (pr-str form)))
                     fn-meta (get @special-fns @full-sym
                                  (or #?(:clj (meta (resolve first-form)))
-                                     (meta first-form)
-                                     ))
+                                     (resolve-sci-meta first-form)
+                                     (meta first-form)))
 
                     arglists (:arglists fn-meta)
                     first-arglist (first arglists)

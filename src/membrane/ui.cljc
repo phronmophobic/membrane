@@ -66,10 +66,10 @@
   (-origin [this]
     [0 0]))
 
-(def ^{:arglists '([elem])
-       :doc
-       "Specifies the top left corner of a component's bounds\n\n  The origin is vector or 2 numbers [x, y]"}
-  origin -origin)
+(defn origin
+  "Specifies the top left corner of a component's bounds\n\n  The origin is vector or 2 numbers [x, y]"
+  [elem]
+  (-origin elem))
 
 (defn origin-x
   "Convience function for returning the x coordinate of elem's origin"
