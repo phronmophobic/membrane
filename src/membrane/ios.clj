@@ -216,30 +216,8 @@
 
    ,})
 
-(defonce ^:private lib (dt-ffi/library-singleton #'membraneskialib-fns))
-(defn set-library-instance!
-  [lib-instance]
-  (dt-ffi/library-singleton-set-instance! lib lib-instance))
-
-(dt-ffi/library-singleton-reset! lib)
-
-(defn- find-fn
-  [fn-kwd]
-  (dt-ffi/library-singleton-find-fn lib fn-kwd))
-
-(defmacro check-error
-  [fn-def & body]
-  `(let [error-val# (long (do ~@body))]
-     (errors/when-not-errorf
-      (>= error-val# 0)
-      "Exception calling avcodec: (%d) - \"%s\""
-      error-val# (if-let [err-name#  (get av-error/value->error-map error-val#)]
-                   err-name#
-                   (str-error error-val#)))
-     error-val#))
-
-
-(dt-ffi/define-library-functions membrane.ios/membraneskialib-fns find-fn check-error)
+(dt-ffi/define-library-interface
+  membraneskialib-fns)
 
 ;; (def skia-buf (native-buffer/malloc 4096))
 (def ^:dynamic *paint* {})
@@ -1090,65 +1068,9 @@
           "heif" ::image-format-heif
           ::image-format-png)))))
 
-
-
-
-(defn compile-bindings [& args]
-  ;;(require '[tech.v3.datatype.ffi.graalvm :as graalvm])
-  ((requiring-resolve 'tech.v3.datatype.ffi.graalvm/define-library)
-   membraneskialib-fns
-   nil
-   {:header-files [;;"<skia.h>"
-                   ]
-    :libraries ["@rpath/libmembraneiosskia.so"]
-    :classname 'membrane.ios.Bindings}))
-
-(when *compile-files*
-  (compile-bindings))
-
-
-(def initialized?* (atom false))
-
-(defmacro if-class
-  ([class-name then]
-   `(if-class ~class-name
-      ~then
-      nil))
-  ([class-name then else?]
-   (let [class-exists (try
-                        (Class/forName (name class-name))
-                        true
-                        (catch ClassNotFoundException e
-                          false))]
-     (if class-exists
-       then
-       else?))))
-
-(defn initialize-ios
-  []
-  ;;ensure to reference the encoders
-  (if-class membrane.ios.Bindings
-    (if (first (swap-vals!
-                initialized?*
-                (fn [init]
-                  (when-not init
-                    (set-library-instance! (membrane.ios.Bindings.))
-                    true))))
-      1
-      0)))
-
-
-(defn is-ios-initialized
-  []
-  (if @initialized?* 1 0))
-
 (def counter1 (atom 0))
 (def counter2 (atom 0))
 (def counter3 (atom 0))
-
-(defn initialize-membrane []
-  (initialize-ios)
-  (skia_init))
 
 (def main-font (ui/font nil 32))
 
@@ -1158,9 +1080,6 @@
 (def draw-cache (atom {}))
 
 ;; (def ui (atom nil))
-
-
-
 
 
 ;; (def membrane-state (atom {:todos
