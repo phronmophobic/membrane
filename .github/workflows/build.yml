@@ -16,10 +16,12 @@ jobs:
     strategy:
       matrix:
         build_type: [Release]
+        arch: ["x86_64", "arm64"]
       fail-fast: false
     env:
       platform: macos
       build_type: ${{ matrix.build_type }}
+      arch: ${{ matrix.arch }}
       artifact_name: "libmembraneskia.dylib"
     steps:
       - uses: actions/checkout@v2
@@ -30,7 +32,7 @@ jobs:
       - run: ./csource/compile_macosx.sh
       - uses: actions/upload-artifact@v2
         with:
-          name: libmembraneskia.dylib
+          name: libmembraneskia-${{arch}}.dylib 
           path: csource/libmembraneskia.dylib
       - run: ./csource/release.sh
         env:

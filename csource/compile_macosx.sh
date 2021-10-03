@@ -30,7 +30,7 @@ clang++ \
     -mmacosx-version-min=10.13 \
     "$skia_root"/out/Release-x86_64/libskia.a \
     -DSK_GL=1 \
-    -arch x86_64 \
+    -arch ${arch} \
     -dynamiclib \
     -std=c++17 \
     -o libmembraneskia.dylib \
@@ -65,7 +65,7 @@ clang++ \
 #     ./libs/libtmt/tmt.o \
 #     -DSK_GL=1 \
 #     -std=c++17 \
-#     -arch x86_64 \
+#     -arch ${arch} \
 #     -o testglfw \
 #     testglfw.cpp skia.cpp
 
