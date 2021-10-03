@@ -49,6 +49,7 @@ jobs:
       platform: linux
       build_type: ${{ matrix.build_type }}
       artifact_name: "libmembraneskia.so"
+      arch: x86_64
     steps:
       - uses: actions/checkout@v2
       - run: ./csource/check_release.sh
