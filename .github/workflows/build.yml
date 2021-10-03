@@ -22,7 +22,7 @@ jobs:
       platform: macos
       build_type: ${{ matrix.build_type }}
       arch: ${{ matrix.arch }}
-      artifact_name: "libmembraneskia.dylib"
+      artifact_name: libmembraneskia-${{matrix.arch}}.dylib
     steps:
       - uses: actions/checkout@v2
       - run: ./csource/check_release.sh
