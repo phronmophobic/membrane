@@ -32,7 +32,7 @@ jobs:
       - run: ./csource/compile_macosx.sh
       - uses: actions/upload-artifact@v2
         with:
-          name: libmembraneskia-${{arch}}.dylib 
+          name: libmembraneskia-${{matrix.arch}}.dylib
           path: csource/libmembraneskia.dylib
       - run: ./csource/release.sh
         env:
