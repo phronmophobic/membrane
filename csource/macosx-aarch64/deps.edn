@@ -1,0 +1,10 @@
+{:paths ["resources"]
+ :aliases
+ {:install {:extra-deps {slipset/deps-deploy {:mvn/version "RELEASE"}}
+            :main-opts ["-m" "deps-deploy.deps-deploy" "install" "my.jar"]}
+  :deploy {:extra-deps {slipset/deps-deploy {:mvn/version "RELEASE"}}
+           :main-opts ["-m" "deps-deploy.deps-deploy" "deploy" "my.jar"]}
+  :jar {:extra-deps {seancorfield/depstar {:mvn/version "RELEASE"}}
+        :exec-fn hf.depstar/jar
+        :exec-args {:jar "my.jar"}}}}
+
