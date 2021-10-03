@@ -33,7 +33,7 @@ clang++ \
     -arch ${arch} \
     -dynamiclib \
     -std=c++17 \
-    -o libmembraneskia.dylib \
+    -o libmembraneskia-${arch}.dylib \
     skia.cpp
 
 # cd ./libs/libtmt && ./compile.sh
