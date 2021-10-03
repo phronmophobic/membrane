@@ -3,19 +3,14 @@
   <modelVersion>4.0.0</modelVersion>
   <packaging>jar</packaging>
   <groupId>com.phronemophobic.membrane</groupId>
-  <artifactId>skialib-macosx</artifactId>
-  <version>0.9.27-beta</version>
-  <name>membrane-skialib-macosx</name>
+  <artifactId>skialib-macosx-x86-64</artifactId>
+  <version>0.9.28-beta</version>
+  <name>membrane-skialib-macosx-x64-64</name>
   <dependencies>
     <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>clojure</artifactId>
       <version>1.10.1</version>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-nop</artifactId>
-      <version>2.0.0-alpha2</version>
     </dependency>
   </dependencies>
   <build>
