@@ -2,6 +2,8 @@
 set -o errexit -o nounset -o pipefail
 cd "`dirname $0`"
 
+set -x
+
 auth="Authorization: token ${GITHUB_TOKEN}"
 accept="Accept: application/vnd.github.v3+json"
 
