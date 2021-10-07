@@ -223,6 +223,45 @@ extern "C" {
         return font->getSpacing();
     }
 
+    void skia_font_metrics(SkFont* font,
+                           uint32_t *fFlags,
+                           SkScalar *fTop,
+                           SkScalar *fAscent,
+                           SkScalar *fDescent,
+                           SkScalar *fBottom,
+                           SkScalar *fLeading,
+                           SkScalar *fAvgCharWidth,
+                           SkScalar *fMaxCharWidth,
+                           SkScalar *fXMin,
+                           SkScalar *fXMax,
+                           SkScalar *fXHeight,
+                           SkScalar *fCapHeight,
+                           SkScalar *fUnderlineThickness,
+                           SkScalar *fUnderlinePosition,
+                           SkScalar *fStrikeoutThickness,
+                           SkScalar *fStrikeoutPosition){
+
+        SkFontMetrics metrics;
+        font->getMetrics(&metrics);
+
+        *fFlags= metrics.fFlags;
+        *fTop= metrics.fTop;
+        *fAscent= metrics.fAscent;
+        *fDescent= metrics.fDescent;
+        *fBottom= metrics.fBottom;
+        *fLeading= metrics.fLeading;
+        *fAvgCharWidth= metrics.fAvgCharWidth;
+        *fMaxCharWidth= metrics.fMaxCharWidth;
+        *fXMin= metrics.fXMin;
+        *fXMax= metrics.fXMax;
+        *fXHeight= metrics.fXHeight;
+        *fCapHeight= metrics.fCapHeight;
+        *fUnderlineThickness= metrics.fUnderlineThickness;
+        *fUnderlinePosition= metrics.fUnderlinePosition;
+        *fStrikeoutThickness= metrics.fStrikeoutThickness;
+        *fStrikeoutPosition= metrics.fStrikeoutPosition;
+    }
+
     float skia_advance_x(SkFont* font, const char* text, int text_length){
         SkAutoToGlyphs atg(*font, text, text_length, SkTextEncoding::kUTF8);
         const int glyphCount = atg.count();

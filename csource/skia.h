@@ -64,6 +64,25 @@ extern "C"{
     void skia_render_line(SkiaResource* resource, SkFont* font, const char* text, int text_length, float x, float y);
     void skia_next_line(SkiaResource* resource, SkFont* font);
     float skia_line_height(SkFont* font);
+
+    void skia_font_metrics(SkFont* font,
+                           uint32_t *fFlags,
+                           SkScalar *fTop,
+                           SkScalar *fAscent,
+                           SkScalar *fDescent,
+                           SkScalar *fBottom,
+                           SkScalar *fLeading,
+                           SkScalar *fAvgCharWidth,
+                           SkScalar *fMaxCharWidth,
+                           SkScalar *fXMin,
+                           SkScalar *fXMax,
+                           SkScalar *fXHeight,
+                           SkScalar *fCapHeight,
+                           SkScalar *fUnderlineThickness,
+                           SkScalar *fUnderlinePosition,
+                           SkScalar *fStrikeoutThickness,
+                           SkScalar *fStrikeoutPosition);
+
     float skia_advance_x(SkFont* font, const char* text, int text_length);
     void skia_render_cursor(SkiaResource* resource, SkFont * font, const char* text, int text_length , int cursor);
     void skia_render_selection(SkiaResource* resource, SkFont * font, const char* text, int text_length , int selection_start, int selection_end);

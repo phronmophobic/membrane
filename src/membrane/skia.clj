@@ -571,6 +571,112 @@
 (defn- skia-line-height [font]
   (skia_line_height (get-font font)))
 
+    ;; enum FontMetricsFlags {
+    ;;     kUnderlineThicknessIsValid_Flag = 1 << 0, //!< set if fUnderlineThickness is valid
+    ;;     kUnderlinePositionIsValid_Flag  = 1 << 1, //!< set if fUnderlinePosition is valid
+    ;;     kStrikeoutThicknessIsValid_Flag = 1 << 2, //!< set if fStrikeoutThickness is valid
+    ;;     kStrikeoutPositionIsValid_Flag  = 1 << 3, //!< set if fStrikeoutPosition is valid
+    ;;     kBoundsInvalid_Flag             = 1 << 4, //!< set if fTop, fBottom, fXMin, fXMax invalid
+    ;; };
+
+;; See SkFontMetrics.h
+;; uint32_t fFlags;              //!< FontMetricsFlags indicating which metrics are valid
+;; SkScalar fTop;                //!< greatest extent above origin of any glyph bounding box, typically negative; deprecated with variable fonts
+;; SkScalar fAscent;             //!< distance to reserve above baseline, typically negative
+;; SkScalar fDescent;            //!< distance to reserve below baseline, typically positive
+;; SkScalar fBottom;             //!< greatest extent below origin of any glyph bounding box, typically positive; deprecated with variable fonts
+;; SkScalar fLeading;            //!< distance to add between lines, typically positive or zero
+;; SkScalar fAvgCharWidth;       //!< average character width, zero if unknown
+;; SkScalar fMaxCharWidth;       //!< maximum character width, zero if unknown
+;; SkScalar fXMin;               //!< greatest extent to left of origin of any glyph bounding box, typically negative; deprecated with variable fonts
+;; SkScalar fXMax;               //!< greatest extent to right of origin of any glyph bounding box, typically positive; deprecated with variable fonts
+;; SkScalar fXHeight;            //!< height of lower-case 'x', zero if unknown, typically negative
+;; SkScalar fCapHeight;          //!< height of an upper-case letter, zero if unknown, typically negative
+;; SkScalar fUnderlineThickness; //!< underline thickness
+;; SkScalar fUnderlinePosition;  //!< distance from baseline to top of stroke, typically positive
+;; SkScalar fStrikeoutThickness; //!< strikeout thickness
+;; SkScalar fStrikeoutPosition;  //!< distance from baseline to bottom of stroke, typically negative
+
+(defc skia_font_metrics membraneskialib void [font-ptr
+                                              fFlags
+                                              fTop
+                                              fAscent
+                                              fDescent
+                                              fBottom
+                                              fLeading
+                                              fAvgCharWidth
+                                              fMaxCharWidth
+                                              fXMin
+                                              fXMax
+                                              fXHeight
+                                              fCapHeight
+                                              fUnderlineThickness
+                                              fUnderlinePosition
+                                              fStrikeoutThickness
+                                              fStrikeoutPosition
+                                              ])
+(defn- skia-font-metrics [font]
+  (let [fFlags (IntByReference.)
+        fTop (FloatByReference.)
+        fAscent (FloatByReference.)
+        fDescent (FloatByReference.)
+        fBottom (FloatByReference.)
+        fLeading (FloatByReference.)
+        fAvgCharWidth (FloatByReference.)
+        fMaxCharWidth (FloatByReference.)
+        fXMin (FloatByReference.)
+        fXMax (FloatByReference.)
+        fXHeight (FloatByReference.)
+        fCapHeight (FloatByReference.)
+        fUnderlineThickness (FloatByReference.)
+        fUnderlinePosition (FloatByReference.)
+        fStrikeoutThickness (FloatByReference.)
+        fStrikeoutPosition (FloatByReference.)]
+    (skia_font_metrics (get-font font)
+                       fFlags
+                       fTop
+                       fAscent
+                       fDescent
+                       fBottom
+                       fLeading
+                       fAvgCharWidth
+                       fMaxCharWidth
+                       fXMin
+                       fXMax
+                       fXHeight
+                       fCapHeight
+                       fUnderlineThickness
+                       fUnderlinePosition
+                       fStrikeoutThickness
+                       fStrikeoutPosition)
+
+    (let [flags (.getValue fFlags)]
+      (merge
+       (when (pos? (bit-and flags 1))
+         {:fUnderlineThickness (.getValue fUnderlineThickness)})
+       (when (pos? (bit-and flags
+                            (bit-shift-left 1 1)))
+         {:fUnderlinePosition (.getValue fUnderlinePosition)})
+       (when (pos? (bit-and flags
+                            (bit-shift-left 1 2)))
+         {:fStrikeoutThickness (.getValue fStrikeoutThickness)})
+       (when (pos? (bit-and flags
+                            (bit-shift-left 1 3)))
+         {:fStrikeoutPosition (.getValue fStrikeoutPosition)})
+       (when (pos? (bit-and flags
+                            (bit-shift-left 1 4)))
+         {:fTop (.getValue fTop)
+          :fBottom (.getValue fBottom)
+          :fXMin (.getValue fXMin)
+          :fXMax (.getValue fXMax)})
+       {:fAscent (.getValue fAscent)
+        :fDescent (.getValue fDescent)
+        :fLeading (.getValue fLeading)
+        :fAvgCharWidth (.getValue fAvgCharWidth)
+        :fMaxCharWidth (.getValue fMaxCharWidth)
+        :fXHeight (.getValue fXHeight)
+        :fCapHeight (.getValue fCapHeight)}))))
+
 (defc skia_advance_x membraneskialib Float/TYPE [font-ptr text text-length])
 (defn- skia-advance-x [font text]
   (let [line-bytes (.getBytes ^String text "utf-8")]
