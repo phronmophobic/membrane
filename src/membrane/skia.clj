@@ -568,7 +568,7 @@
 
 (defc skia_render_selection membraneskialib Void/TYPE [skia-resource font-ptr text text-length selection-start selection-end])
 (defc skia_line_height membraneskialib Float/TYPE [font-ptr])
-(defn- skia-line-height [font]
+(defn skia-line-height [font]
   (skia_line_height (get-font font)))
 
     ;; enum FontMetricsFlags {
@@ -615,7 +615,7 @@
                                               fStrikeoutThickness
                                               fStrikeoutPosition
                                               ])
-(defn- skia-font-metrics [font]
+(defn skia-font-metrics [font]
   (let [fFlags (IntByReference.)
         fTop (FloatByReference.)
         fAscent (FloatByReference.)
@@ -653,29 +653,29 @@
     (let [flags (.getValue fFlags)]
       (merge
        (when (pos? (bit-and flags 1))
-         {:fUnderlineThickness (.getValue fUnderlineThickness)})
+         {:UnderlineThickness (.getValue fUnderlineThickness)})
        (when (pos? (bit-and flags
                             (bit-shift-left 1 1)))
-         {:fUnderlinePosition (.getValue fUnderlinePosition)})
+         {:UnderlinePosition (.getValue fUnderlinePosition)})
        (when (pos? (bit-and flags
                             (bit-shift-left 1 2)))
-         {:fStrikeoutThickness (.getValue fStrikeoutThickness)})
+         {:StrikeoutThickness (.getValue fStrikeoutThickness)})
        (when (pos? (bit-and flags
                             (bit-shift-left 1 3)))
-         {:fStrikeoutPosition (.getValue fStrikeoutPosition)})
+         {:StrikeoutPosition (.getValue fStrikeoutPosition)})
        (when (pos? (bit-and flags
                             (bit-shift-left 1 4)))
-         {:fTop (.getValue fTop)
-          :fBottom (.getValue fBottom)
-          :fXMin (.getValue fXMin)
-          :fXMax (.getValue fXMax)})
-       {:fAscent (.getValue fAscent)
-        :fDescent (.getValue fDescent)
-        :fLeading (.getValue fLeading)
-        :fAvgCharWidth (.getValue fAvgCharWidth)
-        :fMaxCharWidth (.getValue fMaxCharWidth)
-        :fXHeight (.getValue fXHeight)
-        :fCapHeight (.getValue fCapHeight)}))))
+         {:Top (.getValue fTop)
+          :Bottom (.getValue fBottom)
+          :XMin (.getValue fXMin)
+          :XMax (.getValue fXMax)})
+       {:Ascent (.getValue fAscent)
+        :Descent (.getValue fDescent)
+        :Leading (.getValue fLeading)
+        :AvgCharWidth (.getValue fAvgCharWidth)
+        :MaxCharWidth (.getValue fMaxCharWidth)
+        :XHeight (.getValue fXHeight)
+        :CapHeight (.getValue fCapHeight)}))))
 
 (defc skia_advance_x membraneskialib Float/TYPE [font-ptr text text-length])
 (defn- skia-advance-x [font text]
