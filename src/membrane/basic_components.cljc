@@ -39,14 +39,18 @@
   "Component for adding a hover? state."
   [{:keys [hover? body]}]
   (if hover?
-    (ui/on-mouse-move-global
-     (fn [[x y]]
-       (let [[w h] (bounds body)]
-         (when (or (neg? x)
-                   (> x w)
-                   (neg? y)
-                   (> y h))
-           [[:set $hover? false]])))
+    (ui/wrap-on
+     :mouse-move-global
+     (fn [handler [x y :as pos]]
+       (let [[w h] (bounds body)
+             child-intents (handler pos)]
+         (if (or (neg? x)
+                 (> x w)
+                 (neg? y)
+                 (> y h))
+           (conj child-intents
+                 [:set $hover? false])
+           child-intents)))
      body)
     (ui/on-mouse-move
      (fn [[x y]]
