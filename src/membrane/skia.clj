@@ -1646,6 +1646,8 @@
     (let [[xscale yscale :as content-scale] (get-window-content-scale-size window)
           [fb-width fb-height] (get-framebuffer-size window)]
       (reset! window-content-scale content-scale)
+      ;; force repaint
+      (reset! ui nil)
       (Skia/skia_reshape skia-resource fb-width fb-height xscale yscale))
 
     nil)
@@ -1669,25 +1671,27 @@
 
 
   (repaint! [this]
-    
-
-    (glfw-call Void/TYPE glfwMakeContextCurrent window)
-
-    (Skia/skia_clear skia-resource)
-
     (binding [*image-cache* image-cache
               *font-cache* font-cache
               *window* this
               *draw-cache* draw-cache
               *skia-resource* skia-resource]
-      (let [view (reset! ui (view-fn))]
+      (let [ ;; should only updated here on the main thread
+            ;; so not a race condition
+            last-view @ui
+            view (reset! ui (view-fn))]
+
         ;; TODO: should try to implement
         ;; Yes, that's fine.  Another common approach is to record the entire scene normally as an SkPicture, and just play it back into each tile, clipped and translated as appropriate.
-;; This approach works best if you use SkRTreeFactory when calling beginRecording()... that'll build an R-tree to help us skip issuing draws that fall outside each tile.
-        (do
-          (draw view))))
-    (Skia/skia_flush skia-resource)
-    (glfw-call Void/TYPE glfwSwapBuffers window)))
+        ;; This approach works best if you use SkRTreeFactory when calling beginRecording()... that'll build an R-tree to help us skip issuing draws that fall outside each tile.
+
+        (when (not= view last-view)
+          (glfw-call Void/TYPE glfwMakeContextCurrent window)
+
+          (Skia/skia_clear skia-resource)
+          (draw view)
+          (Skia/skia_flush skia-resource)
+          (glfw-call Void/TYPE glfwSwapBuffers window))))))
 
 (defonce window-chan (chan 1))
 
