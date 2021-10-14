@@ -461,21 +461,21 @@ Will only be called if `[mx my]` is within the element's bounds
 
 #### :key-event
 :key-event [key scancode action mods]
-`key` is a string if it is printable
-otherwise one of
-```clojure
-:grave_accent :world_1 :world_2 :escape :enter :backspace :insert :delete :right :left :down :up :page_up :page_down :home :end :caps_lock :scroll_lock :num_lock :print_screen :pause :f1 :f2 :f3 :f4 :f5 :f6 :f7 :f8 :f9 :f10 :f11 :f12 :f13 :f14 :f15 :f16 :f17 :f18 :f19 :f20 :f21 :f22 :f23 :f24 :f25 :kp_0 :kp_1 :kp_2 :kp_3 :kp_4 :kp_5 :kp_6 :kp_7 :kp_8 :kp_9 :kp_decimal :kp_divide :kp_multiply :kp_subtract :kp_add :kp_enter :kp_equal :left_shift :left_control :left_alt :left_super :right_shift :right_control :right_alt :right_super :menu
-```
+
+`key` corresponds to a keyboard key. `key-event` is a lower level event compared to `key-press` and will not try to "interpret" the key pressed and only report which key on the keyboard was pressed. The `key` value may vary across graphics backends. For skia, `key` will correspond to the glfw keys found at https://www.glfw.org/docs/latest/group__keys.html.
+
 `scancode` The scancode is unique for every key, regardless of whether it has a key token. Scancodes are platform-specific but consistent over time, so keys will have different scancodes depending on the platform but they are safe to save to disk.
 `action` one of :press, :repeat, :release, or :unknown if the underlying platform documentation has lied.
 `mods` is an integer mask. masks are
 
+```
 SHIFT   0x0001
 CONTROL   0x0002
 ALT   0x0004
 SUPER   0x0008
 CAPS LOCK   0x0010
 NUM LOCK   0x0020
+```
 
 ```clojure
 (on :key-event (fn [key scancode action mods]
