@@ -817,7 +817,9 @@
          f (doto (JFrame. "title")
              (.add panel)
              (.pack)
-             (.show))])))
+             (.show))]
+     {::repaint (fn []
+                  (.repaint ^java.awt.Component panel))})))
 
 (defn -main [& args]
   (run ((requiring-resolve 'membrane.component/make-app)
