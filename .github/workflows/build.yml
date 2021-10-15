@@ -44,7 +44,7 @@ jobs:
     strategy:
       matrix:
         build_type: [Release]
-        arch: ["x86_64", "arm64"]
+        arch: ["x86_64"]
       fail-fast: false
     env:
       platform: linux
