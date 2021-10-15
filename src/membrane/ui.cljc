@@ -510,11 +510,16 @@
  (do
    (defn- image-size-raw [image-path]
      (try
-       (with-open [is (clojure.java.io/input-stream image-path)]
-         (let [image-stream (ImageIO/createImageInputStream is)
-               buffered-image (ImageIO/read image-stream)]
-           [(.getWidth buffered-image)
-            (.getHeight buffered-image)]))
+       (try
+         ;; quack! works for BufferedImage and cljfx Image
+         [(.getWidth image-path)
+          (.getHeight image-path)]
+         (catch Exception e
+           (with-open [is (clojure.java.io/input-stream image-path)]
+             (let [image-stream (ImageIO/createImageInputStream is)
+                   buffered-image (ImageIO/read image-stream)]
+               [(.getWidth buffered-image)
+                (.getHeight buffered-image)]))))
        (catch Exception e
          (.printStackTrace e)
          [0 0])))
