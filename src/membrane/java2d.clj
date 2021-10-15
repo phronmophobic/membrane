@@ -234,7 +234,7 @@
                sy (/ h (.getHeight ^BufferedImage bi))]
            (.scale ^Graphics2D *g* sx sy)))
        
-       (if opacity
+       (if (and opacity (not= 1 opacity))
          (let [scales (into-array Float/TYPE [1 1 1 opacity])
                offsets (float-array 4)
                op (RescaleOp. ^floats scales ^floats offsets nil)]
