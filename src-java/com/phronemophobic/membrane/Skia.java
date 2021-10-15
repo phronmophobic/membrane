@@ -24,6 +24,7 @@ public class Skia {
     public static native void skia_save(Pointer resource);
     public static native void skia_restore(Pointer resource);
     public static native void skia_translate(Pointer resource, float tx, float ty);
+    public static native void skia_rotate(Pointer resource, float degrees);
     public static native void skia_transform(Pointer resource, float scaleX, float skewX, float transX, float skewY, float scaleY, float transY);
 
     public static native void skia_clip_rect(Pointer resource, float ox, float oy, float width, float height);
