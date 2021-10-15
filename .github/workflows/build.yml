@@ -44,12 +44,13 @@ jobs:
     strategy:
       matrix:
         build_type: [Release]
+        arch: ["x86_64", "arm64"]
       fail-fast: false
     env:
       platform: linux
       build_type: ${{ matrix.build_type }}
       artifact_name: "libmembraneskia.so"
-      arch: x86_64
+      arch: ${{ matrix.arch }}
     steps:
       - uses: actions/checkout@v2
       - run: ./csource/check_release.sh

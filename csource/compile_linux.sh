@@ -14,9 +14,9 @@ c++ \
     -I ./libs/skia/include/core \
     -I ./libs/skia/include/utils \
     -I ./libs/skia/include/private \
-    -L ./libs/skia/out/Release-x86_x64 \
+    -L ./libs/skia/out/Release-${arch} \
     -Wl,--whole-archive \
-    ./libs/skia/out/Release-x86_64/libskia.a \
+    ./libs/skia/out/Release-${arch}/libskia.a \
     -Wl,--no-whole-archive \
     -shared \
     -std=c++17 \
@@ -26,6 +26,6 @@ c++ \
     -lfontconfig \
     skia.cpp
 
-cp libmembraneskia.so ../resources/linux-x86-64
+cp libmembraneskia.so ../resources/linux-${arch}
 
 echo 'done'
