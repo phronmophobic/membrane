@@ -533,6 +533,10 @@ extern "C" {
         resource->surface->getCanvas()->translate(tx, ty);
     }
 
+    void skia_rotate(SkiaResource* resource, float degrees){
+        resource->surface->getCanvas()->rotate(degrees);
+    }
+
     void skia_transform(SkiaResource* resource, 
                         float  	scaleX,
                         float  	skewX,

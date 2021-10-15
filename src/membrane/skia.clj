@@ -532,6 +532,14 @@
      (draw (:drawable this)))))
 
 
+(extend-type membrane.ui.Rotate
+  IDraw
+  (draw [this]
+    (save-canvas
+     (Skia/skia_rotate *skia-resource* (float (:degrees this)))
+     (draw (:drawable this)))))
+
+
 (defrecord Transform [matrix drawable]
   IOrigin
   (-origin [this]
