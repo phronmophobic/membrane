@@ -61,8 +61,8 @@ jobs:
       - run: ./csource/compile_linux.sh
       - uses: actions/upload-artifact@v2
         with:
-          name: libmembraneskia.so
-          path: csource/libmembraneskia.so
+          name: libmembraneskia-${{matrix.arch}}.so
+          path: csource/libmembraneskia-${{matrix.arch}}.so
       - run: ./csource/release.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
