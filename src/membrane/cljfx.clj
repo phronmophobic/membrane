@@ -905,6 +905,23 @@
 
 (intern (the-ns 'membrane.ui) 'index-for-position index-for-position)
 
+(defn run-app [app state]
+  (assert (var? app))
+  (assert (instance? clojure.lang.Atom state))
+  (let [renderer
+        (fx/create-renderer
+         :middleware
+         (fx/wrap-map-desc
+          (fn [current-state]
+            {:fx/type :stage
+             :showing true
+             :scene {:fx/type :scene
+                     :root
+                     {:fx/type :group
+                      :children [(membrane-component app
+                                                     current-state
+                                                     #(swap! state %))]}}})))]
+    (fx/mount-renderer state renderer)))
 
 (defn -main [& args]
   (let [app-state (atom {:progress 0.3})
