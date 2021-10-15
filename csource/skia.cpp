@@ -341,10 +341,28 @@ extern "C" {
         return bufResource;
     }
 
+    SkiaResource* skia_direct_bgra8888_buffer(void* buf, int width, int height, int rowBytes ) {
+        SkImageInfo info = SkImageInfo::Make(width, height, kBGRA_8888_SkColorType, kUnpremul_SkAlphaType);
+
+        sk_sp<SkSurface> surface =
+            SkSurface::MakeRasterDirect(info, buf, rowBytes);
+
+        SkiaResource* bufResource = new SkiaResource(NULL, surface);
+
+        return bufResource;
+    }
+
     void skia_browser_draw(SkiaResource* resource, const void* buffer, int width, int height){
 
         SkImageInfo info = SkImageInfo::Make(width, height, kBGRA_8888_SkColorType, kUnpremul_SkAlphaType);
         SkPixmap pixmap(info, buffer, info.width() * info.bytesPerPixel());
+        resource->surface->writePixels(pixmap, 0, 0);
+    }
+
+    void skia_bgra8888_draw(SkiaResource* resource, const void* buffer, int width, int height, int rowBytes){
+
+        SkImageInfo info = SkImageInfo::Make(width, height, kBGRA_8888_SkColorType, kUnpremul_SkAlphaType);
+        SkPixmap pixmap(info, buffer, rowBytes);
         resource->surface->writePixels(pixmap, 0, 0);
     }
 
