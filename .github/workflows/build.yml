@@ -23,7 +23,7 @@ jobs:
       platform: macos
       build_type: ${{ matrix.build_type }}
       arch: ${{ matrix.arch }}
-      shared_suffix: ".dylib"
+      shared_suffix: "dylib"
       artifact_name: libmembraneskia-${{matrix.arch}}.dylib
     steps:
       - uses: actions/checkout@v2
