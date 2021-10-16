@@ -19,8 +19,7 @@ subprocess.run(['cp',
                     platform=env['platform'],
                     resource_suffix=resource_suffix,
                     resource_prefix=resource_prefix,
-                    shared_suffix=env['shared_suffix
-                    '],
+                    shared_suffix=env['shared_suffix'],
                 )], check=True)
 
 # cp libmembraneskia-${arch}.${shared_suffix} ${platform}-${resource_suffix}/resources/${resource_prefix}-${resource_suffix}/libmembraneskia.${shared_suffix}
