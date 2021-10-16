@@ -39,6 +39,16 @@ jobs:
       - run: ./csource/release.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup Java
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'temurin' # See 'Supported distributions' for available options
+          java-version: '11'
+      - name: Install clojure tools
+        uses: DeLaGuardo/setup-clojure@3.5
+        with:
+          # Install just one or all simultaneously
+          cli: 1.10.1.693 # Clojure CLI based on tools.deps
       - run: python3 ./csource/deploy_clojars.py
         env:
           CLOJARS_USERNAME: ${{ secrets.CLOJARS_USERNAME }}
