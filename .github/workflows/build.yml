@@ -57,7 +57,7 @@ jobs:
       platform: linux
       build_type: ${{ matrix.build_type }}
       arch: ${{ matrix.arch }}
-      shared_suffix: ".so"
+      shared_suffix: "so"
       artifact_name: libmembraneskia-${{matrix.arch}}.so
     steps:
       - uses: actions/checkout@v2
