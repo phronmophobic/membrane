@@ -1,6 +1,7 @@
 import subprocess
 import os
 import sys
+import re
 
 os.chdir(os.path.dirname(sys.argv[0]))
 
