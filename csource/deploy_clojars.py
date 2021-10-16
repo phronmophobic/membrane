@@ -16,15 +16,18 @@ resource_suffix = {
     'x86_64' : 'x86-64',
 }[env['arch']]
 
+def run(args):
+    print(args)
+    subprocess.run(args, check=True)
 
-subprocess.run(['cp',
-                'libmembraneskia-{arch}.{shared_suffix}'.format(arch=env['arch'],shared_suffix=env['shared_suffix']),
-                '{platform}-{resource_suffix}/resources/{resource_prefix}-{resource_suffix}/libmembraneskia.{shared_suffix}'.format(
-                    platform=env['platform'],
-                    resource_suffix=resource_suffix,
-                    resource_prefix=resource_prefix,
-                    shared_suffix=env['shared_suffix'],
-                )], check=True)
+run(['cp',
+     'libmembraneskia-{arch}.{shared_suffix}'.format(arch=env['arch'],shared_suffix=env['shared_suffix']),
+     '{platform}-{resource_suffix}/resources/{resource_prefix}-{resource_suffix}/libmembraneskia.{shared_suffix}'.format(
+         platform=env['platform'],
+         resource_suffix=resource_suffix,
+         resource_prefix=resource_prefix,
+         shared_suffix=env['shared_suffix'],
+     )])
 
 # cp libmembraneskia-${arch}.${shared_suffix} ${platform}-${resource_suffix}/resources/${resource_prefix}-${resource_suffix}/libmembraneskia.${shared_suffix}
 
@@ -36,8 +39,7 @@ print('using version: "{version}"'.format(version=version))
 
 os.chdir('{platform}-{resource_suffix}'.format(platform=env['platform'], resource_suffix=resource_suffix) )
 
-subprocess.run(['clojure', '-X:jar', ':sync-pom', 'true', ':version', '"{version}"'.format(version=version)],
-               check=True)
+run(['clojure', '-X:jar', ':sync-pom', 'true', ':version', '"{version}"'.format(version=version)])
 
-subprocess.run(['clojure', '-M:deploy'])
+run(['clojure', '-M:deploy'])
 
