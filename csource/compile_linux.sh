@@ -20,12 +20,12 @@ c++ \
     -Wl,--no-whole-archive \
     -shared \
     -std=c++17 \
-    -o libmembraneskia.so \
+    -o libmembraneskia-${arch}.so \
     -DSK_GL=1 \
     -lGL \
     -lfontconfig \
     skia.cpp
 
-cp libmembraneskia.so ../resources/linux-${arch}
+
 
 echo 'done'

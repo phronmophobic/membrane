@@ -13,6 +13,7 @@ on:
 jobs:
   macos:
     runs-on: macos-10.15
+    environment: Actions
     strategy:
       matrix:
         build_type: [Release]
@@ -22,6 +23,7 @@ jobs:
       platform: macos
       build_type: ${{ matrix.build_type }}
       arch: ${{ matrix.arch }}
+      shared_suffix: ".dylib"
       artifact_name: libmembraneskia-${{matrix.arch}}.dylib
     steps:
       - uses: actions/checkout@v2
@@ -37,9 +39,14 @@ jobs:
       - run: ./csource/release.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: python3 ./csource/deploy_clojars.py
+        env:
+          CLOJARS_USERNAME: ${{ secrets.CLOJARS_USERNAME }}
+          CLOJARS_PASSWORD: ${{ secrets.CLOJARS_PASSWORD }}
 
   linux:
     runs-on: ubuntu-latest
+    environment: Actions
     container: ubuntu:18.04
     strategy:
       matrix:
@@ -49,8 +56,9 @@ jobs:
     env:
       platform: linux
       build_type: ${{ matrix.build_type }}
-      artifact_name: "libmembraneskia.so"
       arch: ${{ matrix.arch }}
+      shared_suffix: ".so"
+      artifact_name: libmembraneskia-${{matrix.arch}}.so
     steps:
       - uses: actions/checkout@v2
       - run: ./csource/check_release.sh
@@ -66,3 +74,7 @@ jobs:
       - run: ./csource/release.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: python3 ./csource/deploy_clojars.py
+        env:
+          CLOJARS_USERNAME: ${{ secrets.CLOJARS_USERNAME }}
+          CLOJARS_PASSWORD: ${{ secrets.CLOJARS_PASSWORD }}

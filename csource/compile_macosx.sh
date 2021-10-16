@@ -69,6 +69,6 @@ clang++ \
 #     -o testglfw \
 #     testglfw.cpp skia.cpp
 
-# cp libmembraneskia-${arch}.dylib ../resources/darwin/libmembraneskia.dylib
+
 
 echo 'done'
