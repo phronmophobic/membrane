@@ -740,7 +740,8 @@
         (let [[w h] (ui/bounds (render))]
           (Dimension. (int w) (int h))))
       (paint [g]
-        (binding [*g* g]
+        (binding [*g* g
+                  *image-cache* (atom {})]
           (let [to-render (swap! (:ui window)
                                  (fn [_]
                                    (render)))]
