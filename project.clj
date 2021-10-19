@@ -81,8 +81,10 @@
                              [com.fulcrologic/fulcro "3.4.10"]
 
                              ;; skia
-                             [com.phronemophobic.membrane/skialib-macosx "0.9.27-beta"]
-                             [com.phronemophobic.membrane/skialib-linux "0.9.27-beta"]
+
+                             [com.phronemophobic.membrane/skialib-macosx-x86-64 "0.9.29.1-beta"]
+                             [com.phronemophobic.membrane/skialib-linux-x86-64 "0.9.29.1-beta"]
+                             [com.phronemophobic.membrane/skialib-macosx-aarch64 "0.9.29.1-beta"]
 
                              ;; skija
                              [org.jetbrains.skija/skija-macos "0.6.45"]
