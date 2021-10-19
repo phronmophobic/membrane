@@ -19,9 +19,12 @@
    :exec-fn gen-doc/-main}
 
   :skialib
-  {:extra-deps {com.phronemophobic.membrane/skialib-macosx-x86-64 {:mvn/version "0.9.28-beta"
-                                                            ;;:local/root "csource/macosx-aarch64"
-                                                            }}}
+  {:extra-deps {com.phronemophobic.membrane/skialib-macosx-x86-64 {:mvn/version "RELEASE"
+                                                                   ;;:local/root "csource/macos-aarch64"
+                                                                   }
+                com.phronemophobic.membrane/skialib-macosx-aarch64 {:mvn/version "RELEASE"
+                                                                    ;; :local/root "csource/macos-aarch64"
+                                                                    }}}
 
   :ios-uberjar
   {:replace-deps {com.github.seancorfield/depstar {:mvn/version "2.0.216"}}
