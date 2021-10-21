@@ -156,7 +156,7 @@ Screenshot:
 Here's an example of how you can use your `counter` component.
 
 Screenshot:
-![couning counter](/docs/images/counter3.gif?raw=true)
+![counting counter](/docs/images/counter3.gif?raw=true)
 
 ```clojure
 ;; Display an "Add Counter" button
