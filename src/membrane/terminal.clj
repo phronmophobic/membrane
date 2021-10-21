@@ -243,6 +243,15 @@
     96 (assoc-in ts [:attrs :fg] :bright-cyan)
     97 (assoc-in ts [:attrs :fg] :bright-white)
 
+    100 (assoc-in ts [:attrs :bg] :bright-black)
+    101 (assoc-in ts [:attrs :bg] :bright-red)
+    102 (assoc-in ts [:attrs :bg] :bright-green)
+    103 (assoc-in ts [:attrs :bg] :bright-yellow)
+    104 (assoc-in ts [:attrs :bg] :bright-blue)
+    105 (assoc-in ts [:attrs :bg] :bright-magenta)
+    106 (assoc-in ts [:attrs :bg] :bright-cyan)
+    107 (assoc-in ts [:attrs :bg] :bright-white)
+
     ;; else
     (throw (Exception. (str "unknown sgr " code)) )
     
