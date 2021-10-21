@@ -940,7 +940,7 @@
 
 
 
-(defui terminal-line [& {:keys [tline]}]
+(defui terminal-line [ {:keys [tline]}]
   (vec
    (for [[j pos] (map-indexed vector tline)
          :let [c (:c pos)]
@@ -961,7 +961,7 @@
      )))
   
 
-(defui terminal [& {:keys [term]}]
+(defui terminal [ {:keys [term]}]
   (into
    [(let [{:keys [row col]} (:cursor term)]
       (ui/translate (* col 7) (* row 10)
@@ -978,7 +978,7 @@
    (for [[i tline] (map-indexed vector (:lines term))]
      (ui/translate 0 (* i 10)
                    (skia/->Cached
-                    (terminal-line :tline tline))))))
+                    (terminal-line {:tline tline}))))))
 
 
 
@@ -1008,7 +1008,7 @@
       writec-str (fn [pty s]
                    (let [buf (.getBytes s "utf-8")]
                      (async/put! write-ch buf)))]
-  (defui test-term-ui [& {:keys [hindex term history]}]
+  (defui test-term-ui [ {:keys [hindex term history]}]
     (vertical-layout
      (horizontal-layout
       (button "clear"
@@ -1096,9 +1096,9 @@
         
         nil)
       
-      (terminal :term (if hindex
-                      (-> history (nth hindex) second)
-                      term))
+      (terminal {:term (if hindex
+                         (-> history (nth hindex) second)
+                         term)})
       #_(skia/->Cached
          (draw-term (if hindex
                       (-> history (nth hindex) second)
@@ -1163,7 +1163,7 @@
       (swap! test-term-state assoc :term new-term)
       (swap! test-term-state update :history conj [b new-term])))
 
-  (skia/glfw-post-empty-event)
+  (#'skia/glfw-post-empty-event)
   )
 
 (defonce running (atom false))
@@ -1172,7 +1172,7 @@
   (reset! running true)
   (reset! test-term-state (initial-term-state))
   (let [[rows cols] (:size (:term @test-term-state))]
-    (def pty (skia/fork-pty 40 80)))
+    (def pty (#'skia/fork-pty 40 80)))
   ;; (writec-str pty "vim\n")
   (try
     (while @running
@@ -1198,7 +1198,8 @@
             "((update-term!))"
             diff))
          ret__16422__auto__))
-
+    (catch Exception e
+      (prn e))
     (finally
       (reset! running false)))
   
