@@ -1068,6 +1068,18 @@
     (glfw-call void glfwSetClipboardString window-handle s)))
 (intern (the-ns 'membrane.ui) 'copy-to-clipboard copy-to-clipboard)
 
+(defc skia_image_bounds membraneskialib void [img width height])
+(defn- image-size-raw [image]
+  (let [tex (get-image-texture image)
+        width (IntByReference.)
+        height (IntByReference.)]
+    (skia_image_bounds tex width height)
+    [(.getValue width) (.getValue height)]))
+
+(defonce
+  swizzle-image-size
+  (reset! membrane.ui/image-size* (memoize image-size-raw)))
+
 
 (defc skia_load_font membraneskialib Pointer [font-path font-size])
 (defn- load-font [font-path font-size]
