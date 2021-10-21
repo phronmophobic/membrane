@@ -21,6 +21,9 @@
              :as async])
   (:import com.sun.jna.Memory))
 
+;; Clojure based virtual terminal!
+;; https://github.com/asciinema/vt
+
 ;; https://vt100.net/emu/
 ;; https://vt100.net/emu/dec_ansi_parser
 ;; http://ascii-table.com/ansi-escape-sequences.php
