@@ -1445,7 +1445,7 @@
           ))
       ))
 
-  (repaint! window)
+  ;; (repaint! window)
   nil)
 
 (deftype KeyCallback [window handler]
@@ -1480,7 +1480,8 @@
       (catch Exception e
         (println e))))
 
-  (repaint! window))
+  ;;(repaint! window)
+  )
 
 (deftype CharacterCallback [window handler]
   com.sun.jna.CallbackProxy
