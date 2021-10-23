@@ -391,22 +391,34 @@
           font-ptr
           (let [font-name (or (:name font)
                               (:name ui/default-font))
-                font-path (when font-name
-                            (if (.startsWith ^String font-name "/")
-                              font-name
-                              (str font-dir font-name)))
-                font-path (when font-path
-                            (if (.exists (clojure.java.io/file font-path))
-                              font-path
-                              (do
-                                (println font-path " does not exist!")
-                                (:name ui/default-font))))]
+                font-path (cond
+                            (nil? font-name)
+                            nil
+
+                            (.startsWith ^String font-name "/")
+                            font-name
+
+                            (.exists (clojure.java.io/file font-dir font-name))
+                            (.getCanonicalPath (clojure.java.io/file font-dir font-name))
+
+                            :else font-name)]
             (let [font-size (or (:size font)
                                 (:size ui/default-font))
-                  font-ptr (load-font font-path font-size)]
+                  font-ptr (load-font font-path font-size (:weight font) (:width font) (:slant font))]
               (swap! *font-cache* assoc font font-ptr)
               font-ptr)))]
     font-ptr))
+
+(defc skia_font_family_name membraneskialib Void/TYPE [font family-name len])
+(defn skia-font-family-name [font-ptr]
+  (assert (instance? Pointer font-ptr))
+  (skia_font_family_name font-ptr skia-buf skia-buf-size)
+  (.getString skia-buf 0 "utf-8"))
+
+(defn font-exists? [font]
+  (let [font-ptr (get-font font)]
+    (= (skia-font-family-name font-ptr)
+       (:name font))))
 
 (defc glGetError opengl Integer/TYPE)
 (defc skia_render_line membraneskialib Void/TYPE [resource font-ptr line text-length x y])
@@ -686,7 +698,7 @@
         :CapHeight (.getValue fCapHeight)}))))
 
 (defc skia_advance_x membraneskialib Float/TYPE [font-ptr text text-length])
-(defn- skia-advance-x [font text]
+(defn skia-advance-x [font text]
   (let [line-bytes (.getBytes ^String text "utf-8")]
     (.write ^Memory skia-buf 0 line-bytes 0 (alength ^bytes line-bytes))
     (skia_advance_x (get-font font) skia-buf (alength line-bytes))))
@@ -1081,12 +1093,46 @@
   (reset! membrane.ui/image-size* (memoize image-size-raw)))
 
 
-(defc skia_load_font membraneskialib Pointer [font-path font-size])
-(defn- load-font [font-path font-size]
-  (assert (or (string? font-path)
-              (nil? font-path)))
-  (let [font-ptr (Skia/skia_load_font font-path (float font-size))]
-    (assert font-ptr (str "unable to load font: " font-path " " font-size))
+(def font-slants
+  {:upright 1,
+   :italic 2,
+   :oblique 3})
+(def font-weights
+  {:invisible 0
+   :thin 100
+   :extra-light 200
+   :light 300
+   :normal 400
+   :medium 500
+   :semi-bold 600
+   :bold 700
+   :extra-bold 800
+   :black 900
+   :extra-black 1000})
+(def font-widths
+  {:ultracondensed 1
+   :extracondensed 2
+   :condensed 3
+   :semicondensed 4
+   :normal 5
+   :semiexpanded 6
+   :expanded 7
+   :extraexpanded 8
+   :ultraexpanded 9})
+
+(defc skia_load_font2 membraneskialib Pointer [font-path font-size])
+(defn- load-font [path size weight width slant]
+  (assert (or (string? path)
+              (nil? path)))
+  (let [weight (get font-weights weight
+                    (or weight -1))
+        width (get font-widths width
+                   (or width -1))
+        slant (get font-slants slant
+                   (or slant -1))
+        font-ptr (Skia/skia_load_font2 path (float size) (int weight) (int width) (int slant))]
+    (assert font-ptr (str "unable to load font: " path " " size))
+
     font-ptr))
 
 (def ^:dynamic *already-drawing* nil)

@@ -39,7 +39,7 @@ public class Skia {
 
     public static native void skia_draw_rounded_rect(Pointer resource, float width, float height, float radius);
 
-    public static native Pointer skia_load_font(String fontfilename, float fontsize);
+    public static native Pointer skia_load_font2(String name, float size, int weight, int width, int slant);
 
 
     // Paint related calls

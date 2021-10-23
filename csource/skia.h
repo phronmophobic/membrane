@@ -105,7 +105,7 @@ extern "C"{
 
     void skia_draw_rounded_rect(SkiaResource* resource, float width, float height, float radius);
 
-    SkFont* skia_load_font(const char* fontfilename, float fontsize);
+    SkFont* skia_load_font2(const char* name, float size, int weight, int width, int slant);
 
 
     // Paint related calls

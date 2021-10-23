@@ -558,19 +558,50 @@ extern "C" {
         resource->surface->getCanvas()->clipRect(SkRect::MakeXYWH(ox, oy, width, height));
     }
 
-    SkFont* skia_load_font(const char* fontfilename, float fontsize){
-        if ( fontfilename ){
-            sk_sp<SkTypeface> typeface = SkTypeface::MakeFromFile(fontfilename);
+    void skia_font_family_name(SkFont* font, char* familyName, size_t len){
+        SkString s = SkString();
+        font->getTypeface()->getFamilyName(&s);
+        strncpy(familyName, s.c_str(), len);
+    }
+
+    SkFont* skia_load_font2(const char* name, float size, int weight, int width, int slant){
+        if ( name ){
+            sk_sp<SkTypeface> typeface = SkTypeface::MakeFromFile(name);
             if ( typeface ){
-                SkFont* font = new SkFont(typeface, fontsize);
+                SkFont* font = new SkFont(typeface, size);
 
                 return font;
 
             } else {
-                return NULL;
+                if ( width == -1 ){ width = SkFontStyle::kNormal_Width; }
+                if ( weight == -1 ){ weight = SkFontStyle::kNormal_Weight; }
+
+                SkFontStyle::Slant skslant;
+                switch ( slant ){
+                case 2:
+                    skslant = SkFontStyle::kItalic_Slant;
+                    break;
+                case 3:
+                    skslant = SkFontStyle::kOblique_Slant;
+                    break;
+                case -1:
+                case 1:
+                default:
+                    skslant = SkFontStyle::kUpright_Slant;
+                    break;
+                }
+
+                SkFontStyle style(weight, width, skslant);
+                sk_sp<SkTypeface> typeface = SkTypeface::MakeFromName(name, style);
+
+                if ( typeface ){
+                    return new SkFont(typeface, size);
+                } else {
+                    return NULL;
+                }
             }
         } else{
-            return new SkFont(nullptr, fontsize);
+            return new SkFont(nullptr, size);
         }
     }
 
