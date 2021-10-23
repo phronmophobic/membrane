@@ -3,14 +3,14 @@
   #?(:clj (:import javax.imageio.ImageIO))
   (:refer-clojure :exclude [drop]))
 
-(defrecord Font [name size weight])
+(defrecord Font [name size weight width slant])
 
 
 (def default-font (Font. nil
                          14
+                         nil
+                         nil
                          nil))
-
-
 
 (defn font
   "Creates a font.
@@ -24,7 +24,9 @@
          (if size
            size
            (:size default-font))
-         (:weight default-font)))
+         (:weight default-font)
+         (:width default-font)
+         (:slant default-font)))
 
 
 (defprotocol IMouseMove (-mouse-move [elem pos]))
