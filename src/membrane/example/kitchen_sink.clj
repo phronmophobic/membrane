@@ -189,7 +189,7 @@
   "label with specified font"
   "font will check the default System font folder
 on Mac osx, check /System/Library/Fonts/ for available fonts"
-  (ui/label "Hello" (ui/font "Menlo.ttc" 22)))
+  (ui/label "Hello" (ui/font "monospace" 22)))
 
 (defexample
   "Labels"

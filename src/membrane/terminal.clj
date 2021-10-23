@@ -862,7 +862,7 @@
 
       :else (throw (Exception. (str  "could not process: " (bit-and 0xff (long b)) " " (pr-str (char (bit-and 0xff (long b))))))))))
 
-(def term-font (ui/font "Menlo.ttc" 11))
+(def term-font (ui/font "Menlo" 11))
 
 (defn term-color [color]
   (case color

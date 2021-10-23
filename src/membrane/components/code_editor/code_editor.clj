@@ -96,7 +96,7 @@
    :selection [1.0 0.0 0.0]})
 
 
-(def buffer-font (ui/font "Menlo.ttc" 11))
+(def buffer-font (ui/font "Menlo" 11))
 (def lw 6.6225586)
 (def lh 12.8046875)
 
