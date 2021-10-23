@@ -86,7 +86,7 @@
                          nil)))
 
 (def ^:private skia-buf (Memory. 4096))
-(def ^:private skia-buf-size (.size skia-buf))
+(def ^:private skia-buf-size (.size ^Memory skia-buf))
 
 (def ^:dynamic *paint* {})
 
@@ -413,7 +413,7 @@
 (defn skia-font-family-name [font-ptr]
   (assert (instance? Pointer font-ptr))
   (skia_font_family_name font-ptr skia-buf skia-buf-size)
-  (.getString skia-buf 0 "utf-8"))
+  (.getString ^Memory skia-buf 0 "utf-8"))
 
 (defn font-exists? [font]
   (let [font-ptr (get-font font)]
@@ -432,7 +432,7 @@
      (doseq [line lines
              :let [line-bytes (.getBytes ^String line "utf-8")
                    size (min skia-buf-size (alength ^bytes line-bytes))]]
-       (.write ^Memory skia-buf 0 line-bytes 0 size)
+       (.write ^Memory skia-buf 0 line-bytes 0 (int size))
        (Skia/skia_next_line *skia-resource* font-ptr)
        (Skia/skia_render_line *skia-resource* font-ptr skia-buf size (float 0) (float 0))))))
 
@@ -1343,7 +1343,7 @@
                 *draw-cache* (:draw-cache window)]
         (let [num-paths (aget args 1)
               string-pointers (aget args 2)
-              paths (.getStringArray string-pointers  0 num-paths "utf-8")]
+              paths (.getStringArray ^Pointer string-pointers  0 num-paths "utf-8")]
           (handler window (aget args 0) paths)))
       (catch Exception e
         (println e)))
