@@ -590,6 +590,8 @@
 (defc skia_line_height membraneskialib Float/TYPE [font-ptr])
 (defn skia-line-height [font]
   (skia_line_height (get-font font)))
+(defn font-line-height [font]
+  (skia-line-height font))
 
     ;; enum FontMetricsFlags {
     ;;     kUnderlineThicknessIsValid_Flag = 1 << 0, //!< set if fUnderlineThickness is valid
@@ -673,35 +675,37 @@
     (let [flags (.getValue fFlags)]
       (merge
        (when (pos? (bit-and flags 1))
-         {:UnderlineThickness (.getValue fUnderlineThickness)})
+         {:membrane.skia.font-metrics/underline-thickness (.getValue fUnderlineThickness)})
        (when (pos? (bit-and flags
                             (bit-shift-left 1 1)))
-         {:UnderlinePosition (.getValue fUnderlinePosition)})
+         {:membrane.skia.font-metrics/underline-position (.getValue fUnderlinePosition)})
        (when (pos? (bit-and flags
                             (bit-shift-left 1 2)))
-         {:StrikeoutThickness (.getValue fStrikeoutThickness)})
+         {:membrane.skia.font-metrics/strikeout-thickness (.getValue fStrikeoutThickness)})
        (when (pos? (bit-and flags
                             (bit-shift-left 1 3)))
-         {:StrikeoutPosition (.getValue fStrikeoutPosition)})
+         {:membrane.skia.font-metrics/strikeout-position (.getValue fStrikeoutPosition)})
        (when (pos? (bit-and flags
                             (bit-shift-left 1 4)))
-         {:Top (.getValue fTop)
-          :Bottom (.getValue fBottom)
-          :XMin (.getValue fXMin)
-          :XMax (.getValue fXMax)})
-       {:Ascent (.getValue fAscent)
-        :Descent (.getValue fDescent)
-        :Leading (.getValue fLeading)
-        :AvgCharWidth (.getValue fAvgCharWidth)
-        :MaxCharWidth (.getValue fMaxCharWidth)
-        :XHeight (.getValue fXHeight)
-        :CapHeight (.getValue fCapHeight)}))))
+         {:membrane.skia.font-metrics/top (.getValue fTop)
+          :membrane.skia.font-metrics/bottom (.getValue fBottom)
+          :membrane.skia.font-metrics/xmin (.getValue fXMin)
+          :membrane.skia.font-metrics/xmax (.getValue fXMax)})
+       {:ascent (.getValue fAscent)
+        :descent (.getValue fDescent)
+        :leading (.getValue fLeading)
+        :membrane.skia.font-metrics/avg-char-width (.getValue fAvgCharWidth)
+        :membrane.skia.font-metrics/max-char-width (.getValue fMaxCharWidth)
+        :membrane.skia.font-metrics/x-height (.getValue fXHeight)
+        :membrane.skia.font-metrics/cap-height (.getValue fCapHeight)}))))
 
 (defc skia_advance_x membraneskialib Float/TYPE [font-ptr text text-length])
 (defn skia-advance-x [font text]
   (let [line-bytes (.getBytes ^String text "utf-8")]
     (.write ^Memory skia-buf 0 line-bytes 0 (alength ^bytes line-bytes))
     (skia_advance_x (get-font font) skia-buf (alength line-bytes))))
+(defn font-advance-x [font text]
+  (skia-advance-x font text))
 
 (defn- text-selection-draw [{:keys [text font]
                             [selection-start selection-end] :selection

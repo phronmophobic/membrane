@@ -16,13 +16,13 @@
            java.awt.RenderingHints
            java.awt.GraphicsEnvironment
            java.awt.Graphics2D
-
            java.awt.Component
            java.awt.event.MouseEvent
            java.awt.event.KeyEvent
            java.awt.event.MouseListener
            java.awt.event.MouseMotionListener
            java.awt.event.KeyListener
+           java.awt.event.WindowEvent
            java.awt.Dimension
            javax.swing.JFrame))
 
@@ -44,9 +44,65 @@
 
 (defn get-java-font [font]
   (Font. (:name font)
-         0
+         (bit-or 0
+                 (if (= :bold
+                        (:weight font))
+                   Font/BOLD
+                   0)
+                 (if (= :italic
+                        (:slant font))
+                   Font/ITALIC
+                   0))
          (or (:size font)
              (:size ui/default-font))) )
+
+(defn font-exists? [font]
+  (not= "Dialog"
+        (.getFamily ^Font (get-java-font font))))
+
+(defn get-font-render-context []
+  (if *g*
+    (.getFontRenderContext ^Graphics2D *g*)
+    (FontRenderContext. nil (boolean true) (boolean true))))
+
+(defn font-advance-x [font s]
+  (let [jfont (get-java-font font)
+        frc (get-font-render-context)
+        glyphs (.createGlyphVector jfont frc s)
+        glyph (.getGlyphMetrics glyphs 0)]
+    (.getAdvanceX glyph)))
+
+(defn font-line-height [font]
+  (let [frc (get-font-render-context)
+        jfont (get-java-font font)
+        ;; I don't think the characters matter here
+        s ""
+        metrics (.getLineMetrics ^Font jfont s frc)]
+    (.getHeight metrics)))
+
+(defn font-metrics [font]
+
+  ;; You can get font metrics from the default toolkit,
+  ;; the integer return type is too coarse
+  #_(let [font-metrics (.getFontMetrics (Toolkit/getDefaultToolkit)
+                                      (get-java-font font))]
+    ;; these are all integers instead of floats >:/
+      {:ascent (.getAscent font-metrics)
+     :descent (.getDescent font-metrics)
+     :leading (.getLeading font-metrics)
+     :line-height (.getHeight font-metrics)
+     :max-advance (.getMaxAdvance font-metrics)
+     :max-ascent (.getMaxAscent font-metrics)
+     :max-descent (.getMaxDescent font-metrics)
+     :uniform-line-metrics (.hasUniformLineMetrics font-metrics)})
+  (let [frc (get-font-render-context)
+        jfont (get-java-font font)
+        ;; I don't think the characters matter here
+        s ""
+        metrics (.getLineMetrics ^Font jfont s frc)]
+    {:ascent (.getAscent metrics)
+     :descent (.getDescent metrics)
+     :leading (.getLeading metrics)}))
 
 (defn merge-stroke
   "Create a new java.awt.BasicStroke with the non properties replaced.
@@ -156,10 +212,8 @@
             (draw drawable))))))
 
 
-(defn get-font-render-context []
-  (if *g*
-    (.getFontRenderContext ^Graphics2D *g*)
-    (FontRenderContext. nil (boolean true) (boolean true))))
+
+
 
 (defn text-bounds [font text]
   (let [lines (clojure.string/split text #"\n" -1)
