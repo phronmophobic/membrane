@@ -637,7 +637,7 @@
                                               fStrikeoutThickness
                                               fStrikeoutPosition
                                               ])
-(defn skia-font-metrics [font]
+(defn font-metrics [font]
   (let [fFlags (IntByReference.)
         fTop (FloatByReference.)
         fAscent (FloatByReference.)
