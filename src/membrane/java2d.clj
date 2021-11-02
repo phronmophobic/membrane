@@ -874,7 +874,9 @@
              (.pack)
              (.show))]
      {::repaint (fn []
-                  (.repaint ^java.awt.Component panel))})))
+                  (.repaint ^java.awt.Component panel))
+      ::frame f})))
+
 
 (defn -main [& args]
   (run ((requiring-resolve 'membrane.component/make-app)
