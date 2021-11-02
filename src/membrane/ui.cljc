@@ -226,7 +226,12 @@
       (-bubble this intents))))
 
 
-
+(def SHIFT-MASK 0x0001)
+(def CONTROL-MASK 0x0002)
+(def ALT-MASK 0x0004)
+(def SUPER-MASK 0x0008)
+(def CAPS-LOCK-MASK 0x0010)
+(def NUM-LOCK-MASK 0x0020)
 
 
 
