@@ -848,16 +848,16 @@
 
 
 (defn run
-  ([make-ui]
-   (run make-ui {}))
-  ([make-ui {:keys [window-start-width
+  ([view-fn]
+   (run view-fn {}))
+  ([view-fn {:keys [window-start-width
                     window-start-height
                     window-start-x
                     window-start-y] :as options}]
    (let [window {:window (atom nil)
                  :panel (atom nil)
                  :ui (atom nil)
-                 :render make-ui}
+                 :render view-fn}
          panel (doto (make-panel window)
                  (.setFocusable true))
          _ (reset! (:panel window)
