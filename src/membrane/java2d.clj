@@ -728,8 +728,7 @@
   (let [action :press
         ui @(:ui window)
         mods (.getModifiers e)
-        code (.getKeyCode e)
-        key-char (.getKeyChar e)]
+        code (.getKeyCode e)]
     (ui/key-event ui code code action mods)
     (let [k (get keymap code)]
       (when (keyword? k)
@@ -742,8 +741,7 @@
   (let [action :release
         ui @(:ui window)
         mods (.getModifiers e)
-        code (.getKeyCode e)
-        key-char (.getKeyChar e)]
+        code (.getKeyCode e)]
     (ui/key-event ui code code action mods)))
 
 
