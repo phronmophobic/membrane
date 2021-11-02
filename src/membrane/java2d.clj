@@ -730,7 +730,7 @@
         mods (.getModifiers e)
         code (.getKeyCode e)
         key-char (.getKeyChar e)]
-    (ui/key-event ui key code action mods)
+    (ui/key-event ui code code action mods)
     (let [k (get keymap code)]
       (when (keyword? k)
         (try
@@ -744,7 +744,7 @@
         mods (.getModifiers e)
         code (.getKeyCode e)
         key-char (.getKeyChar e)]
-    (ui/key-event ui key code action mods)))
+    (ui/key-event ui code code action mods)))
 
 
 
