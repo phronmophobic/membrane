@@ -877,6 +877,26 @@
                   (.repaint ^java.awt.Component panel))
       ::frame f})))
 
+(defn run-sync
+  ([view-fn]
+   (run-sync {}))
+  ([view-fn {:keys [window-start-width
+                    window-start-height
+                    window-start-x
+                    window-start-y] :as options}]
+   (let [window-info (run view-fn options)
+         p (promise)]
+     (.addWindowListener (::frame window-info)
+                         (reify java.awt.event.WindowListener
+                           (^void windowActivated [this ^WindowEvent e])
+                           (^void windowClosed [this ^WindowEvent e])
+                           (^void windowClosing [this ^WindowEvent e]
+                            (deliver p window-info))
+                           (^void windowDeactivated [this ^WindowEvent e])
+                           (^void windowDeiconified [this ^WindowEvent e])
+                           (^void windowIconified [this ^WindowEvent e])
+                           (^void windowOpened [this ^WindowEvent e])))
+     @p)))
 
 (defn -main [& args]
   (run ((requiring-resolve 'membrane.component/make-app)
