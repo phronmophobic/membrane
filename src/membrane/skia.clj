@@ -1574,7 +1574,7 @@
   `quality`: specifies the image quality to use for lossy image formats like jpeg. defaults to 100
   `clear?`: Specifies if the canvas should be cleared before drawing. defaults to true.
 
-  note: `draw-to-image` does not take into account the content scale of your monitor. ie. if you
+  note: `draw-to-image!` does not take into account the content scale of your monitor. ie. if you
   have a retina display, the image will be lower resolution. if you'd like the same resolution
   as your retina display, you can do use `scale` like the following:
   `(skia/draw-to-image! \"out@2x.png\" (ui/scale 2 2 (ui/label \"hello world\")))`
