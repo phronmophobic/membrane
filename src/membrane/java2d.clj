@@ -896,7 +896,8 @@
                            (^void windowDeiconified [this ^WindowEvent e])
                            (^void windowIconified [this ^WindowEvent e])
                            (^void windowOpened [this ^WindowEvent e])))
-     @p)))
+     @p
+     (.dispose (::frame window-info)))))
 
 (defn -main [& args]
   (run ((requiring-resolve 'membrane.component/make-app)
