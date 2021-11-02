@@ -864,6 +864,8 @@
                    panel)
          listener (make-uber-listener window)
          _ (doto panel
+             ;; don't consume \tab key events
+             (.setFocusTraversalKeysEnabled false)
              (.addMouseListener listener)
              (.addMouseMotionListener listener)
              (.addKeyListener listener))
