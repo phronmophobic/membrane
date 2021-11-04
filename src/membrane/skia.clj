@@ -600,6 +600,23 @@
     ;;     kStrikeoutPositionIsValid_Flag  = 1 << 3, //!< set if fStrikeoutPosition is valid
     ;;     kBoundsInvalid_Flag             = 1 << 4, //!< set if fTop, fBottom, fXMin, fXMax invalid
     ;; };
+(def ^:private kUnderlineThicknessIsValid_Flag
+  "set if fUnderlineThickness is valid"
+  (bit-shift-left 1 0))
+(def ^:private kUnderlinePositionIsValid_Flag
+  "set if fUnderlinePosition is valid"
+  (bit-shift-left 1 1))
+(def ^:private kStrikeoutThicknessIsValid_Flag
+  "set if fStrikeoutThickness is valid"
+  (bit-shift-left 1 2))
+(def ^:private kStrikeoutPositionIsValid_Flag
+  "set if fStrikeoutPosition is valid"
+  (bit-shift-left 1 3))
+(def ^:private kBoundsInvalid_Flag
+  "set if fTop, fBottom, fXMin, fXMax invalid"
+  (bit-shift-left 1 4))
+
+
 
 ;; See SkFontMetrics.h
 ;; uint32_t fFlags;              //!< FontMetricsFlags indicating which metrics are valid
@@ -674,19 +691,20 @@
 
     (let [flags (.getValue fFlags)]
       (merge
-       (when (pos? (bit-and flags 1))
+       (when (pos? (bit-and flags
+                            kUnderlineThicknessIsValid_Flag))
          {:membrane.skia.font-metrics/underline-thickness (.getValue fUnderlineThickness)})
        (when (pos? (bit-and flags
-                            (bit-shift-left 1 1)))
+                            kUnderlinePositionIsValid_Flag))
          {:membrane.skia.font-metrics/underline-position (.getValue fUnderlinePosition)})
        (when (pos? (bit-and flags
-                            (bit-shift-left 1 2)))
+                            kStrikeoutThicknessIsValid_Flag))
          {:membrane.skia.font-metrics/strikeout-thickness (.getValue fStrikeoutThickness)})
        (when (pos? (bit-and flags
-                            (bit-shift-left 1 3)))
+                            kStrikeoutPositionIsValid_Flag))
          {:membrane.skia.font-metrics/strikeout-position (.getValue fStrikeoutPosition)})
-       (when (pos? (bit-and flags
-                            (bit-shift-left 1 4)))
+       (when (not (pos? (bit-and flags
+                                 kBoundsInvalid_Flag)))
          {:membrane.skia.font-metrics/top (.getValue fTop)
           :membrane.skia.font-metrics/bottom (.getValue fBottom)
           :membrane.skia.font-metrics/xmin (.getValue fXMin)
