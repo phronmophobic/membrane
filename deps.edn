@@ -1,12 +1,12 @@
 {:paths ["src" "target/classes" "generated_classes" "resources"]
  :deps {org.clojure/clojure {:mvn/version "1.10.3"}
 
-        net.java.dev.jna/jna {:mvn/version "5.8.0"}
+        net.java.dev.jna/jna {:mvn/version "5.10.0"}
         net.n01se/clojure-jna {:mvn/version "1.0.0"}
-        org.clojure/core.async {:mvn/version "0.4.490"}
-        cnuernber/dtype-next {:mvn/version "8.027"}
+        org.clojure/core.async {:mvn/version "1.4.627"}
+        cnuernber/dtype-next {:mvn/version "8.041"}
         com.rpl/specter {:mvn/version "1.1.3"}
-        org.apache.commons/commons-text {:mvn/version "1.8"}
+        org.apache.commons/commons-text {:mvn/version "1.9"}
         }
  :mvn/repos
  {"space-maven" {:url "https://packages.jetbrains.team/maven/p/skija/maven"}
@@ -54,14 +54,22 @@
   :deploy {:extra-deps {slipset/deps-deploy {:mvn/version "0.1.1"}}
            :main-opts ["-m" "deps-deploy.deps-deploy" "deploy" "clj-cef.jar"]}
 
-  :skija {:extra-deps {org.jetbrains.skija/skija-macos-x64 {:mvn/version "0.89.18"}
-                       org.lwjgl/lwjgl {:mvn/version "3.2.3"}
-                       org.lwjgl/lwjgl$natives-macos {:mvn/version "3.2.3"}
-                       org.lwjgl/lwjgl-glfw {:mvn/version "3.2.3"}
-                       org.lwjgl/lwjgl-glfw$natives-macos {:mvn/version "3.2.3"}
-                       org.lwjgl/lwjgl-opengl {:mvn/version "3.2.3"}
-                       org.lwjgl/lwjgl-opengl$natives-macos {:mvn/version "3.2.3"}}}
-  :fulcro {:extra-deps {com.fulcrologic/fulcro {:mvn/version "3.4.10"}}}
-  :cljfx {:extra-deps {cljfx/cljfx {:mvn/version "1.7.11"}}}
-  
+  :skija {:extra-deps {org.jetbrains.skija/skija-macos-arm64 {:mvn/version "0.93.4"}
+                       org.jetbrains.skija/skija-macos-x64 {:mvn/version "0.93.4"}
+                       org.jetbrains.skija/skija-linux {:mvn/version "0.93.1"}
+                       org.lwjgl/lwjgl {:mvn/version "3.3.0"}
+                       org.lwjgl/lwjgl$natives-macos {:mvn/version "3.3.0"}
+                       org.lwjgl/lwjgl$natives-macos-arm64 {:mvn/version "3.3.0"}
+                       org.lwjgl/lwjgl$natives-linux {:mvn/version "3.3.0"}
+                       org.lwjgl/lwjgl-glfw {:mvn/version "3.3.0"}
+                       org.lwjgl/lwjgl-glfw$natives-macos {:mvn/version "3.3.0"}
+                       org.lwjgl/lwjgl-glfw$natives-macos-arm64 {:mvn/version "3.3.0"}
+                       org.lwjgl/lwjgl-glfw$natives-linux {:mvn/version "3.3.0"}
+                       org.lwjgl/lwjgl-opengl {:mvn/version "3.3.0"}
+                       org.lwjgl/lwjgl-opengl$natives-macos {:mvn/version "3.3.0"}
+                       org.lwjgl/lwjgl-opengl$natives-macos-arm64 {:mvn/version "3.3.0"}
+                       org.lwjgl/lwjgl-opengl$natives-linux {:mvn/version "3.3.0"}}}
+  :fulcro {:extra-deps {com.fulcrologic/fulcro {:mvn/version "3.5.8"}}}
+  :cljfx {:extra-deps {cljfx/cljfx {:mvn/version "1.7.16"}}}
+  :lanterna {:extra-deps {com.googlecode.lanterna/lanterna {:mvn/version "3.1.1"}}}
   ,}}

@@ -25,7 +25,6 @@
             cljs.analyzer
             [membrane.component :refer [defui]]
             [membrane.eval :as eval]
-            [cognitect.transit :as transit]
 
             cljs.tools.reader.reader-types
             [membrane.example.todo :as todo]))

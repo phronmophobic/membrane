@@ -4,15 +4,15 @@
   :license {:name "Apache License, Version 2.0"
             :url "http://www.apache.org/licenses/LICENSE-2.0"}
 
-  :dependencies [[org.clojure/clojure "1.10.2-alpha1"]
+  :dependencies [[org.clojure/clojure "1.10.3"]
 
                  [net.n01se/clojure-jna "1.0.0"
                   :exclusions [net.java.dev.jna/jna]]
-                 [net.java.dev.jna/jna "5.8.0"]
-                 [org.clojure/core.async "0.4.490"]
+                 [net.java.dev.jna/jna "5.10.0"]
+                 [org.clojure/core.async "1.4.627"]
 
                  [com.rpl/specter "1.1.3"]
-                 [org.apache.commons/commons-text "1.8"]
+                 [org.apache.commons/commons-text "1.9"]
 
 
                  ;; these two go together
@@ -70,15 +70,14 @@
          }
    :provided {:dependencies [[org.clojure/clojurescript "1.10.764"]
                              [com.phronemophobic/vdom "0.2.2"]
-                             [com.googlecode.lanterna/lanterna "3.0.2"]
+                             [com.googlecode.lanterna/lanterna "3.1.1"]
                              [spec-provider "0.4.14"]
                              [mogenslund/liquid "2.0.3"]
-                             [re-frame "1.0.0-rc3"]
-                             [com.cognitect/transit-cljs "0.8.264"]
+                             [re-frame "1.2.0"]
 
-                             [cljfx "1.7.11"]
+                             [cljfx "1.7.16"]
 
-                             [com.fulcrologic/fulcro "3.4.10"]
+                             [com.fulcrologic/fulcro "3.5.8"]
 
                              ;; skia
                              [com.phronemophobic.membrane/skialib-macosx-x86-64 "0.9.31.0-beta"]
@@ -86,13 +85,22 @@
                              [com.phronemophobic.membrane/skialib-macosx-aarch64 "0.9.31.0-beta"]
 
                              ;; skija
-                             [org.jetbrains.skija/skija-macos "0.6.45"]
-                             [org.lwjgl/lwjgl "3.2.3"]
-                             [org.lwjgl/lwjgl "3.2.3" :classifier "natives-macos"]
-                             [org.lwjgl/lwjgl-glfw "3.2.3"]
-                             [org.lwjgl/lwjgl-glfw "3.2.3"  :classifier "natives-macos"]
-                             [org.lwjgl/lwjgl-opengl "3.2.3"]
-                             [org.lwjgl/lwjgl-opengl "3.2.3"  :classifier "natives-macos"]]}}
+                             [org.jetbrains.skija/skija-macos-arm64 "0.93.4"]
+                             [org.jetbrains.skija/skija-macos-x64 "0.93.4"]
+                             [org.jetbrains.skija/skija-linux "0.93.1"]
+                             [org.lwjgl/lwjgl "3.3.0"]
+                             [org.lwjgl/lwjgl "3.3.0" :classifier "natives-macos"]
+                             [org.lwjgl/lwjgl "3.3.0" :classifier "natives-macos-arm64"]
+                             [org.lwjgl/lwjgl "3.3.0" :classifier "natives-linux"]
+                             [org.lwjgl/lwjgl-glfw "3.3.0"]
+                             [org.lwjgl/lwjgl-glfw "3.3.0" :classifier "natives-macos"]
+                             [org.lwjgl/lwjgl-glfw "3.3.0" :classifier "natives-macos-arm64"]
+                             [org.lwjgl/lwjgl-glfw "3.3.0" :classifier "natives-linux"]
+                             [org.lwjgl/lwjgl-opengl "3.3.0"]
+                             [org.lwjgl/lwjgl-opengl "3.3.0" :classifier "natives-macos"]
+                             [org.lwjgl/lwjgl-opengl "3.3.0" :classifier "natives-macos-arm64"]
+                             [org.lwjgl/lwjgl-opengl "3.3.0" :classifier "natives-linux"]
+                             ]}}
 
   :deploy-repositories [["releases" :clojars]
                         ["snapshots" :clojars]]
