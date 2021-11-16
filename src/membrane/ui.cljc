@@ -2204,6 +2204,209 @@
                        (/ eheight 2)))
                elem)))
 
+(defn align-row
+  ([alignment row]
+   (align-row alignment nil row ))
+  ([alignment row-height row]
+   (if (= alignment :top)
+     row
+     (let [h (or row-height (height row))]
+       (case alignment
+         :bottom
+         (into []
+               (map (fn [elem]
+                      (translate 0 (- h (height elem))
+                                 elem)))
+               row)
+         :center
+         (into []
+               (map (fn [elem]
+                      (translate 0 (/ (- h (height elem))
+                                      2)
+                                 elem)))
+               row))))))
+
+(defn align-column
+  ([alignment col]
+   (align-column alignment nil col))
+  ([alignment col-width col]
+   (if (= alignment :left)
+     col
+     (let [w (or col-width (width col))]
+       (case alignment
+         :right
+         (into []
+               (map (fn [elem]
+                      (translate (- w (width elem)) 0
+                                 elem)))
+               col)
+         :center
+         (into []
+               (map (fn [elem]
+                      (translate (/ (- w (width elem))
+                                    2)
+                                 0
+                                 elem)))
+               col))))))
+
+(defn- align-test []
+  (align-column :right
+                ;; 600
+                (apply
+                 vertical-layout
+                 (for [i (range 5)]
+                   (filled-rectangle [1 0 0]
+                                     (* 50 (inc i)) (* 50 (inc i)))))))
+
+(comment
+  (require '[membrane.skia :as skia])
+
+  (skia/run #'align-test)
+  ,
+  )
+
+(defn justify-row-content [justification row-width row]
+  (let [content-width (transduce (map width)
+                                 +
+                                 0
+                                 row)
+        row-count (count row)
+        ]
+    ;; All of these have to deal with the fact that
+    ;; horizontal-layout adds 1px between each element
+    ;; which might have been a bad idea
+    (case justification
+      :space-between
+      (if (< row-count 2)
+        row
+        (let [gap (/ (- row-width content-width)
+                     (dec row-count))
+
+              gap (- gap 2)
+              gap (max 0 gap)]
+          (apply horizontal-layout
+                 (eduction (interpose (spacer gap 0))
+                           row))))
+
+      :space-around
+      (if (empty? row)
+        row
+        (let [gap (/ (- row-width content-width)
+                     row-count
+                     2)
+              gap (max 0 (- gap (/ (dec row-count) row-count 2)))]
+          (apply horizontal-layout
+                 (eduction (map (fn [elem]
+                                  (padding gap 0
+                                           elem)
+                                  ))
+                           row))))
+
+      :space-evenly
+      (if (empty? row)
+        row
+        (let [gap (/ (- row-width content-width)
+                     (inc row-count))]
+          (apply horizontal-layout
+                 (cons
+                  (spacer (dec gap) 0)
+                  (eduction
+                   (interpose (spacer (max 0 (- gap 2)) 0))
+                   row))))))))
+
+(defn justify-column-content [justification col-height col]
+  (let [content-height (transduce (map height)
+                                 +
+                                 0
+                                 col)
+        col-count (count col)
+        ]
+    ;; All of these have to deal with the fact that
+    ;; vertical-layout adds 1px between each element
+    ;; which might have been a bad idea
+    (case justification
+      :space-between
+      (if (< col-count 2)
+        col
+        (let [gap (/ (- col-height content-height)
+                     (dec col-count))
+
+              gap (- gap 2)
+              gap (max 0 gap)]
+          (apply vertical-layout
+                 (eduction (interpose (spacer 0 gap))
+                           col))))
+
+      :space-around
+      (if (empty? col)
+        col
+        (let [gap (/ (- col-height content-height)
+                     col-count
+                     2)
+              gap (max 0 (- gap (/ (dec col-count) col-count 2)))]
+          (apply vertical-layout
+                 (eduction (map (fn [elem]
+                                  (padding 0 gap
+                                           elem)))
+                           col))))
+
+      :space-evenly
+      (if (empty? col)
+        col
+        (let [gap (/ (- col-height content-height)
+                     (inc col-count))]
+          (apply vertical-layout
+                 (cons
+                  (spacer 0 (dec gap))
+                  (eduction
+                   (interpose (spacer 0 (max 0 (- gap 2))))
+                   col))))))))
+
+(defn- justify-row-test []
+  (padding 10
+           (apply
+            vertical-layout
+            (for [justification [:space-between
+                                 :space-around
+                                 :space-evenly]]
+              (with-color [1 0 0 0.5]
+                (with-style ::style-fill
+                  [(with-style ::style-stroke
+                     (with-color [0 0 0]
+                       (rectangle 400 30)))
+                   (justify-row-content justification
+                                        400
+                                        [(rectangle 10 20)
+                                         (rectangle 20 10)
+                                         (rectangle 15 30)
+                                         ]
+                                        )]))))))
+
+(defn- justify-column-test []
+  (padding 10
+           (apply
+            horizontal-layout
+            (for [justification [:space-between
+                                 :space-around
+                                 :space-evenly]]
+              (with-color [1 0 0 0.5]
+                (with-style ::style-fill
+                  [(with-style ::style-stroke
+                     (with-color [0 0 0]
+                       (rectangle 20 400)))
+                   (justify-column-content justification
+                                           400
+                                           [(rectangle 10 20)
+                                            (rectangle 20 10)
+                                            (rectangle 15 30)
+                                            ]
+                                           )])))))
+  )
+
+(comment
+  (skia/run #'justify-test)
+  ,)
+
 
 (defrecord OnScroll [on-scroll drawables]
     IOrigin
