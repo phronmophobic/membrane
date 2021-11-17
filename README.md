@@ -95,7 +95,6 @@ Screenshot:
                      label
                      spacer
                      on]]))
-
 (defonce counter-state (atom 0))
 
 ;; Display a "more!" button next to label showing num
@@ -110,8 +109,9 @@ Screenshot:
    (label num (ui/font nil 19))))
 
 (comment
-    ;; pop up a window that shows our counter
-    (skia/run #(counter @counter-state)))
+  ;; pop up a window that shows our counter
+  (skia/run #(counter @counter-state))
+  ,)
 
 ```
 
@@ -121,7 +121,6 @@ Screenshot:
 ![simple counter](/docs/images/counter2.gif?raw=true)
 
 ```clojure
-
 (ns counter
   (:require [membrane.skia :as skia]
             [membrane.ui :as ui
@@ -150,7 +149,8 @@ Screenshot:
 (comment
   ;; pop up a window showing our counter with
   ;; num initially set to 10
-  (skia/run (make-app #'counter {:num 10})))
+  (skia/run (make-app #'counter {:num 10}))
+  ,)
 ```
 
 Here's an example of how you can use your `counter` component.
@@ -183,6 +183,12 @@ Screenshot:
   ;; pop up a window showing our counter-counter
   ;; with nums initially set to [0 1 2]
   (skia/run (make-app #'counter-counter {:nums [0 1 2]})))
+
+(comment
+  ;; pop up a window showing our counter-counter
+  ;; with nums initially set to [0 1 2]
+  (skia/run (make-app #'counter-counter {:nums [0 1 2]}))
+  ,)
 
 ```
 
