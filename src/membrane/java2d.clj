@@ -2,7 +2,8 @@
   (:require [membrane.ui :as ui
              :refer [IBounds
                      bounds
-                     origin]])
+                     origin]]
+            [membrane.toolkit :as tk])
   (:import java.awt.BasicStroke
            java.awt.image.BufferedImage
            javax.imageio.ImageIO
@@ -926,6 +927,44 @@
                            (^void windowOpened [this ^WindowEvent e])))
      @p
      (.dispose (::frame window-info)))))
+
+(def toolkit
+  (reify
+    tk/IToolkit
+
+    tk/IToolkitRun
+    (run [toolkit view-fn]
+      (run view-fn))
+    (run [toolkit view-fn opts]
+      (run view-fn opts))
+
+    tk/IToolkitRunSync
+    (run-sync [toolkit view-fn]
+      (run-sync view-fn))
+    (run-sync [toolkit view-fn opts]
+      (run-sync view-fn opts))
+
+    tk/IToolkitFontExists
+    (font-exists? [toolkit font]
+      (font-exists? font))
+
+    tk/IToolkitFontMetrics
+    (font-metrics [toolkit font]
+      (font-metrics font))
+
+    tk/IToolkitFontAdvanceX
+    (font-advance-x [toolkit font s]
+      (font-advance-x font s))
+
+    tk/IToolkitFontLineHeight
+    (font-line-height [toolkit font]
+      (font-line-height font))
+
+    tk/IToolkitSaveImage
+    (save-image [toolkit path elem]
+      (save-image path elem))
+    (save-image [toolkit path elem [w h :as size]]
+       (save-image path elem size))))
 
 (defn -main [& args]
   (run ((requiring-resolve 'membrane.component/make-app)
