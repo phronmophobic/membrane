@@ -1,9 +1,15 @@
 (ns membrane.toolkit)
 
+(defprotocol IToolkit
+  "Empty protocol to mark toolkits")
+
+(defn toolkit? [o]
+  (satisfies? IToolkit o))
+
 (defprotocol IToolkitRun
   (run
-    [this view-fn]
-    [this view-fn options]
+    [toolkit view-fn]
+    [toolkit view-fn options]
     "Run a user interface with `view-fn` to draw.
 
   `view-fn` should be a 0 argument function that returns an object satisfying `IDraw`.
@@ -13,8 +19,8 @@
 
 (defprotocol IToolkitRunSync
   (run-sync
-    [this view-fn]
-    [this view-fn options]
+    [toolkit view-fn]
+    [toolkit view-fn options]
      "Run a user interface synchronously with `view-fn` to draw.
 
   `view-fn` should be a 0 argument function that returns an object satisfying `IDraw`.
@@ -23,64 +29,66 @@
   `options` is a map with extra options. available options will depend on the specific toolkit."))
 
 (defprotocol IToolkitFontExists
-  (font-exists? [this font]
+  (font-exists? [toolkit font]
     "Returns true if the font can be found by the toolkit."))
 (defprotocol IToolkitFontMetrics
-  (font-metrics [this font]
+  (font-metrics [toolkit font]
     "Returns the font metrics for font."))
 (defprotocol IToolkitFontAdvanceX
-  (font-advance-x [this font]
+  (font-advance-x [toolkit font s]
     "Returns the advance-x for font."))
 (defprotocol IToolkitFontLineHeight
-  (font-line-height [this font]
+  (font-line-height [toolkit font]
     "Returns the line height for font."))
 
 (defprotocol IToolkitSaveImage
   (save-image
-    [this path elem]
-    [this path elem [w h :as size]]
-    "Saves an image of elem to file with name `path`.
+    [toolkit dest elem]
+    [toolkit dest elem [w h :as size]]
+    "Saves an image of elem to file with name `dest`.
 
-  `path`: the filename to write the image to
+  `dest`: the filename to write the image to.
   `elem`: the graphical element to draw
   `size`: the width and height of the image. If size is nil, the bounds and origin of elem will be used."))
 
 (extend-type clojure.lang.Namespace
+  IToolkit
+
   IToolkitRun
   (run
-    ([this view-fn]
-     ((ns-resolve this 'run) view-fn))
-    ([this view-fn options]
-     ((ns-resolve this 'run) view-fn options)))
+    ([toolkit view-fn]
+     ((ns-resolve toolkit 'run) view-fn))
+    ([toolkit view-fn options]
+     ((ns-resolve toolkit 'run) view-fn options)))
 
   IToolkitRunSync
-  (run-sync [this view-fn]
-    ((ns-resolve this 'run-sync) view-fn))
-  (run-sync [this view-fn options]
-    ((ns-resolve this 'run-sync) view-fn options))
+  (run-sync [toolkit view-fn]
+    ((ns-resolve toolkit 'run-sync) view-fn))
+  (run-sync [toolkit view-fn options]
+    ((ns-resolve toolkit 'run-sync) view-fn options))
 
   IToolkitFontExists
-  (font-exists? [this font]
-    ((ns-resolve this 'font-exists?) font))
+  (font-exists? [toolkit font]
+    ((ns-resolve toolkit 'font-exists?) font))
 
   IToolkitFontMetrics
-  (font-metrics [this font]
-    ((ns-resolve this 'font-metrics) font))
+  (font-metrics [toolkit font]
+    ((ns-resolve toolkit 'font-metrics) font))
 
   IToolkitFontAdvanceX
-  (font-advance-x [this font]
-    ((ns-resolve this 'font-advance-x) font))
+  (font-advance-x [toolkit font s]
+    ((ns-resolve toolkit 'font-advance-x) font s))
 
   IToolkitFontLineHeight
-  (font-line-height [this font]
-    ((ns-resolve this 'font-line-height) font))
+  (font-line-height [toolkit font]
+    ((ns-resolve toolkit 'font-line-height) font))
 
   IToolkitSaveImage
   (save-image
-    ([this path elem]
-     ((ns-resolve this 'save-image) elem))
-    ([this path elem [w h :as size]]
-     ((ns-resolve this 'save-image) h :as size))))
+    ([toolkit dest elem]
+     ((ns-resolve toolkit 'save-image) elem))
+    ([toolkit dest elem [w h :as size]]
+     ((ns-resolve toolkit 'save-image) h :as size))))
 
 
 (comment
