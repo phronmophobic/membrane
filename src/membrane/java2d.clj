@@ -603,10 +603,38 @@
      img)))
 
 (defn save-to-image!
+  "DEPRECATED: use `save-image` instead."
   [f elem]
   (let [bi (draw-to-image elem)]
     (with-open [os (clojure.java.io/output-stream f)]
       (ImageIO/write ^BufferedImage bi "png" os))))
+
+(defn save-image
+  "Saves an image of elem to file with name `dest`.
+
+  `dest`: the filename to write the image to. `dest` can also be anything `clojure.java.io/output-stream would accept.
+  `elem`: the graphical element to draw
+  `size`: the width and height of the image. If size is nil, the bounds and origin of elem will be used.
+
+  note: `save-image` does not take into account the content scale of your monitor. ie. if you
+  have a retina display, the image will be lower resolution. if you'd like the same resolution
+  as your retina display, you can do use `scale` like the following:
+  `(save-image \"out@2x.png\" (ui/scale 2 2 (ui/label \"hello world\")))`"
+  ([dest elem]
+   (save-image dest elem nil))
+  ([dest elem size]
+   (let [size (if size
+                size
+                (let [[w h] (bounds elem)
+                      [ox oy] (origin elem)]
+                  [(+ w ox)
+                   (+ h oy)]))
+         _ (assert (and (pos? (first size))
+                        (pos? (second size)))
+                   "Size must be two positive numbers [w h]")
+         bi (draw-to-image elem size)]
+     (with-open [os (clojure.java.io/output-stream dest)]
+       (ImageIO/write ^BufferedImage bi "png" os)))))
 
 (defn available-font-families []
   (let [ge (GraphicsEnvironment/getLocalGraphicsEnvironment)]

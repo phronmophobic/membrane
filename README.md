@@ -230,18 +230,18 @@ Screenshot:
               :description "second"}
              {:complete? true
               :description "third"}]]
-  (skia/draw-to-image! "todoapp.png"
-                       (todo-app {:todos todos :selected-filter :all})))
+  (skia/save-image "todoapp.png"
+                   (todo-app {:todos todos :selected-filter :all})))
 
 ;; use spec to generate images of variations of your app
 (doseq [[i todo-list] (map-indexed vector (gen/sample (s/gen ::todos)))]
-  (skia/draw-to-image! (str "todo" i ".png")
-                       (ui/vertical-layout
-                        (ui/label (with-out-str
-                                    (clojure.pprint/pprint todo-list)))
-                        (ui/with-style :membrane.ui/style-stroke
-                          (ui/path [0 0] [400 0]))
-                        (todo-app {:todos todo-list :selected-filter :all}))))
+  (skia/save-image (str "todo" i ".png")
+                   (ui/vertical-layout
+                    (ui/label (with-out-str
+                                (clojure.pprint/pprint todo-list)))
+                    (ui/with-style :membrane.ui/style-stroke
+                      (ui/path [0 0] [400 0]))
+                    (todo-app {:todos todo-list :selected-filter :all}))))
 
 ```
 ## Screenshots

@@ -1587,8 +1587,66 @@
 
 (defc skia_save_image membraneskialib Integer/TYPE [skia-resource format quality path])
 
-(defn draw-to-image!
+
+
+(defn save-image
   "Creates an image of elem. Returns true on success, false otherwise.
+
+  `dest`: the filename to write the image to
+  `elem`: the graphical element to draw
+  `size`: the width and height of the image. If size is nil, the bounds and origin of elem will be used.
+  `image-format`: The image format to use. Should be one of
+   :membrane.skia/image-format-jpeg
+   :membrane.skia/image-format-png
+   :membrane.skia/image-format-webp
+  if `image-format` is nil, then it will be guessed based on the dest's file extension.
+  `quality`: specifies the image quality to use for lossy image formats like jpeg. defaults to 100
+  `clear?`: Specifies if the canvas should be cleared before drawing. defaults to true.
+
+  note: `save-image` does not take into account the content scale of your monitor. ie. if you
+  have a retina display, the image will be lower resolution. if you'd like the same resolution
+  as your retina display, you can do use `scale` like the following:
+  `(skia/save-image \"out@2x.png\" (ui/scale 2 2 (ui/label \"hello world\")))`
+
+  "
+  ([dest elem]
+   (save-image dest elem nil))
+  ([dest elem [w h :as size]]
+   (save-image dest elem size nil 100 true))
+  ([dest elem [w h :as size] image-format quality clear?]
+   (let [size (if size
+                size
+                (let [[w h] (bounds elem)
+                      [ox oy] (origin elem)]
+                  [(+ w ox)
+                   (+ h oy)]))
+         _ (assert (and (pos? (first size))
+                        (pos? (second size)))
+                   "Size must be two positive numbers [w h]")
+         image-format (if image-format
+                        image-format
+                        (guess-image-format dest))
+         image-format-native (if-let [fmt (get image-formats image-format)]
+                               fmt
+                               (throw
+                                (IllegalArgumentException.
+                                 (str "Image format must be one of " (keys image-formats)))))]
+    (with-cpu-skia-resource skia-resource size
+      (binding [*skia-resource* skia-resource
+                *image-cache* (atom {})
+                *already-drawing* true]
+        (when clear?
+          (Skia/skia_clear skia-resource))
+        (draw elem))
+      (Skia/skia_save_image skia-resource
+                       image-format-native
+                       quality
+                       dest)))))
+
+(defn draw-to-image!
+  "DEPRECATED: use `save-image` instead.
+
+  Creates an image of elem. Returns true on success, false otherwise.
 
   `path`: the filename to write the image to
   `elem`: the graphical element to draw

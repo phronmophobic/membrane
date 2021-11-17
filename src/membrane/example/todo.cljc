@@ -184,7 +184,7 @@
 (:clj
  (defn save-image [{:keys [path]
                     :or {path "todo.png"}}]
-   ((requiring-resolve 'membrane.skia/draw-to-image!)
+   ((requiring-resolve 'membrane.skia/save-image)
     path
     (todo-app
      {:selected-filter :all
