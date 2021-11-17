@@ -35,7 +35,8 @@
                      mouse-move
                      mouse-move-global
                      IScroll
-                     -scroll]])
+                     -scroll]]
+            [membrane.toolkit :as tk])
   (:import com.sun.jna.Pointer
            com.sun.jna.Memory
            com.sun.jna.ptr.FloatByReference
@@ -1957,7 +1958,45 @@
   )
 
 
+(def toolkit
+  (reify
+    tk/IToolkitRun
+    (run [this view-fn]
+      (run view-fn))
+    (run [this view-fn opts]
+      (run view-fn opts))
 
+    tk/IToolkitRunSync
+    (run-sync [this view-fn]
+      (run-sync view-fn))
+    (run-sync [this view-fn opts]
+      (run-sync view-fn opts))
+
+    tk/IToolkitFontExists
+    (font-exists? [this font]
+      (font-exists? font))
+
+    tk/IToolkitFontMetrics
+    (font-metrics [this font]
+      (font-metrics font))
+
+    tk/IToolkitFontAdvanceX
+    (font-advance-x [this font]
+      (font-advance-x font))
+
+    tk/IToolkitFontLineHeight
+    (font-line-height [this font]
+      (font-line-height font))
+
+    tk/IToolkitSaveImage
+    (save-image [this path elem]
+      (draw-to-image! path elem))
+    (save-image [this path elem [w h :as size]]
+       (draw-to-image! path elem size))))
+
+(comment
+  (tk/run toolkit (constantly (ui/label "hello there")))
+  ,)
 
 (defn -main [& args]
   (run-sync #(test-skia)))
