@@ -1,6 +1,6 @@
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "1.10.3"}
-        com.phronemophobic/membrane {:mvn/version "0.9.31.1-beta"}
+        com.phronemophobic/membrane {:local/root "../../"}
 
         org.clojure/test.check {:mvn/version "0.9.0"}
 
