@@ -46,13 +46,13 @@
                           "-Dclojure.compiler.direct-linking=true"
                           "-Dclojure.spec.skip-macros=true"]}}
 
-  :jar {:extra-deps {seancorfield/depstar {:mvn/version "1.1.133"}}
+  :jar {:extra-deps {com.github.seancorfield/depstar {:mvn/version "2.1.303"}}
         :exec-fn hf.depstar/jar
-        :exec-args {:jar "clj-cef.jar"}}
-  :install {:extra-deps {slipset/deps-deploy {:mvn/version "0.1.1"}}
-            :main-opts ["-m" "deps-deploy.deps-deploy" "install" "clj-cef.jar"]}
-  :deploy {:extra-deps {slipset/deps-deploy {:mvn/version "0.1.1"}}
-           :main-opts ["-m" "deps-deploy.deps-deploy" "deploy" "clj-cef.jar"]}
+        :exec-args {:jar "membrane.jar"}}
+  :install {:extra-deps {slipset/deps-deploy {:mvn/version "0.2.0"}}
+            :main-opts ["-m" "deps-deploy.deps-deploy" "install" "membrane.jar"]}
+  :deploy {:extra-deps {slipset/deps-deploy {:mvn/version "0.2.0"}}
+           :main-opts ["-m" "deps-deploy.deps-deploy" "deploy" "membrane.jar"]}
 
   :skija {:extra-deps {org.jetbrains.skija/skija-macos-arm64 {:mvn/version "0.93.4"}
                        org.jetbrains.skija/skija-macos-x64 {:mvn/version "0.93.4"}
