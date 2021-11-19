@@ -1,5 +1,5 @@
 (ns counter
-  (:require [membrane.skia :as skia]
+  (:require [membrane.java2d :as java2d]
             [membrane.ui :as ui
              :refer [horizontal-layout
                      button
@@ -23,13 +23,13 @@
 
 (comment
   ;; pop up a window that shows our counter
-  (skia/run #(counter @counter-state))
+  (java2d/run #(counter @counter-state))
   ,)
 
 
 
 (ns counter
-  (:require [membrane.skia :as skia]
+  (:require [membrane.java2d :as java2d]
             [membrane.ui :as ui
              :refer [horizontal-layout
                      vertical-layout
@@ -56,7 +56,7 @@
 (comment
   ;; pop up a window showing our counter with
   ;; num initially set to 10
-  (skia/run (make-app #'counter {:num 10}))
+  (java2d/run (make-app #'counter {:num 10}))
   ,)
 
 
@@ -75,5 +75,5 @@
 (comment
   ;; pop up a window showing our counter-counter
   ;; with nums initially set to [0 1 2]
-  (skia/run (make-app #'counter-counter {:nums [0 1 2]}))
+  (java2d/run (make-app #'counter-counter {:nums [0 1 2]}))
   ,)

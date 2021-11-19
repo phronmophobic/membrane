@@ -88,7 +88,7 @@ Screenshot:
 
 ```clojure
 (ns counter
-  (:require [membrane.skia :as skia]
+  (:require [membrane.java2d :as java2d]
             [membrane.ui :as ui
              :refer [horizontal-layout
                      button
@@ -110,7 +110,7 @@ Screenshot:
 
 (comment
   ;; pop up a window that shows our counter
-  (skia/run #(counter @counter-state))
+  (java2d/run #(counter @counter-state))
   ,)
 
 ```
@@ -122,7 +122,7 @@ Screenshot:
 
 ```clojure
 (ns counter
-  (:require [membrane.skia :as skia]
+  (:require [membrane.java2d :as java2d]
             [membrane.ui :as ui
              :refer [horizontal-layout
                      vertical-layout
@@ -149,7 +149,7 @@ Screenshot:
 (comment
   ;; pop up a window showing our counter with
   ;; num initially set to 10
-  (skia/run (make-app #'counter {:num 10}))
+  (java2d/run (make-app #'counter {:num 10}))
   ,)
 ```
 
@@ -182,12 +182,12 @@ Screenshot:
 (comment
   ;; pop up a window showing our counter-counter
   ;; with nums initially set to [0 1 2]
-  (skia/run (make-app #'counter-counter {:nums [0 1 2]})))
+  (java2d/run (make-app #'counter-counter {:nums [0 1 2]})))
 
 (comment
   ;; pop up a window showing our counter-counter
   ;; with nums initially set to [0 1 2]
-  (skia/run (make-app #'counter-counter {:nums [0 1 2]}))
+  (java2d/run (make-app #'counter-counter {:nums [0 1 2]}))
   ,)
 
 ```
@@ -217,7 +217,7 @@ Screenshot:
 
 
 ;; horizontal and vertical centering!
-(skia/run #(let [rect (ui/with-style :membrane.ui/style-stroke
+(java2d/run #(let [rect (ui/with-style :membrane.ui/style-stroke
                         (ui/rectangle 200 200))]
              [rect
               (ui/center (ui/label "hello") (ui/bounds rect))]) )
@@ -230,12 +230,12 @@ Screenshot:
               :description "second"}
              {:complete? true
               :description "third"}]]
-  (skia/save-image "todoapp.png"
+  (java2d/save-image "todoapp.png"
                    (todo-app {:todos todos :selected-filter :all})))
 
 ;; use spec to generate images of variations of your app
 (doseq [[i todo-list] (map-indexed vector (gen/sample (s/gen ::todos)))]
-  (skia/save-image (str "todo" i ".png")
+  (java2d/save-image (str "todo" i ".png")
                    (ui/vertical-layout
                     (ui/label (with-out-str
                                 (clojure.pprint/pprint todo-list)))

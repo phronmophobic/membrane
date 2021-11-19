@@ -1,5 +1,5 @@
 (ns fun-features
-  (:require [membrane.skia :as skia]
+  (:require [membrane.java2d :as java2d]
             [membrane.example.todo :refer [todo-app]]
             [clojure.spec.alpha :as s]
             [clojure.spec.gen.alpha :as gen]
@@ -15,9 +15,9 @@
 ;; graphical elements are values
 ;; no need to attach elements to the dom to get layout info
 (ui/bounds (vertical-layout
-           (ui/label "hello")
-           (ui/checkbox true)))
-;; [30.79296875 27.0]
+            (ui/label "hello")
+            (ui/checkbox true)))
+;; [33.181640625 28.48828125]
 
 
 ;; events are pure functions that return effects which are also values
@@ -33,10 +33,10 @@
 
 
 ;; horizontal and vertical centering!
-(skia/run #(let [rect (ui/with-style :membrane.ui/style-stroke
-                        (ui/rectangle 200 200))]
-             [rect
-              (ui/center (ui/label "hello") (ui/bounds rect))]) )
+(java2d/run #(let [rect (ui/with-style :membrane.ui/style-stroke
+                          (ui/rectangle 200 200))]
+               [rect
+                (ui/center (ui/label "hello") (ui/bounds rect))]) )
 
 
 ;; save graphical elem as an image
@@ -46,8 +46,8 @@
               :description "second"}
              {:complete? true
               :description "third"}]]
-  (skia/save-image "todoapp.png"
-                   (todo-app {:todos todos :selected-filter :all})))
+  (java2d/save-image "todoapp.png"
+                     (todo-app {:todos todos :selected-filter :all})))
 
 
 (s/def :todo/complete? boolean?)
@@ -62,10 +62,10 @@
 
 ;; use spec to generate images of variations of your app
 (doseq [[i todo-list] (map-indexed vector (gen/sample (s/gen ::todos)))]
-  (skia/save-image (str "todo" i ".png")
-                   (ui/vertical-layout
-                    (ui/label (with-out-str
-                                (clojure.pprint/pprint todo-list)))
-                    (ui/with-style :membrane.ui/style-stroke
-                      (ui/path [0 0] [400 0]))
-                    (todo-app {:todos todo-list :selected-filter :all}))))
+  (java2d/save-image (str "todo" i ".png")
+                     (ui/vertical-layout
+                      (ui/label (with-out-str
+                                  (clojure.pprint/pprint todo-list)))
+                      (ui/with-style :membrane.ui/style-stroke
+                        (ui/path [0 0] [400 0]))
+                      (todo-app {:todos todo-list :selected-filter :all}))))
