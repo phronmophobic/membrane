@@ -1123,6 +1123,7 @@
   (let [tex (get-image-texture image)
         width (IntByReference.)
         height (IntByReference.)]
+    (assert tex (format "Could not load texture for %s." image))
     (skia_image_bounds tex width height)
     [(.getValue width) (.getValue height)]))
 
