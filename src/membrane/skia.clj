@@ -421,13 +421,20 @@
     (= (skia-font-family-name font-ptr)
        (:name font))))
 
-(defn default-font-family
-  "Returns the font family that will be used when `font-class` is used as a font-name.
+(defn logical-font->font-family
+  "Returns the font family for the given `logical-font`.
 
-  This function is mostly useful for determing the underlying font family for generic fonts like \"serif\", \"san-serif\", and \"monospace\"."
-  [font-class]
-  (skia-font-family-name
-   (get-font (ui/font font-class 12))))
+  `logical-font`: should be one of :monospace :serif :san-serif"
+  [logical-font]
+  (let [skia-logical-font
+        (case logical-font
+          :serif "serif"
+          :sans-serif "sans-serif"
+          :monospace "monospace"
+          nil)]
+    (when skia-logical-font
+      (skia-font-family-name
+       (get-font (ui/font skia-logical-font 12))))))
 
 (defc glGetError opengl Integer/TYPE)
 (defc skia_render_line membraneskialib Void/TYPE [resource font-ptr line text-length x y])
@@ -2055,6 +2062,10 @@
     tk/IToolkitFontLineHeight
     (font-line-height [toolkit font]
       (font-line-height font))
+
+    tk/IToolkitLogicalFontFontFamily
+    (logical-font->font-family [toolkit logical-font]
+      (logical-font->font-family logical-font))
 
     tk/IToolkitSaveImage
     (save-image [toolkit dest elem]

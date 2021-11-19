@@ -61,6 +61,21 @@
   (not= "Dialog"
         (.getFamily ^Font (get-java-font font))))
 
+(defn logical-font->font-family
+  "Returns the font family for the given `logical-font`.
+
+  `logical-font`: should be one of :monospace :serif :san-serif"
+  [logical-font]
+  (let [jfont-logical-font
+        (case logical-font
+          :serif java.awt.Font/SERIF
+          :sans-serif java.awt.Font/SANS_SERIF
+          :monospace java.awt.Font/MONOSPACED
+          nil)]
+    (when jfont-logical-font
+      (.getFamily ^Font
+                  (get-java-font (ui/font jfont-logical-font 12))))))
+
 (defn get-font-render-context []
   (if *g*
     (.getFontRenderContext ^Graphics2D *g*)
@@ -959,6 +974,10 @@
     tk/IToolkitFontLineHeight
     (font-line-height [toolkit font]
       (font-line-height font))
+
+    tk/IToolkitLogicalFontFontFamily
+    (logical-font->font-family [toolkit logical-font]
+      (logical-font->font-family logical-font))
 
     tk/IToolkitSaveImage
     (save-image [toolkit path elem]

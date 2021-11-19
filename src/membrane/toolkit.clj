@@ -40,6 +40,11 @@
 (defprotocol IToolkitFontLineHeight
   (font-line-height [toolkit font]
     "Returns the line height for font."))
+(defprotocol IToolkitLogicalFontFontFamily
+  (logical-font->font-family [toolkit logical-font]
+    "Returns the font family for the given `logical-font`.
+
+`logical-font`: should be one of :monospace :serif :san-serif"))
 
 (defprotocol IToolkitSaveImage
   (save-image
@@ -82,6 +87,10 @@
   IToolkitFontLineHeight
   (font-line-height [toolkit font]
     ((ns-resolve toolkit 'font-line-height) font))
+
+  IToolkitLogicalFontFontFamily
+  (logical-font->font-family [toolkit font-class]
+    ((ns-resolve toolkit 'logical-font->font-family) font-class))
 
   IToolkitSaveImage
   (save-image
