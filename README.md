@@ -70,14 +70,14 @@ For more info covering the design of membrane:
 ## Usage
 Leiningen dependency:
 
-```
-[com.phronemophobic/membrane  "0.9.22-beta"]
+```clojure
+[com.phronemophobic/membrane "0.9.31.3-beta"]
 ```
 
 deps.edn dependency:
 
-```
-com.phronemophobic/membrane {:mvn/version "0.9.22-beta"}
+```clojure
+com.phronemophobic/membrane {:mvn/version "0.9.31.3-beta"}
 ```
 ## Examples
 
