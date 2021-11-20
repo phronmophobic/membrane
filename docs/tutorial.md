@@ -56,7 +56,8 @@ com.phronemophobic/membrane {:mvn/version "0.9.22-beta"}
 All examples below will use the following namespace requires. 
 
 ```clojure
-(:require   [membrane.skia :as skia]
+(ns tutorial
+  (:require [membrane.java2d :as java2d]
             [membrane.ui :as ui
              :refer [vertical-layout
                      translate
@@ -69,20 +70,18 @@ All examples below will use the following namespace requires.
                      on]]
             [membrane.component :as component
              :refer [defui defeffect]]
-            [membrane.basic-components :as basic])
+            [membrane.basic-components :as basic]))
 ```
 
 Below is the "Hello World!" program for membrane:
 
-`(skia/run #(ui/label "Hello World!"))`
+`(java2d/run #(ui/label "Hello World!"))`
 
 This will pop up a window that says "Hello World!". 
 
-`membrane.skia/run` takes a 0 argument function that returns a value that implements the IDraw protocol.
+`membrane.java2d/run` takes a 0 argument function that returns a value that implements the IDraw protocol.
 Implementations of the IDraw protocol can be tricky and platform dependent. Thankfully, the 
 implementations for many graphical primitives are provided by the membrane graphics backends.
-
-Currently, there are two supported graphics backends, skia for desktop and webgl for web.
 
 ## Coordinates
 
@@ -112,9 +111,7 @@ For more examples, check out the [kitchen sink](/src/membrane/example/kitchen_si
 ![Label with font](/docs/images/label-font.png?raw=true)
 ```clojure
 ;; label with specified font
-;; font will check the default System font folder
-;; on Mac osx, check /System/Library/Fonts/ for available fonts
-(ui/label "Hello\nWorld!" (ui/font "Menlo.ttc" 22))
+(ui/label "Hello\nWorld!" (ui/font "Menlo" 22))
 ```
 
 ![Label with font](/docs/images/label-font.png?raw=true)
@@ -159,8 +156,6 @@ For more examples, check out the [kitchen sink](/src/membrane/example/kitchen_si
   (ui/with-stroke-width 3
     (ui/with-color [0.5 0 0.5]
       (ui/rectangle 100 200))))
-
-
 ```
 
 ![rounded rectangle](/docs/images/rounded-rectangle.png?raw=true)
@@ -441,7 +436,7 @@ Will only be called if [mx my] is within the element's bounds
 `button` is 0 if left click, 1 if right click. greater than 1 for more exotic mouse buttons
 `mouse-down?` is true if button is pressed down, false if the button is being released
 `mods` is an integer mask. masks are
-```clojure
+```
 SHIFT   0x0001  
 CONTROL   0x0002  
 ALT   0x0004  
@@ -462,7 +457,7 @@ Will only be called if `[mx my]` is within the element's bounds
 #### :key-event
 :key-event [key scancode action mods]
 
-`key` corresponds to a keyboard key. `key-event` is a lower level event compared to `key-press` and will not try to "interpret" the key pressed and only report which key on the keyboard was pressed. The `key` value may vary across graphics backends. For skia, `key` will correspond to the glfw keys found at https://www.glfw.org/docs/latest/group__keys.html.
+`key` corresponds to a keyboard key. `key-event` is a lower level event compared to `key-press` and will not try to "interpret" the key pressed and only report which key on the keyboard was pressed. The `key` value may vary across graphics backends. For java2d, `key` will correspond to the glfw keys found at https://www.glfw.org/docs/latest/group__keys.html.
 
 `scancode` The scancode is unique for every key, regardless of whether it has a key token. Scancodes are platform-specific but consistent over time, so keys will have different scancodes depending on the platform but they are safe to save to disk.
 `action` one of :press, :repeat, :release, or :unknown if the underlying platform documentation has lied.
@@ -581,7 +576,7 @@ Without using any framework, your code might look something like this:
                "X"
                "O"))))
 
-(comment (skia/run #(checkbox @app-state)))
+(comment (java2d/run #(checkbox @app-state)))
 
 ```
 
@@ -613,7 +608,7 @@ Let's see what this same ugly checkbox would look like with `membrane.component`
                     :y y
                     :z z})))))
 
-(comment (skia/run (component/make-app #'checkbox-test {:x false :y true :z false})))
+(comment (java2d/run (component/make-app #'checkbox-test {:x false :y true :z false})))
 ```
 Here's what the above looks like
 
@@ -651,7 +646,7 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
 
 Every component can be run on its own. The goal is to build complex components and applications out of simpler components.
 
-To run a component, simply call the backend's (eg. skia) `run` function with `(component/make-app #'component-var initial-state)`
+To run a component, simply call the backend's (eg. java2d) `run` function with `(component/make-app #'component-var initial-state)`
 
 
 ### File Selector example
@@ -680,7 +675,7 @@ Let's create the component to display and select individual items.
 
 (comment
  ;; It's a very common workflow to work on sub components one piece at a time.
-  (skia/run (component/make-app #'item-row {:item-name "my item" :selected? false})))
+  (java2d/run (component/make-app #'item-row {:item-name "my item" :selected? false})))
 ```
 
 Next, we'll build a generic item selector. For our item selector, we'll have a vertical list of items. Additionally, we'll have a textarea that let's us filter for only names that have the textarea's substring.
@@ -713,7 +708,7 @@ Next, we'll build a generic item selector. For our item selector, we'll have a v
            (item-row {:item-name iname :selected? (get selected iname)}))))))
 
 (comment
-  (skia/run (component/make-app #'item-selector {:item-names (->> (clojure.java.io/file ".")
+  (java2d/run (component/make-app #'item-selector {:item-names (->> (clojure.java.io/file ".")
                                 (.listFiles)
                                 (map #(.getName %)))} )))
 ```
@@ -727,7 +722,7 @@ Finally, we'll define a file-selector function using our `item-selector` ui.
                           (.listFiles)
                           (map #(.getName %))
                           sort)})]
-    (skia/run-sync (component/make-app #'item-selector state))
+    (java2d/run-sync (component/make-app #'item-selector state))
     (:selected @state)))
 ```
 
