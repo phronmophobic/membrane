@@ -42,7 +42,7 @@ Add this dependency to your project:
 Leiningen dependency:
 
 ```clojure
-[com.phronemophobic/membrane  "0.9.22-beta"]
+[com.phronemophobic/membrane  "0.9.31.4-beta"]
 ```
 
 deps.edn dependency:
