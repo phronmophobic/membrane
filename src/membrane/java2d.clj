@@ -915,8 +915,16 @@
              (.addKeyListener listener))
          f (doto (JFrame. "title")
              (.add panel)
-             (.pack)
-             (.show))]
+             (.show))
+         initial-view (delay (view-fn))
+         start-width (if window-start-width
+                       window-start-width
+                       (ui/width @initial-view))
+         start-height (if window-start-height
+                        window-start-height
+                        (ui/height @initial-view))]
+     (.setSize f start-width start-height)
+     (.show f)
      {::repaint (fn []
                   (.repaint ^java.awt.Component panel))
       ::frame f})))
