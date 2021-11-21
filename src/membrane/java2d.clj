@@ -27,6 +27,8 @@
            java.awt.Dimension
            javax.swing.JFrame))
 
+;; (set! *warn-on-reflection* true)
+
 (def ^:dynamic *g* nil)
 (def ^:dynamic *paint-style* :membrane.ui/style-fill)
 (def ^:dynamic *image-cache* nil)
@@ -82,9 +84,9 @@
     (FontRenderContext. nil (boolean true) (boolean true))))
 
 (defn font-advance-x [font s]
-  (let [jfont (get-java-font font)
-        frc (get-font-render-context)
-        glyphs (.createGlyphVector jfont frc s)
+  (let [^Font jfont (get-java-font font)
+        ^FontRenderContext frc (get-font-render-context)
+        glyphs (.createGlyphVector jfont frc ^String s)
         glyph (.getGlyphMetrics glyphs 0)]
     (.getAdvanceX glyph)))
 
@@ -331,15 +333,15 @@
 (defn text-selection-draw [font text [selection-start selection-end] selection-color]
   (let [
 
-        jfont (get-java-font font)
+        ^Font jfont (get-java-font font)
         lines (clojure.string/split-lines text)
 
-        frc (get-font-render-context)
+        ^FontRenderContext frc (get-font-render-context)
         metrics (.getLineMetrics ^Font jfont text frc)
         line-height (double (.getHeight metrics))
         selection-height line-height
 
-        text (str text "8")
+        ^String text (str text "8")
 
         glyphs (.createGlyphVector jfont frc text)]
     (loop [x 0
@@ -539,8 +541,8 @@
     )
   )
 
-(defn index-for-position-line [frc font text px]
-  (let [max-index (max 0 (dec (.length text)))
+(defn index-for-position-line [^FontRenderContext frc font ^String text px]
+  (let [max-index (max 0 (dec (.length  text)))
         chs (char-array (inc max-index))
         ;; fill chs
         _ (.getChars text 0 max-index chs 0)]
@@ -548,7 +550,7 @@
            px px]
       (if (> index max-index)
         index
-        (let [rect2d (.getStringBounds ^Font font chs index (inc index) frc)
+        (let [rect2d (.getStringBounds ^Font font ^chars chs index (inc index) frc)
               width (.getWidth rect2d)
               new-px (- px width)]
           (if (neg? new-px)
@@ -674,7 +676,7 @@
       ]))
   )
 
-(defn printable? [c]
+(defn printable? [^Character c]
   (let [block (java.lang.Character$UnicodeBlock/of \backspace)]
     (and (not (Character/isISOControl c))
          (not= KeyEvent/CHAR_UNDEFINED c)
@@ -682,7 +684,7 @@
          (not= block java.lang.Character$UnicodeBlock/SPECIALS))))
 
 
-(defn- -key-typed [window e]
+(defn- -key-typed [window ^KeyEvent e]
   (let [c (.getKeyChar e)
         ui @(:ui window)]
     (try
@@ -768,7 +770,7 @@
   {1 :press
    2 :repeat
    3 :release})
-(defn -key-pressed [window e]
+(defn -key-pressed [window ^KeyEvent e]
   (let [action :press
         ui @(:ui window)
         mods (.getModifiers e)
@@ -781,7 +783,7 @@
           (catch Exception e
             (println e)))))))
 
-(defn -key-released [window e]
+(defn -key-released [window ^KeyEvent e]
   (let [action :release
         ui @(:ui window)
         mods (.getModifiers e)
@@ -790,7 +792,7 @@
 
 
 
-(defn -on-mouse-down [window e]
+(defn -on-mouse-down [window ^MouseEvent e]
   (let [x (.getX ^MouseEvent e)
         y (.getY ^MouseEvent e)
         button (.getButton e)
@@ -801,7 +803,7 @@
         (throw e)))))
 
 
-(defn -on-mouse-up [window e]
+(defn -on-mouse-up [window ^MouseEvent e]
   (let [x (.getX ^MouseEvent e)
         y (.getY ^MouseEvent e)
         button (.getButton e)
@@ -841,15 +843,15 @@
           (let [to-render (swap! (:ui window)
                                  (fn [_]
                                    (render)))]
-            (.setColor *g* Color/white)
-            (.fillRect *g* 0 0 (.getWidth this) (.getHeight this))
-            (.setColor *g* Color/black)
+            (.setColor ^Graphics2D *g* Color/white)
+            (.fillRect ^Graphics2D *g* 0 0 (.getWidth ^Component this) (.getHeight ^Component this))
+            (.setColor ^Graphics2D *g* Color/black)
             (draw to-render)))))))
 
 
 
 (defn make-uber-listener [window]
-  (let [panel @(:panel window)]
+  (let [^Component panel @(:panel window)]
     (reify
 
       KeyListener
@@ -902,7 +904,7 @@
                  :panel (atom nil)
                  :ui (atom nil)
                  :render view-fn}
-         panel (doto (make-panel window)
+         panel (doto ^Component (make-panel window)
                  (.setFocusable true))
          _ (reset! (:panel window)
                    panel)
@@ -937,8 +939,9 @@
                     window-start-x
                     window-start-y] :as options}]
    (let [window-info (run view-fn options)
-         p (promise)]
-     (.addWindowListener (::frame window-info)
+         p (promise)
+         ^JFrame frame (::frame window-info)]
+     (.addWindowListener frame
                          (reify java.awt.event.WindowListener
                            (^void windowActivated [this ^WindowEvent e])
                            (^void windowClosed [this ^WindowEvent e])
@@ -949,7 +952,7 @@
                            (^void windowIconified [this ^WindowEvent e])
                            (^void windowOpened [this ^WindowEvent e])))
      @p
-     (.dispose (::frame window-info)))))
+     (.dispose frame))))
 
 (def toolkit
   (reify
