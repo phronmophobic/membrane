@@ -933,7 +933,7 @@
 
 (defn run-sync
   ([view-fn]
-   (run-sync {}))
+   (run-sync view-fn {}))
   ([view-fn {:keys [window-start-width
                     window-start-height
                     window-start-x
