@@ -896,7 +896,8 @@
 (defn run
   ([view-fn]
    (run view-fn {}))
-  ([view-fn {:keys [window-start-width
+  ([view-fn {:keys [window-title
+                    window-start-width
                     window-start-height
                     window-start-x
                     window-start-y] :as options}]
@@ -915,7 +916,9 @@
              (.addMouseListener listener)
              (.addMouseMotionListener listener)
              (.addKeyListener listener))
-         f (doto (JFrame. "title")
+         window-title (or window-title
+                          "Membrane")
+         f (doto (JFrame. window-title)
              (.add panel)
              (.show))
          initial-view (delay (view-fn))
@@ -934,7 +937,8 @@
 (defn run-sync
   ([view-fn]
    (run-sync view-fn {}))
-  ([view-fn {:keys [window-start-width
+  ([view-fn {:keys [window-title
+                    window-start-width
                     window-start-height
                     window-start-x
                     window-start-y] :as options}]
