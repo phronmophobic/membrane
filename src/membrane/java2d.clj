@@ -1001,9 +1001,9 @@
        (save-image path elem size))))
 
 (defn -main [& args]
-  (run ((requiring-resolve 'membrane.component/make-app)
-        (requiring-resolve 'membrane.example.todo/todo-app)
-        @(requiring-resolve 'membrane.example.todo/todo-state))))
+  (run-sync ((requiring-resolve 'membrane.component/make-app)
+             (requiring-resolve 'membrane.example.todo/todo-app)
+             @(requiring-resolve 'membrane.example.todo/todo-state))))
 
 (comment
   (do
