@@ -955,9 +955,9 @@
 
 (declare vroot)
 
-(defui test-ui [& {:keys [num s]
-                   :or {num 1
-                        s "b"}}]
+(defui test-ui [{:keys [num s]
+                 :or {num 1
+                      s "b"}}]
   (ui/label s)
   (apply
    ui/vertical-layout

@@ -57,7 +57,7 @@
                      `(-> (resolve (quote ~sym))
                           meta))))))
 
-   :default (defn resolve-sci-var []
+   :default (defn resolve-sci-meta [sym]
               nil))
 
 (def special-syms

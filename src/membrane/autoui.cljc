@@ -1387,12 +1387,12 @@
                                   ~(gen-editor ge 'obj)
                                   {:identity *$ge*}))))
                       :cljs
-                      (eval-form :form `(maybe-with-meta
-                                         ~(gen-editor ge 'obj)
-                                         {:identity ~'ident})
-                                 :eval-context {'ident *$ge*
-                                                'obj obj}
-                                 :eval-key ge)
+                      (eval-form {:form `(maybe-with-meta
+                                          ~(gen-editor ge 'obj)
+                                          {:identity ~'ident})
+                                  :eval-context {'ident *$ge*
+                                                 'obj obj}
+                                  :eval-key ge})
                       )
                    ]
                drawable)
