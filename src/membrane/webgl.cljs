@@ -537,12 +537,14 @@
 
         (set! (.-width canvas) (* cwidth content-scale))
         (set! (.-height canvas) (* cheight content-scale))
-        (set! (.-font ctx)
+        #_(set! (.-font ctx)
           (str (when-let [weight (:weight ui/default-font)]
                  (str weight " "))
                (:size ui/default-font) "px"
                " "
-               (:name ui/default-font)))))))
+               "Ubuntu"
+               ;;(:name ui/default-font "Ubuntu")
+               ))))))
 
 (defn webgl-canvas [canvas-elem make-ui]
   (let [ctx (.getContext canvas-elem "2d")
@@ -601,6 +603,15 @@
                        ;;(:name ui/default-font)
                        ))
            (.then (fn []
+                    (let [ctx (:ctx canvas)]
+                      (set! (.-font ctx)
+                            (str (when-let [weight (:weight ui/default-font)]
+                                   (str weight " "))
+                                 (:size ui/default-font) "px"
+                                 " "
+                                 "Ubuntu"
+                                 ;;(:name ui/default-font "Ubuntu")
+                                 )))
                     (redraw canvas))))))
     canvas))
 
