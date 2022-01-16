@@ -10,6 +10,7 @@
            java.awt.image.RescaleOp
            java.awt.geom.Path2D$Double
            java.awt.geom.RoundRectangle2D$Double
+           java.awt.geom.Rectangle2D$Double
            java.awt.Color
            java.awt.Font
            java.awt.Toolkit
@@ -494,27 +495,28 @@
          (vertex x y))))))
 
 
-#_(defn scissor-draw [scissor-view]
-  (save-canvas
-   (let [[ox oy] (:offset scissor-view)
-         [w h] (:bounds scissor-view)]
-     (Skia/skia_clip_rect *skia-resource* (float ox) (float oy) (float w) (float h))
-     (draw (:drawable scissor-view)))))
-
-#_(extend-type membrane.ui.ScissorView
+(defn scissor-draw [scissor-view]
+  (try
+    (let [[ox oy] (:offset scissor-view)
+          [w h] (:bounds scissor-view)]
+      (.clip ^Graphics2D *g* (Rectangle2D$Double. ox oy w h))
+      (draw (:drawable scissor-view)))
+    (finally
+      (.setClip ^Graphics2D *g* nil))))
+(extend-type membrane.ui.ScissorView
   IDraw
   (draw [this]
       (scissor-draw this)))
 
 
-#_(defn scrollview-draw [scrollview]
+(defn scrollview-draw [scrollview]
   (draw
    (ui/->ScissorView [0 0]
-                  (:bounds scrollview)
-                  (let [[mx my] (:offset scrollview)]
-                    (translate mx my (:drawable scrollview))))))
+                     (:bounds scrollview)
+                     (let [[mx my] (:offset scrollview)]
+                       (ui/translate mx my (:drawable scrollview))))))
 
-#_(extend-type membrane.ui.ScrollView
+(extend-type membrane.ui.ScrollView
   IDraw
   (draw [this]
     (scrollview-draw this)))
