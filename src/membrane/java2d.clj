@@ -23,6 +23,8 @@
            java.awt.event.KeyEvent
            java.awt.event.MouseListener
            java.awt.event.MouseMotionListener
+           java.awt.event.MouseWheelEvent
+           java.awt.event.MouseWheelListener
            java.awt.event.KeyListener
            java.awt.event.WindowEvent
            java.awt.Dimension
@@ -829,6 +831,15 @@
           (catch Exception e
             (println e)))))
 
+(defn -on-mouse-wheel [window ^MouseWheelEvent e]
+  (let [scroll-type (.getScrollType e)]
+    (when (= MouseWheelEvent/WHEEL_UNIT_SCROLL
+             scroll-type)
+      (let [x (.getX e)
+            y (.getY e)]
+       (ui/scroll @(:ui window)
+                  [0 (.getUnitsToScroll e)]
+                  [x y])))))
 
 
 (defn make-panel [window]
@@ -878,6 +889,11 @@
         (-on-mouse-move window e)
         (.repaint panel))
 
+      MouseWheelListener
+      (mouseWheelMoved [this e]
+        (-on-mouse-wheel window e)
+        (.repaint panel))
+
       MouseListener
       (mousePressed [this e]
         (-on-mouse-down window e)
@@ -917,6 +933,7 @@
              (.setFocusTraversalKeysEnabled false)
              (.addMouseListener listener)
              (.addMouseMotionListener listener)
+             (.addMouseWheelListener listener)
              (.addKeyListener listener))
          window-title (or window-title
                           "Membrane")
