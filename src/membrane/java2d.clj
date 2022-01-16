@@ -948,7 +948,7 @@
                         window-start-height
                         (ui/height @initial-view))]
      (.setSize f start-width start-height)
-     (.setBackground java.awt.Color/red)
+     (.setBackground f java.awt.Color/red)
      (.show f)
      {::repaint (fn []
                   (.repaint ^java.awt.Component panel))
