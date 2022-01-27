@@ -542,12 +542,16 @@
         [[:set $mdowny? nil]
          [:set $mdownx? nil]])
       :body
-      (ui/on-scroll
-       (fn [[ox oy] _]
-         [[:update $offset-x (fn [old-offset]
-                               (clampx (+ ox offset-x)))]
-          [:update $offset-y (fn [old-offset]
-                               (clampy (+ oy offset-y)))]])
+      (ui/wrap-on
+       :scroll
+       (fn [handler [ox oy :as offset] pos]
+         (let [intents (handler offset pos)]
+           (if (seq intents)
+             intents
+             [[:update $offset-x (fn [old-offset]
+                                   (clampx (+ ox offset-x)))]
+              [:update $offset-y (fn [old-offset]
+                                   (clampy (+ oy offset-y)))]])))
        (on-mouse-move
         (ui/on-mouse-event
          (fn [[mx my :as mpos] button mouse-down? mods]
