@@ -1927,11 +1927,11 @@
                              (- my (nth offset 1))] button mouse-down? mods))
 
   IScroll
-  (-scroll [this offset [mx my :as pos]]
-      (scroll drawable
-              offset
-              [(- mx (nth offset 0))
-               (- my (nth offset 1))]))
+  (-scroll [this input-offset [mx my :as pos]]
+    (scroll drawable
+            input-offset
+            [(- mx (nth offset 0))
+             (- my (nth offset 1))]))
 
   IDrop
   (-drop [this paths [mx my :as pos]]
