@@ -2174,6 +2174,15 @@
                              pos))
                   body)
 
+                 :scroll
+                 (on-scroll
+                  (fn [offset pos]
+                    (handler (fn [offset pos]
+                               (scroll body offset pos))
+                             offset
+                             pos))
+                  body)
+
                  ;; ;; else
                  ;; (EventHandler. event-type handler body)
                  )))
