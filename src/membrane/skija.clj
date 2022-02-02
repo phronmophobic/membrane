@@ -7,7 +7,8 @@
             origin
             translate
             bounds]]
-   [net.n01se.clojure-jna :as jna])
+   [net.n01se.clojure-jna :as jna]
+   [membrane.toolkit :as tk])
   (:import com.sun.jna.Pointer
            com.sun.jna.Memory
            com.sun.jna.ptr.FloatByReference
@@ -977,8 +978,32 @@
 (defn my-view []
   (ui/filled-rectangle [1 0 0] 100 100))
 
-(defn run
+(defn run-sync
   "Open a window and call `view-fn` to draw. Returns when the window is closed.
+
+  `view-fn` should be a 0 argument function that returns a view.
+  `view-fn` will be called for every repaint.
+
+  `options` is a map that can contain the following keys
+  Optional parameters
+
+  `window-title`: The string that appears in the title bar of the window.
+
+  `window-start-width`: the starting width of the window
+  `window-start-height`: the starting height of the window
+  note: The window may be resized.
+
+  `window-start-x`: the starting x coordinate of the top left corner of the window
+  `window-start-y`: the starting y coordinate of the top left corner of the window
+  note: The window may be moved.
+
+  "
+  ([view-fn] (run-sync view-fn {}))
+  ([view-fn options]
+   (dispatch-sync #(run* view-fn options))))
+
+(defn run
+  "Open a window and call `view-fn` to draw.
 
   `view-fn` should be a 0 argument function that returns a view.
   `view-fn` will be called for every repaint.
@@ -999,7 +1024,48 @@
   "
   ([view-fn] (run view-fn {}))
   ([view-fn options]
-   (dispatch-sync #(run* view-fn options))))
+   (future
+     (dispatch-sync #(run* view-fn options)))
+   nil))
+
+
+
+(def toolkit
+  (reify
+    tk/IToolkit
+
+    tk/IToolkitRun
+    (run [toolkit view-fn]
+      (run view-fn))
+    (run [toolkit view-fn opts]
+      (run view-fn opts))
+
+    tk/IToolkitRunSync
+    (run-sync [toolkit view-fn]
+      (run-sync view-fn))
+    (run-sync [toolkit view-fn opts]
+      (run-sync view-fn opts))
+
+    ;; tk/IToolkitFontExists
+    ;; (font-exists? [toolkit font]
+    ;;   (font-exists? font))
+
+    ;; tk/IToolkitFontMetrics
+    ;; (font-metrics [toolkit font]
+    ;;   (font-metrics font))
+
+    ;; tk/IToolkitFontAdvanceX
+    ;; (font-advance-x [toolkit font s]
+    ;;   (font-advance-x font s))
+
+    ;; tk/IToolkitFontLineHeight
+    ;; (font-line-height [toolkit font]
+    ;;   (font-line-height font))
+
+    ;; tk/IToolkitLogicalFontFontFamily
+    ;; (logical-font->font-family [toolkit logical-font]
+    ;;   (logical-font->font-family logical-font))
+    ))
 
 (def counter-state (atom 0))
 (defn counter-ui []
@@ -1019,7 +1085,7 @@
 
   ;; (run ((requiring-resolve 'membrane.component/make-app) #'ks/show-examples {:examples @ks/examples}))
 
-  (run ((requiring-resolve 'membrane.component/make-app) (requiring-resolve 'membrane.example.todo/todo-app)
+  (run-sync ((requiring-resolve 'membrane.component/make-app) (requiring-resolve 'membrane.example.todo/todo-app)
           {:todos
            [{:complete? false
              :description "first"}
