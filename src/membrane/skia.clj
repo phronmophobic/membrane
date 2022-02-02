@@ -288,7 +288,7 @@
       (throw (Exception. "Unable to create pty.")))
     pty))
 
-(def ^:dynamic *image-cache* nil)
+(def ^:dynamic *image-cache* (atom {}))
 (def ^:dynamic *font-cache* (atom {}))
 (def ^:dynamic *draw-cache* nil)
 (def ^:dynamic *skia-resource* nil)
