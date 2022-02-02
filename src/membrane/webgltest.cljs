@@ -68,9 +68,22 @@
                          ))))
 
 
+(defn do-update [repaint]
+  (js/setTimeout
+   (fn []
+     (swap! todo/todo-state
+            update :todos
+            conj {:complete? true
+                  :description "third"})
+     (repaint)
+     (do-update repaint))
+   1000))
 
 (defn -main []
-  (defonce start-todo-app (webgl/run
-                            (membrane.component/make-app #'todo/todo-app todo/todo-state)
-                            {:container canvas}))
-  )
+  (defonce canvas-info (webgl/run
+                         (membrane.component/make-app #'todo/todo-app todo/todo-state)
+                         {:container canvas}))
+  
+  (do-update (::webgl/repaint canvas-info)))
+
+

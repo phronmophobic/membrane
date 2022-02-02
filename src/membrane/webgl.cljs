@@ -613,7 +613,8 @@
                                  ;;(:name ui/default-font "Ubuntu")
                                  )))
                     (redraw canvas))))))
-    canvas))
+    {::canvas canvas
+     ::repaint #(redraw canvas)}))
 
 (defn get-client-pos [e]
   (if-let [touches (.-targetTouches e)]
