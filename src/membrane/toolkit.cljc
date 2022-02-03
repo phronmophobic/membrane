@@ -56,48 +56,50 @@
   `elem`: the graphical element to draw
   `size`: the width and height of the image. If size is nil, the bounds and origin of elem will be used."))
 
-(extend-type clojure.lang.Namespace
-  IToolkit
 
-  IToolkitRun
-  (run
-    ([toolkit view-fn]
-     ((ns-resolve toolkit 'run) view-fn))
-    ([toolkit view-fn options]
-     ((ns-resolve toolkit 'run) view-fn options)))
+#?(:clj
+   (extend-type clojure.lang.Namespace
+     IToolkit
 
-  IToolkitRunSync
-  (run-sync [toolkit view-fn]
-    ((ns-resolve toolkit 'run-sync) view-fn))
-  (run-sync [toolkit view-fn options]
-    ((ns-resolve toolkit 'run-sync) view-fn options))
+     IToolkitRun
+     (run
+       ([toolkit view-fn]
+        ((ns-resolve toolkit 'run) view-fn))
+       ([toolkit view-fn options]
+        ((ns-resolve toolkit 'run) view-fn options)))
 
-  IToolkitFontExists
-  (font-exists? [toolkit font]
-    ((ns-resolve toolkit 'font-exists?) font))
+     IToolkitRunSync
+     (run-sync [toolkit view-fn]
+       ((ns-resolve toolkit 'run-sync) view-fn))
+     (run-sync [toolkit view-fn options]
+       ((ns-resolve toolkit 'run-sync) view-fn options))
 
-  IToolkitFontMetrics
-  (font-metrics [toolkit font]
-    ((ns-resolve toolkit 'font-metrics) font))
+     IToolkitFontExists
+     (font-exists? [toolkit font]
+       ((ns-resolve toolkit 'font-exists?) font))
 
-  IToolkitFontAdvanceX
-  (font-advance-x [toolkit font s]
-    ((ns-resolve toolkit 'font-advance-x) font s))
+     IToolkitFontMetrics
+     (font-metrics [toolkit font]
+       ((ns-resolve toolkit 'font-metrics) font))
 
-  IToolkitFontLineHeight
-  (font-line-height [toolkit font]
-    ((ns-resolve toolkit 'font-line-height) font))
+     IToolkitFontAdvanceX
+     (font-advance-x [toolkit font s]
+       ((ns-resolve toolkit 'font-advance-x) font s))
 
-  IToolkitLogicalFontFontFamily
-  (logical-font->font-family [toolkit font-class]
-    ((ns-resolve toolkit 'logical-font->font-family) font-class))
+     IToolkitFontLineHeight
+     (font-line-height [toolkit font]
+       ((ns-resolve toolkit 'font-line-height) font))
 
-  IToolkitSaveImage
-  (save-image
-    ([toolkit dest elem]
-     ((ns-resolve toolkit 'save-image) elem))
-    ([toolkit dest elem [w h :as size]]
-     ((ns-resolve toolkit 'save-image) h :as size))))
+     IToolkitLogicalFontFontFamily
+     (logical-font->font-family [toolkit font-class]
+       ((ns-resolve toolkit 'logical-font->font-family) font-class))
+
+     IToolkitSaveImage
+     (save-image
+       ([toolkit dest elem]
+        ((ns-resolve toolkit 'save-image) elem))
+       ([toolkit dest elem [w h :as size]]
+        ((ns-resolve toolkit 'save-image) h :as size)))))
 
 
 (comment
