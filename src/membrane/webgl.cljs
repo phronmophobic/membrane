@@ -29,7 +29,7 @@
 (def ^:dynamic *paint-style* :membrane.ui/style-fill)
 (def ^:dynamic *already-drawing* nil)
 (defonce event-handlers (atom {}))
-(def freetype-font)
+(defonce font-cache (atom {}))
 
 (defprotocol IDraw
   (draw [this]))
@@ -132,31 +132,39 @@
 
 (defonce freetype-callbacks (atom []))
 (defn on-freetype-loaded [callback]
-  (if freetype-font
-    (callback freetype-font)
+  (if (seq @font-cache)
+    (callback)
     (swap! freetype-callbacks conj callback)))
 
-(.load opentype
- "https://fonts.gstatic.com/s/ubuntu/v10/4iCs6KVjbNBYlgo6eA.ttf"
- (fn [err font]
-   (if err
-     (do (println "Error: " err)
-         (js/console.log err))
-     (do
-       (set! freetype-font font)
-       (reset! membrane.component/component-cache {})
-       (doseq [cb @freetype-callbacks]
-         (cb freetype-font))
-       (reset! freetype-callbacks [])))))
+(defn load-font
+  ([font-name stylesheet-url ttf-url]
+   (load-font font-name stylesheet-url ttf-url nil))
+  ([font-name stylesheet-url ttf-url callback]
+   (.load opentype
+          ttf-url
+          (fn [err font]
+            (if err
+              (do (println "Error: " err)
+                  (js/console.log err))
+              (do
+                (swap! font-cache assoc font-name font)
+                (reset! membrane.component/component-cache {})
+                (doseq [cb @freetype-callbacks]
+                  (cb))
+                (reset! freetype-callbacks [])
+                (when callback
+                  (callback))))))
 
-(defn load-font []
-  (let [link (.createElement js/document "link")]
-    (doto link
-      (.setAttribute "rel" "stylesheet")
-      (.setAttribute "href" "https://fonts.googleapis.com/css?family=Ubuntu&display=swap"))
-    (.appendChild (-> js/document .-body)
-                  link)))
-(load-font)
+   (let [link (.createElement js/document "link")]
+     (doto link
+       (.setAttribute "rel" "stylesheet")
+       (.setAttribute "href" stylesheet-url))
+     (.appendChild (-> js/document .-body)
+                   link))))
+
+(load-font "Ubuntu"
+           "https://fonts.googleapis.com/css?family=Ubuntu&display=swap"
+           "https://fonts.gstatic.com/s/ubuntu/v10/4iCs6KVjbNBYlgo6eA.ttf")
 
 
 (defn font-scale [freetype-font font-size]
@@ -164,7 +172,9 @@
      font-size))
 
 (defn get-font [font]
-  freetype-font)
+  (let [cache @font-cache]
+    (get cache (:name font)
+         (get cache "Ubuntu"))))
 
 (defn font-units->pixels [font font-units]
   (let [font-size (get font :size (:size ui/default-font))
@@ -183,7 +193,7 @@
 
 (defn line-bounds [font text]
   (let [maxy (volatile! 0)
-        maxx (.forEachGlyph (get-font freetype-font)
+        maxx (.forEachGlyph (get-font font)
                             text
                             0 0
                             (or (:size font)
@@ -221,6 +231,7 @@
       (let [line (nth lines line-index)
             font-size (get font :size (:size ui/default-font))
             options (js-obj {:kerning true})
+            freetype-font (get-font font)
             glyphs (.stringToGlyphs freetype-font line)
             position  (aget freetype-font "position")
             script (.getDefaultScriptName position)
@@ -272,8 +283,11 @@
                               (or (:size font)
                                   (:size ui/default-font))
                               "px "
+                              "'"
                               (or (:name font)
-                                    "Ubuntu"))))
+                                  "Ubuntu")
+                              "'")))
+
                  (doseq [line lines]
                    (.translate *ctx* 0 (dec line-height))
                    (case *paint-style*
@@ -323,6 +337,7 @@
   (let [font-size (get font :size (:size ui/default-font))
         options (js-obj {:kerning true})
         text (str text "8")
+        freetype-font (get-font font)
         glyphs (.stringToGlyphs freetype-font text)
         position  (aget freetype-font "position")
         script (.getDefaultScriptName position)
@@ -593,7 +608,7 @@
 (defn run [make-ui options]
   (let [canvas (webgl-canvas (:container options) make-ui)]
     (on-freetype-loaded
-     (fn [_]
+     (fn []
        (-> (.-fonts js/document)
            (.load (str (when-let [weight (:weight ui/default-font)]
                          (str weight " "))
