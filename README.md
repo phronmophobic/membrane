@@ -182,14 +182,8 @@ Screenshot:
 (comment
   ;; pop up a window showing our counter-counter
   ;; with nums initially set to [0 1 2]
-  (java2d/run (make-app #'counter-counter {:nums [0 1 2]})))
-
-(comment
-  ;; pop up a window showing our counter-counter
-  ;; with nums initially set to [0 1 2]
   (java2d/run (make-app #'counter-counter {:nums [0 1 2]}))
   ,)
-
 ```
 
 ## Fun Features
