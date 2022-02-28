@@ -20,6 +20,7 @@
   (ui/padding 5
               @current-view))
 
+;; open window
 (def window
   (java2d/run #'main-ui
     {:window-start-width 500
