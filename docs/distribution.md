@@ -2,7 +2,7 @@
 
 Regardless of how you distribute your app, you'll probably want to use `run-ui-sync` to prevent the jvm from shutting down. Below is an example of `-main`.
 
-```
+```clojure
 (defn -main [ & args]
   (let [initial-state {:foo "bar"}]
     (run-ui-sync #'app-root initial-state)))
