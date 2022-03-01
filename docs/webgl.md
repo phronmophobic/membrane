@@ -6,7 +6,7 @@ Below are a few tips for setting up your project when targeting opengl.
 
 ## Hello World
 
-```
+```clojure
 (ns helloworld
   ;; typical requires
   (:require-macros [membrane.webgl-macros
@@ -27,7 +27,7 @@ To receive key events, your canvas needs to have a "tabindex" attribute set to z
 
 You can also create your canvas in clojurescript and add it to the page. Creating a canvas element using `membrane.webgl/create-canvas` will set the tabindex to "0" for you.
 
-```
+```clojure
 (let [canvas (webgl/create-canvas 300 400)]
   (.appendChild (.-body js/document) canvas)
   (defonce start-app (membrane.webgl/run #(ui/label "Hello World") {:container canvas})))
@@ -39,7 +39,7 @@ Images must be loaded using `(add-image! url-path image-path-or-bounds)` where `
 
 The images can then be used like
 
-```
+```clojure
 (ui/image url-path)
 ```
 
@@ -52,6 +52,6 @@ Font layout information is needed to correctly layout fonts. By default, the Ubu
 Components can still be run using `membrane.component/run-ui`.
 
 For example:
-```
+```clojure
 (defonce start-todo-app (membrane.component/run-ui #'todo/todo-app todo/todo-state nil {:container canvas}))
 ```
