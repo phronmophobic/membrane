@@ -946,8 +946,10 @@
                        (ui/width @initial-view))
          start-height (if window-start-height
                         window-start-height
-                        (ui/height @initial-view))]
-     (.setSize f start-width start-height)
+                        (ui/height @initial-view))
+         start-x (or window-start-x 0)
+         start-y (or window-start-y 0)]
+     (.setBounds f start-x start-y start-width start-height)
      (.show f)
      {::repaint (fn []
                   (.repaint ^java.awt.Component panel))
