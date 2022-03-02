@@ -69,17 +69,18 @@
     [0 0]))
 
 (defn origin
-  "Specifies the top left corner of a component's bounds\n\n  The origin is vector or 2 numbers [x, y]"
+  "Specifies the top left corner of a component's bounds. The origin is vector
+  of 2 numbers [x, y]."
   [elem]
   (-origin elem))
 
 (defn origin-x
-  "Convience function for returning the x coordinate of elem's origin"
+  "Convience function for returning the x coordinate of elem's origin."
   [elem]
   (first (origin elem)))
 
 (defn origin-y
-  "Convience function for returning the y coordinate of elem's origin"
+  "Convience function for returning the y coordinate of elem's origin."
   [elem]
   (second (origin elem)))
 
@@ -96,7 +97,9 @@
 (defprotocol IBubble
   "Allows an element add, remove, modify effects emitted from its children."
   (-bubble [_ effects]
-    "Called when an effect is being emitted by a child element. The parent element can either return the same effects or allow them to continue to bubble."))
+    "Called when an effect is being emitted by a child element. The parent
+    element can either return the same effects or allow them to continue to
+    bubble."))
 
 (extend-type nil
   IKeyPress
@@ -347,19 +350,16 @@
   [elem]
   (let [[width height] (bounds elem)]
     width))
+
 (defn height
   "Returns the height of elem."
   [elem]
   (let [[width height] (bounds elem)]
     height))
 
-
-
-
-
-
 (defn mouse-move
-  "Returns the effects of a mouse move event on elem. Will only call -mouse-move on mouse events within an elements bounds."
+  "Returns the effects of a mouse move event on elem. Will only call -mouse-move
+  on mouse events within an element's bounds."
   ([elem pos]
    (when-let [local-pos (within-bounds? elem pos)]
      (-mouse-move elem local-pos))))
@@ -379,6 +379,7 @@
 ;;                                      [[:the-pos pos]])
 ;;                                    (ui/spacer 20 20)))
 ;;                     [0 0])
+
 (defn mouse-move-global
   "Returns the effects of a mouse move event on elem. Will -mouse-move-global for all elements and their children."
   ([elem global-pos]
@@ -389,12 +390,14 @@
     (-mouse-event elem local-pos button mouse-down? mods)))
 
 (defn mouse-down
-  "Returns the effects of a mouse down event on elem. Will only call -mouse-event or -mouse-down if the position is in the element's bounds."
+  "Returns the effects of a mouse down event on elem. Will only call
+  -mouse-event or -mouse-down if the position is in the element's bounds."
   [elem [mx my :as pos]]
   (mouse-event elem pos 0 true 0))
 
 (defn mouse-up
-  "Returns the effects of a mouse up event on elem. Will only call -mouse-event or -mouse-down if the position is in the element's bounds."
+  "Returns the effects of a mouse up event on elem. Will only call -mouse-event
+  or -mouse-down if the position is in the element's bounds."
   [elem [mx my :as pos]]
   (mouse-event elem pos 0 false 0))
 
@@ -459,6 +462,9 @@
    (Label. (str text) font)))
 
 (defn pr-label
+  "Like [[label]] except that it calls `pr-str` on its argument and uses that
+  result as the contents of a new [[label]] element. Lines longer than
+  `max-length` are cut off at `max-length`."
   ([x]
    (pr-label x 30))
   ([x max-length]
@@ -506,8 +512,7 @@
 
     IBounds
   (-bounds [_]
-    size)
-)
+    size))
 
 
 
@@ -549,19 +554,24 @@
   - a string filename
   - a java.net.URL
   - a byte array containing the bytes of supported image format
-  This is useful for drawing images included in a jar. Simply put your image in your resources folder, typically resources.
-  Draw the images in the jar with `(ui/image (clojure.java.io/resource \"filename.png\"))`
 
-  The image can be drawn at a different size by supplying a size.
-  Supply a nil size will use the the original image size.
+  This is useful for drawing images included in a jar. Simply put your image in
+  your resources folder, typically resources. Draw the images in the jar
+  with `(ui/image (clojure.java.io/resource \"filename.png\"))`
 
-  The image can be aspect scaled by supply a size with one of the dimensions as nil.
+  The image can be drawn at a different size by supplying a size. Supply a `nil`
+  size to use the the original image size.
 
-  For example, to draw an image with width 30 with aspect scaling, `(image \"path.png\" [30 nil])`
+  The image can be aspect scaled by supplying a size with one of the dimensions
+  as `nil`.
 
-  opacity is a float between 0 and 1.
+  For example, to draw an image with width 30 and aspect scaling, `(image
+  \"path.png\" [30 nil])`
 
-  Allowable image formats may vary by platform, but will typically include png and jpeg.
+  Opacity is a float between 0 and 1.
+
+  Allowable image formats may vary by platform, but will typically include png
+  and jpeg.
   "
   ([image-path]
    (image image-path nil nil))
@@ -1145,7 +1155,8 @@
            (draw (button-draw this)))))
 
 (defn button
-  "Graphical elem that draws a button. Optional on-click function may be provided that is called with no arguments when button has a mouse-down event."
+  "Graphical elem that draws a button. Optional on-click function may be
+  provided that is called with no arguments when button has a mouse-down event."
   ([text]
    (Button. text nil false))
   ([text on-click]
@@ -1886,7 +1897,8 @@
 (defn on-scroll
   "Wraps drawables and adds an event handler for scroll events.
 
-  on-scroll should take 1 argument [offset-x offset-y] of the scroll offset and return a sequence of effects."
+  on-scroll should take 1 argument [offset-x offset-y] of the scroll offset and
+  return a sequence of effects."
   [on-scroll & drawables]
   (OnScroll. on-scroll drawables))
 
@@ -2031,7 +2043,7 @@
 
   example:
 
-  Adds do nothing event handlers for mouse-down and mouse-up events on a label that says \"Hello!\"
+  Adds no-op event handlers for mouse-down and mouse-up events on a label that says \"Hello!\"
   (on :mouse-down (fn [[mx my]] nil)
       :mouse-up (fn [[mx my]] nil)
      (label \"Hello!\"))
@@ -2096,18 +2108,25 @@
 (defn wrap-on
   "Wraps an elem with event handlers.
 
-  events are pairs of events and event handlers and the last argument should be an elem.
-  The event handlers should accept an extra first argument to the event which is the original event handler.
+  `events` are pairs of events and event handlers and the last argument should be
+  an elem.
+  
+  The event handlers should accept an extra first argument to the event which is
+  the original event handler.
 
   example:
 
-  Wraps a button with a mouse-down handler that only returns an effect when the x coordinate is even.
+  Wraps a button with a mouse-down handler that only returns an effect when the
+  x coordinate is even.
+  
+  ```clojure
   (on :mouse-down (fn [handler [mx my]]
                      (when (even? mx)
                        (handler [mx my])))
      (button \"Hello!\"
             (fn []
                [[:hello!]])))
+  ```
   "
   [& events]
   (loop [evs (seq (reverse (partition 2 events)))
@@ -2187,6 +2206,7 @@
                  ;; (EventHandler. event-type handler body)
                  )))
       body)))
+
 
 (defrecord NoEvents [drawable]
     IBounds
