@@ -946,10 +946,13 @@
                        (ui/width @initial-view))
          start-height (if window-start-height
                         window-start-height
-                        (ui/height @initial-view))
-         start-x (or window-start-x 0)
-         start-y (or window-start-y 0)]
-     (.setBounds f start-x start-y start-width start-height)
+                        (ui/height @initial-view))]
+     (.setSize f start-width start-height)
+     (when (or window-start-x window-start-y)
+       (assert (and window-start-x window-start-y)
+               (str "Specifying the window start position "
+                    "must provide both x and y coordinates"))
+       (.setLocation f window-start-x window-start-y))
      (.show f)
      {::repaint (fn []
                   (.repaint ^java.awt.Component panel))
