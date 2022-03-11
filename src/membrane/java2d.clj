@@ -196,13 +196,6 @@
        (finally
          (.setColor ^Graphics2D *g* color#)))))
 
-(defmacro push-color [& body]
-  `(let [color# (.getColor ^Graphics2D *g*)]
-     (try
-       ~@body
-       (finally
-         (.setColor ^Graphics2D *g* color#)))))
-
 (defmacro push-font [& body]
   `(let [font# (.getFont ^Graphics2D *g*)]
      (try
