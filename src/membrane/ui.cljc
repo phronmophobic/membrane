@@ -2373,7 +2373,15 @@
                ((:error-draw this) draw e))))))
 
 
-(defn try-draw [body error-draw]
+(defn try-draw
+  "Tries to draw body. If an exception occurs, calls error-draw with `draw` and the exception
+
+  Example:
+  (ui/try-draw error-body
+    (fn [draw e]
+      (draw (ui/label e))))
+  "
+  [body error-draw]
   (TryDraw. body error-draw))
 
 (defrecord Cached [drawable]
