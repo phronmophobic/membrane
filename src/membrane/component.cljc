@@ -424,6 +424,7 @@
 
           . form
 
+          ;; case?
 
           quote form
 
