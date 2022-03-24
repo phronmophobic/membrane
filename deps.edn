@@ -60,7 +60,8 @@
 
   :jar {:extra-deps {com.github.seancorfield/depstar {:mvn/version "2.1.303"}}
         :exec-fn hf.depstar/jar
-        :exec-args {:jar "membrane.jar"}}
+        :exec-args {:jar "membrane.jar"
+                    :sync-pom true}}
   :install {:extra-deps {slipset/deps-deploy {:mvn/version "0.2.0"}}
             :main-opts ["-m" "deps-deploy.deps-deploy" "install" "membrane.jar"]}
   :deploy {:extra-deps {slipset/deps-deploy {:mvn/version "0.2.0"}}
