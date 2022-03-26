@@ -266,6 +266,12 @@
     "Returns a 2 element vector with the [width, height] of an element's bounds with respect to its origin"}
   bounds (memoize #(-bounds %)))
 
+(defn child-bounds [elem]
+  (let [[ox oy] (origin elem)
+        [w h] (bounds elem)]
+    [(+ ox w)
+     (+ oy h)]))
+
 (extend-protocol IBounds
   #?(:cljs cljs.core/PersistentVector
      :clj clojure.lang.PersistentVector)
@@ -642,10 +648,7 @@
 
   IBounds
   (-bounds [this]
-      (let [[w h] (bounds drawable)
-            [ox oy] (origin drawable)]
-        [(+ w ox)
-         (+ h oy)])))
+    (child-bounds drawable)))
 
 (defn translate
   "A graphical elem that will shift drawable's origin by x and y and draw it at its new origin."
@@ -669,7 +672,7 @@
 
   IBounds
   (-bounds [this]
-      (bounds drawable)))
+      (child-bounds drawable)))
 
 (defn- rotate [degrees drawable]
   (Rotate. degrees drawable))
@@ -728,24 +731,54 @@
   (FixedBounds. size drawable))
 
 (defrecord Padding [top right bottom left drawable]
-    IOrigin
-    (-origin [this]
-        [left top])
+  IOrigin
+  (-origin [this]
+    [0 0])
 
-    IMakeNode
-    (make-node [this childs]
-      (assert (= (count childs) 1))
-      (Padding. left right bottom top (first childs)))
+  IMouseEvent
+  (-mouse-event [this [mx my :as pos] button mouse-down? mods]
+    (mouse-event drawable [(- mx left)
+                           (- my top)] button mouse-down? mods))
+
+  IScroll
+  (-scroll [this input-offset [mx my :as pos]]
+    (scroll drawable
+            input-offset
+            [(- mx left)
+             (- my top)]))
+
+  IDrop
+  (-drop [this paths [mx my :as pos]]
+      (drop drawable
+            paths
+            [(- mx left)
+             (- my top)]))
+
+  IMouseMove
+  (-mouse-move [this [mx my :as pos]]
+      (mouse-move drawable [(- mx left)
+                            (- my top)]))
+
+  IMouseMoveGlobal
+  (-mouse-move-global [this mouse-offset]
+      (let [[mx my] mouse-offset]
+        (-default-mouse-move-global this [(- mx left)
+                                          (- my top)])))
+
+  IMakeNode
+  (make-node [this childs]
+    (assert (= (count childs) 1))
+    (Padding. left right bottom top (first childs)))
 
   IChildren
   (-children [this]
-      [drawable])
+    [drawable])
 
   IBounds
   (-bounds [this]
-      (let [[w h] (bounds drawable)]
-        [(+ w left right)
-         (+ h top bottom)])))
+    (let [[w h] (child-bounds drawable)]
+      [(+ w left right)
+       (+ h top bottom)])))
 
 (swap! default-draw-impls
        assoc Padding
@@ -940,27 +973,23 @@
   (RoundedRectangle. width height border-radius))
 
 (defn bordered-draw [this]
-  (let [{:keys [drawable padding-x padding-y]} this
-        [width height] (bounds drawable)]
+  (let [drawable (:drawable this)
+        [width height] (child-bounds drawable)]
     [(let [gray  0.65]
        (with-color [gray gray gray]
          (with-style ::style-stroke
-           (rectangle (+ width (* 2 padding-x))
-                      (+ height (* 2 padding-y))))))
-     (translate padding-x
-                padding-y
-                drawable)]))
+           (rectangle width height))))
+     drawable]))
 
-(defrecord Bordered [padding-x padding-y drawable]
+(defrecord Bordered [drawable]
     IOrigin
     (-origin [this]
-        (origin (bordered-draw this)))
-
+      [0 0])
 
     IMakeNode
     (make-node [this childs]
       (assert (= (count childs) 1))
-      (Bordered. padding-x padding-y (first childs)))
+      (Bordered. (first childs)))
 
 
   IChildren
@@ -969,9 +998,7 @@
 
   IBounds
   (-bounds [this]
-      (let [[width height] (bounds drawable)]
-        [(+ width (* 2 padding-x))
-         (+ height (* 2 padding-y))])))
+    (child-bounds drawable)))
 
 (swap! default-draw-impls
        assoc Bordered
@@ -981,25 +1008,23 @@
 
 (defn bordered
   "Graphical elem that will draw drawable with a gray border."
-  [padding drawable]
+  [pad drawable]
   (if (vector? padding)
-    (let [[px py] padding]
-      (Bordered. px py drawable))
-    (Bordered. padding padding drawable)))
+    (let [[px py] pad]
+      (Bordered.
+       (padding px py
+                drawable)))
+    (Bordered.
+     (padding pad drawable))))
 
 (defn fill-bordered-draw [this]
-  (let [{:keys [color drawable padding-x padding-y]} this
-        [width height] (bounds drawable)]
-    [
-     (filled-rectangle
-      color
-      (+ width (* 2 padding-x))
-      (+ height (* 2 padding-y)))
-     (translate padding-x
-                padding-y
-                drawable)]))
+  (let [{:keys [color drawable]} this
+        [width height] (child-bounds drawable)]
+    [(filled-rectangle color
+                       width height)
+     drawable]))
 
-(defrecord FillBordered [color padding-x padding-y drawable]
+(defrecord FillBordered [color drawable]
     IOrigin
     (-origin [_]
         [0 0])
@@ -1007,8 +1032,7 @@
     IMakeNode
     (make-node [this childs]
       (assert (= (count childs) 1))
-      (FillBordered. color padding-x padding-y (first childs)))
-
+      (FillBordered. color (first childs)))
 
   IChildren
   (-children [this]
@@ -1016,9 +1040,7 @@
 
   IBounds
   (-bounds [this]
-      (let [[width height] (bounds drawable)]
-        [(+ width (* 2 padding-x))
-         (+ height (* 2 padding-y))])))
+    (child-bounds drawable)))
 
 (swap! default-draw-impls
        assoc FillBordered
@@ -1028,11 +1050,16 @@
 
 (defn fill-bordered
   "Graphical elem that will draw elem with filled border."
-  [color padding drawable]
-  (if (vector? padding)
-    (let [[px py] padding]
-      (FillBordered. color px py drawable))
-    (FillBordered. color padding padding drawable)))
+  [color pad drawable]
+  (if (vector? pad)
+    (let [[px py] pad]
+      (FillBordered.
+       color
+       (padding px py
+                drawable)))
+    (FillBordered.
+     color
+     (padding pad drawable))))
 
 (defn draw-checkbox [checked?]
   (if checked?
@@ -1904,7 +1931,7 @@
         [drawable])
     IBounds
     (-bounds [this]
-        bounds))
+      bounds))
 
 (defn scissor-view
   "Graphical elem to only draw drawable within bounds with an offset.
@@ -1979,9 +2006,7 @@
 
     IBounds
     (-bounds [this]
-        (mapv +
-              (origin drawable)
-              (bounds drawable)))
+      (child-bounds drawable))
 
   IMakeNode
   (make-node [this childs]
@@ -2191,7 +2216,7 @@
 (defrecord NoEvents [drawable]
     IBounds
     (-bounds [this]
-        (bounds drawable))
+      (child-bounds drawable))
 
   IOrigin
   (-origin [_]
@@ -2272,7 +2297,7 @@
 
     IBounds
     (-bounds [this]
-        (bounds drawable))
+      (child-bounds drawable))
 
     IMakeNode
     (make-node [this childs]
@@ -2307,7 +2332,7 @@
 
     IBounds
     (-bounds [this]
-        (bounds drawable))
+      (child-bounds drawable))
 
     IMakeNode
     (make-node [this childs]
@@ -2346,7 +2371,7 @@
     IBounds
     (-bounds [this]
         (try
-          (bounds drawable)
+          (child-bounds drawable)
           (catch #?(:clj Exception
                     :cljs js/Object) e
             (println e)
