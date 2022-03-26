@@ -47,8 +47,7 @@
                  [102.36 15.68]
                  [199.82 218.06]
                  [24.20 78.01]
-                 [243.2 127.99]
-                 [24.20 177.98]))
+                 [243.2 127.99]))
 
 (reset! current-view
         (ui/with-style :membrane.ui/style-stroke

@@ -834,20 +834,31 @@
   "Define an effect.
 
   `defeffect` is a macro that does 3 things:
-1) It registers a global effect handler of `type`. `type` should be a keyword and since it is registered globally, should be namespaced
-2) It will define a var in the current namespace of `effect-*type*` where *type* is the name of the type keyword. This can be useful if you want to be able to use your effect functions in isolation
-3) It will implicitly add an additional argument as the first parameter named `dispatch`
 
-The arglist for `dispatch!` is `[type & args]`. Calling `dispatch!` will invoke the effect of `type` with `args`.
-The role of `dispatch!` is to allow effects to define themselves in terms of other effects. Effects should not be called directly because while the default for an application is to use all the globally defined effects, this can be overridden for testing, development, or otherwise.
+  1) It registers a global effect handler of `type`. `type` should be a keyword
+  and since it is registered globally, should be namespaced
 
+  2) It will define a var in the current namespace of `effect-*type*` where
+  *type* is the name of the type keyword. This can be useful if you want to be
+  able to use your effect functions in isolation
+
+  3) It will implicitly add an additional argument as the first parameter named
+  `dispatch`
+
+  The arglist for `dispatch!` is `[type & args]`. Calling `dispatch!` will
+  invoke the effect of `type` with `args`.
+
+  The role of `dispatch!` is to allow effects to define themselves in terms of
+  other effects. Effects should not be called directly because while the default
+  for an application is to use all the globally defined effects, this can be
+  overridden for testing, development, or otherwise.
 
   example:
 
+  ```clojure
   (defeffect ::increment-number [$num]
       (dispatch! :update $num inc))
-
-  "
+  ```"
   [type args & body]
   (let [fn-name (symbol (str "effect-" (name type)))]
     `(let [var# (defn ~fn-name [~'dispatch! ~@args]
@@ -999,19 +1010,23 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
 
 (defn make-app
   "`ui-var` The var for a component
+
   `initial-state` The initial state of the component to run or an atom that contains the initial state.
-  `handler` The effect handler for your UI. The `handler` will be called with all effects returned by the event handlers of your ui.
 
-  If `handler` is nil or an arity that doesn't specify `handler` is used, then a default handler using all of the globally defined effects from `defeffect` will be used. In addition to the globally defined effects the handler will provide 3 additional effects:
+  `handler` The effect handler for your UI. The `handler` will be called with
+  all effects returned by the event handlers of your ui.
 
-  `:update` similar to `update` except instead of a keypath, takes a more generic path.
-  example: `[:update $ref inc]`
+  If `handler` is nil or an arity that doesn't specify `handler` is used, then a
+  default handler using all of the globally defined effects from `defeffect`
+  will be used. In addition to the globally defined effects the handler will
+  provide 3 additional effects:
 
-  `:set` sets the value given a $path
-  example: `[:set $ref val]`
+  `:update` similar to `update` except instead of a keypath, takes a more
+  generic path. example: `[:update $ref inc]`
 
-  `:delete` deletes value at $path
-  example: `[:delete $ref]`
+  `:set` sets the value given a $path example: `[:set $ref val]`
+
+  `:delete` deletes value at $path example: `[:delete $ref]`
 
   return value: the state atom used by the ui."
   ([ui-var]
