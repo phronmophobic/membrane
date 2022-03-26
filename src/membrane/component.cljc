@@ -769,10 +769,7 @@
                                  `(~(keyword (str "$" (name k))) ~elem-sym))]]
                       rendered# (~draw-fn-name ~elem-sym)
                       ~elem-sym (-> ~elem-sym
-                                    (assoc ::bounds (let [[w# h#] (bounds rendered#)
-                                                          [ox# oy#] (origin rendered#)]
-                                                      [(+ ox# w#)
-                                                       (+ oy# h#)]))
+                                    (assoc ::bounds (membrane.ui/child-bounds rendered#))
                                     (assoc ::children [rendered#])
                                     (assoc ::rendered rendered#)
                                     (assoc ::has-key-event (membrane.ui/has-key-event rendered#))
