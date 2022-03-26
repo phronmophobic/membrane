@@ -1009,7 +1009,7 @@
 (defn bordered
   "Graphical elem that will draw drawable with a gray border."
   [pad drawable]
-  (if (vector? padding)
+  (if (vector? pad)
     (let [[px py] pad]
       (Bordered.
        (padding px py
