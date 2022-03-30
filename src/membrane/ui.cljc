@@ -29,19 +29,60 @@
          (:slant default-font)))
 
 
-(defprotocol IMouseMove (-mouse-move [elem pos]))
-(defprotocol IMouseMoveGlobal (-mouse-move-global [elem pos]))
-(defprotocol IMouseEvent (-mouse-event [elem pos button mouse-down? mods]))
-(defprotocol IDrop (-drop [elem paths pos]))
-(defprotocol IScroll (-scroll [elem delta mpos]))
-(defprotocol IMouseWheel (-mouse-wheel [elem delta]))
-(defprotocol IKeyPress (-key-press [elem key]))
-(defprotocol IKeyType (-key-type [elem key]))
-(defprotocol IClipboardPaste (-clipboard-paste [elem contents]))
-(defprotocol IClipboardCopy (-clipboard-copy [elem]))
-(defprotocol IClipboardCut (-clipboard-cut [elem]))
+(defprotocol IMouseMove
+  :extend-via-metadata true
+  (-mouse-move [elem pos]))
+(defprotocol IMouseMoveGlobal
+  :extend-via-metadata true
+  (-mouse-move-global [elem pos]))
+(defprotocol IMouseEvent
+  :extend-via-metadata true
+  (-mouse-event [elem pos button mouse-down? mods]))
+(defprotocol IDrop
+  :extend-via-metadata true
+  (-drop [elem paths pos]))
+(defprotocol IScroll
+  :extend-via-metadata true
+  (-scroll [elem delta mpos]))
+(defprotocol IMouseWheel
+  :extend-via-metadata true
+  (-mouse-wheel [elem delta]))
+(defprotocol IKeyPress
+  :extend-via-metadata true
+  (-key-press [elem key]))
+(defprotocol IKeyType
+  :extend-via-metadata true
+  (-key-type [elem key]))
+(defprotocol IClipboardPaste
+  :extend-via-metadata true
+  (-clipboard-paste [elem contents]))
+(defprotocol IClipboardCopy
+  :extend-via-metadata true
+  (-clipboard-copy [elem]))
+(defprotocol IClipboardCut
+  :extend-via-metadata true
+  (-clipboard-cut [elem]))
+(defprotocol IKeyEvent
+  :extend-via-metadata true
+  (-key-event [this key scancode action mods]))
+(defprotocol IHasKeyEvent
+  :extend-via-metadata true
+  (has-key-event [this]))
+(defprotocol IHasKeyPress
+  :extend-via-metadata true
+  (has-key-press [this]))
+(defprotocol IHasMouseMoveGlobal
+  :extend-via-metadata true
+  (has-mouse-move-global [this]))
+
+(defprotocol IBubble 
+  "Allows an element add, remove, modify effects emitted from its children."
+  :extend-via-metadata true
+  (-bubble [_ effects]
+    "Called when an effect is being emitted by a child element. The parent element can either return the same effects or allow them to continue to bubble."))
 
 (defprotocol IMakeNode
+  :extend-via-metadata true
   (make-node [node childs]))
 
 (extend-protocol IMakeNode
@@ -53,6 +94,7 @@
 (declare children)
 
 (defprotocol IOrigin
+  :extend-via-metadata true
   (-origin [elem]
     "Specifies the top left corner of a component's bounds
 
@@ -83,20 +125,7 @@
   [elem]
   (second (origin elem)))
 
-(defprotocol IKeyEvent
-  (-key-event [this key scancode action mods]))
 
-(defprotocol IHasKeyEvent
-  (has-key-event [this]))
-(defprotocol IHasKeyPress
-  (has-key-press [this]))
-(defprotocol IHasMouseMoveGlobal
-  (has-mouse-move-global [this]))
-
-(defprotocol IBubble
-  "Allows an element add, remove, modify effects emitted from its children."
-  (-bubble [_ effects]
-    "Called when an effect is being emitted by a child element. The parent element can either return the same effects or allow them to continue to bubble."))
 
 (extend-type nil
   IKeyPress
@@ -257,6 +286,7 @@
            (draw (children this)))))
 
 (defprotocol IBounds
+  :extend-via-metadata true
   (-bounds [elem]
     "Returns a 2 element vector with the [width, height] of an element's bounds with respect to its origin"))
 
@@ -322,6 +352,7 @@
 
 
 (defprotocol IChildren
+  :extend-via-metadata true
   (-children [elem]
     "Returns sub elements of elem. Useful for traversal."))
 
@@ -1995,6 +2026,7 @@
 
 
 (defprotocol IHandleEvent
+  :extend-via-metadata true  
   (-can-handle? [this event-type])
   (-handle-event [this event-type event-args]))
 

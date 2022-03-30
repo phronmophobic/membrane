@@ -86,6 +86,7 @@
 (def ^:dynamic *screen* nil)
 
 (defprotocol IDraw
+  :extend-via-metadata true
   (draw [this]))
 
 

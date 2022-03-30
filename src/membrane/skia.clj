@@ -92,6 +92,7 @@
 (def ^:dynamic *paint* {})
 
 (defprotocol IDraw
+  :extend-via-metadata true
   (draw [this]))
 
 (ui/add-default-draw-impls! IDraw #'draw)
@@ -488,6 +489,7 @@
 
 (defprotocol ImageFactory
   "gets or creates an opengl image texture given some various types"
+  :extend-via-metadata true
   (get-image-texture [x]))
 
 (extend-type String

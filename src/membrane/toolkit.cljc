@@ -7,6 +7,7 @@
   (satisfies? IToolkit o))
 
 (defprotocol IToolkitRun
+  :extend-via-metadata true
   (run
     [toolkit view-fn]
     [toolkit view-fn options]
@@ -18,10 +19,11 @@
   `options` is a map with extra options. available options will depend on the specific toolkit."))
 
 (defprotocol IToolkitRunSync
+  :extend-via-metadata true
   (run-sync
     [toolkit view-fn]
     [toolkit view-fn options]
-     "Run a user interface synchronously with `view-fn` to draw.
+    "Run a user interface synchronously with `view-fn` to draw.
 
   `view-fn` should be a 0 argument function that returns an object satisfying `IDraw`.
   `view-fn` will be called for every repaint.
@@ -29,24 +31,30 @@
   `options` is a map with extra options. available options will depend on the specific toolkit."))
 
 (defprotocol IToolkitFontExists
+  :extend-via-metadata true
   (font-exists? [toolkit font]
     "Returns true if the font can be found by the toolkit."))
 (defprotocol IToolkitFontMetrics
+  :extend-via-metadata true
   (font-metrics [toolkit font]
     "Returns the font metrics for font."))
 (defprotocol IToolkitFontAdvanceX
+  :extend-via-metadata true
   (font-advance-x [toolkit font s]
     "Returns the advance-x for font."))
 (defprotocol IToolkitFontLineHeight
+  :extend-via-metadata true
   (font-line-height [toolkit font]
     "Returns the line height for font."))
 (defprotocol IToolkitLogicalFontFontFamily
+  :extend-via-metadata true
   (logical-font->font-family [toolkit logical-font]
     "Returns the font family for the given `logical-font`.
 
 `logical-font`: should be one of :monospace :serif :san-serif"))
 
 (defprotocol IToolkitSaveImage
+  :extend-via-metadata true
   (save-image
     [toolkit dest elem]
     [toolkit dest elem [w h :as size]]

@@ -170,6 +170,7 @@
 (def keymap (into {} (map (comp vec reverse) keycodes)))
 
 (defprotocol IDraw
+  :extend-via-metadata true
   (draw [this]))
 
 (ui/add-default-draw-impls! IDraw #'draw)

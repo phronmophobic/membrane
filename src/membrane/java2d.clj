@@ -163,6 +163,7 @@
                 (or dash-phase (.getDashPhase ^BasicStroke stroke))))
 
 (defprotocol IDraw
+  :extend-via-metadata true
   (draw [this]))
 
 (ui/add-default-draw-impls! IDraw #'draw)
