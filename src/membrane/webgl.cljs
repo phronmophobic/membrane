@@ -606,7 +606,12 @@
 
 
 (defn run [make-ui options]
-  (let [canvas (webgl-canvas (:container options) make-ui)]
+  (let [canvas-elem (:container options)
+        canvas (webgl-canvas canvas-elem make-ui)]
+    (when (get options ::warn-on-missing-tabindex true)
+      (let [tabindex (.-tabIndex canvas-elem)]
+        (when (not (>= tabindex 0))
+          (println "WARNING! tabindex on canvas element is not >= 0. Key Events will not work!"))))
     (on-freetype-loaded
      (fn []
        (-> (.-fonts js/document)
