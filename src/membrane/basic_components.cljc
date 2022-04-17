@@ -548,10 +548,14 @@
          (let [intents (handler offset pos)]
            (if (seq intents)
              intents
-             [[:update $offset-x (fn [old-offset]
-                                   (clampx (+ ox offset-x)))]
-              [:update $offset-y (fn [old-offset]
-                                   (clampy (+ oy offset-y)))]])))
+             (when (or (not= offset-x
+                             (clampx (+ ox offset-x)))
+                       (not= offset-y
+                             (clampy (+ oy offset-y))))
+               [[:update $offset-x (fn [old-offset]
+                                     (clampx (+ ox offset-x)))]
+                [:update $offset-y (fn [old-offset]
+                                     (clampy (+ oy offset-y)))]]))))
        (on-mouse-move
         (ui/on-mouse-event
          (fn [[mx my :as mpos] button mouse-down? mods]
