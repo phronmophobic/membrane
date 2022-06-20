@@ -951,48 +951,48 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
 
 
 
+(defn dispatch!*
+  [atm dispatch! & args]
+  (case (first args)
+    :update
+    (let [[path f & args ] (next args)]
+      ;; use transform* over transform for graalvm.
+      ;; since the specs are dynamic, I don't think there's any benefit to the
+      ;; macro anyway
+      (spec/transform* (path->spec [ATOM path])
+                       (fn [& spec-args]
+                         (apply f (concat spec-args
+                                          args)))
+                       atm))
+    :set
+    (let [[path v] (next args)]
+      ;; use setval* over setval for graalvm.
+      ;; since the specs are dynamic, I don't think there's any benefit to the
+      ;; macro anyway
+      (spec/setval* (path->spec [ATOM path]) v atm))
 
+    :get
+    (let [path (second args)]
+      (spec/select-one* (path->spec [ATOM path])
+                        atm))
+
+    :delete
+    (let [[path] (next args)]
+      ;; use setval* over setval for graalvm.
+      ;; since the specs are dynamic, I don't think there's any benefit to the
+      ;; macro anyway
+      (spec/setval* (path->spec [ATOM path]) spec/NONE atm))
+
+    (let [effects @effects]
+      (let [type (first args)
+            handler (get effects type)]
+        (if handler
+          (apply handler dispatch! (next args))
+          (println "no handler for " type))))))
 
 (defn default-handler [atm]
-  (fn dispatch!
-    ([] nil)
-    ([type & args]
-     (case type
-       :update
-       (let [[path f & args ] args]
-         ;; use transform* over transform for graalvm.
-         ;; since the specs are dynamic, I don't think there's any benefit to the
-         ;; macro anyway
-         (spec/transform* (path->spec [ATOM path])
-                          (fn [& spec-args]
-                            (apply f (concat spec-args
-                                             args)))
-                          atm))
-       :set
-       (let [[path v] args]
-         ;; use setval* over setval for graalvm.
-         ;; since the specs are dynamic, I don't think there's any benefit to the
-         ;; macro anyway
-         (spec/setval* (path->spec [ATOM path]) v atm))
-
-       :get
-       (let [path (first args)]
-         (spec/select-one* (path->spec [ATOM path])
-                           atm))
-
-       :delete
-       (let [[path] args]
-         ;; use setval* over setval for graalvm.
-         ;; since the specs are dynamic, I don't think there's any benefit to the
-         ;; macro anyway
-         (spec/setval* (path->spec [ATOM path]) spec/NONE atm))
-
-       (let [effects @effects]
-         (let [handler (get effects type)]
-           (if handler
-             (apply handler dispatch! args)
-             (println "no handler for " type))))))))
-
+  (fn dispatch! [& args]
+    (apply dispatch!* atm dispatch! args)))
 
 (defn make-app
   "`ui-var` The var for a component
