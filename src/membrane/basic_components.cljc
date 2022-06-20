@@ -443,7 +443,7 @@
   (on
    ::request-focus
    (fn []
-     [[:set [$focus] $text]])
+     [[:set $focus $text]])
    (textarea-view {:text text
                    :cursor (get textarea-state :cursor 0)
                    :focus? (= focus $text)
