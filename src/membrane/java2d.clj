@@ -858,45 +858,53 @@
 
 
 (defn make-uber-listener [window]
-  (let [^Component panel @(:panel window)]
+  (let [^Component panel @(:panel window)
+        ^Toolkit default-toolkit (Toolkit/getDefaultToolkit)]
     (reify
 
       KeyListener
       (keyPressed [this e]
         (-key-pressed window e)
-        (.repaint panel))
+        (.repaint panel)
+        (.sync default-toolkit))
 
       (keyReleased [this e]
         (-key-released window e)
-        (.repaint panel))
+        (.repaint panel)
+        (.sync default-toolkit))
 
       (keyTyped [this e]
         (-key-typed window e)
-        (.repaint panel))
+        (.repaint panel)
+        (.sync default-toolkit))
 
       MouseMotionListener
       (mouseMoved [this e]
         (-on-mouse-move window e)
-        (.repaint panel))
+        (.repaint panel)
+        (.sync default-toolkit))
 
       (mouseDragged [this e]
         (-on-mouse-move window e)
-        (.repaint panel))
+        (.repaint panel)
+        (.sync default-toolkit))
 
       MouseWheelListener
       (mouseWheelMoved [this e]
         (-on-mouse-wheel window e)
-        (.repaint panel))
+        (.repaint panel)
+        (.sync default-toolkit))
 
       MouseListener
       (mousePressed [this e]
         (-on-mouse-down window e)
         (.repaint panel)
-        )
+        (.sync default-toolkit))
 
       (mouseReleased [this e]
         (-on-mouse-up window e)
-        (.repaint panel))
+        (.repaint panel)
+        (.sync default-toolkit))
 
       (mouseEntered [this e])
 
@@ -913,8 +921,8 @@
                     window-start-height
                     window-start-x
                     window-start-y] :as options}]
-   (let [window {:window (atom nil)
-                 :panel (atom nil)
+   (let [^Toolkit default-toolkit (Toolkit/getDefaultToolkit)
+         window {:panel (atom nil)
                  :ui (atom nil)
                  :render view-fn}
          panel (doto ^Component (make-panel window)
@@ -944,7 +952,9 @@
      (.setSize f start-width start-height)
      (.show f)
      {::repaint (fn []
-                  (.repaint ^java.awt.Component panel))
+                  (.repaint ^java.awt.Component panel)
+                  ;; required on linux to force repaint
+                  (.sync default-toolkit))
       ::frame f})))
 
 (defn run-sync
