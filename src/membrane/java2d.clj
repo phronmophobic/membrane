@@ -451,9 +451,10 @@
 (extend-type membrane.ui.RoundedRectangle
   IDraw
   (draw [this]
-    (let [rect (java.awt.geom.RoundRectangle2D$Double. 0 0
+    (let [arc-size (* 2 (:border-radius this))
+          rect (java.awt.geom.RoundRectangle2D$Double. 0 0
                                                        (:width this) (:height this)
-                                                       (:border-radius this) (:border-radius this))]
+                                                       arc-size arc-size)]
       (stroke-or-fill rect))))
 
 (extend-type membrane.ui.WithColor
