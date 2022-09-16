@@ -53,7 +53,7 @@
     (if-let [img (get @*image-cache* image)]
       img
       (let [img (with-open [is (clojure.java.io/input-stream image)]
-                  (Image. ^java.io.InputStream image))]
+                  (Image. ^java.io.InputStream is))]
         (swap! *image-cache* assoc image img)
         img))))
 
