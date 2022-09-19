@@ -628,6 +628,60 @@
                               " jumped over the lazy dog"
                               ))))}))
 
+
+(defui workspace
+  "Basic workspace.
+
+  scroll-bounds should be a two element vector of [width height] of the scrollview
+  body should be an element.
+
+  Acts similar to a scrollview, but no scroll bars are shown and the scroll offset isn't clamped.
+"
+  [{:keys [offset scroll-bounds body]
+    :or {offset [0 0]}}]
+  (let [offset-x (nth offset 0)
+        offset-y (nth offset 1)
+        [width height] scroll-bounds
+        scroll-elem (ui/scrollview
+                     scroll-bounds [(- offset-x)
+                                    (- offset-y)]
+                     body)]
+    (ui/wrap-on
+     :scroll
+     (fn [handler [ox oy :as offset] pos]
+       (let [intents (handler offset pos)]
+         (if (seq intents)
+           intents
+           [[:update $offset-x (fn [old-offset]
+                                 (+ offset-x ox))]
+            [:update $offset-y (fn [old-offset]
+                                 (+ offset-y oy))]])))
+     scroll-elem)))
+
+
+
+(comment
+  (let [view
+        (ui/->Cached
+         (let [n 100
+               maxx 500
+               maxy 500]
+           (ui/with-style :membrane.ui/style-stroke
+             (vec
+              (for [i (range n)]
+                (ui/with-stroke-width (inc (rand-int 10))
+                  (ui/with-color [(rand) (rand) (rand)]
+                    (ui/path [(rand-int maxx) (rand-int maxy)]
+                             [(rand-int maxx) (rand-int maxy)]))))))))]
+   (defui test-workspace [{:keys []}]
+     (workspace {:scroll-bounds [300 300]
+                 :body view})))
+
+  (require '[membrane.skia :as skia])
+  (skia/run (component/make-app #'test-workspace {}))
+  
+  ,)
+
 (defeffect ::toggle [$bool]
   (dispatch! :update $bool not))
 
