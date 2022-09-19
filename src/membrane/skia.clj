@@ -425,7 +425,7 @@
 (defn logical-font->font-family
   "Returns the font family for the given `logical-font`.
 
-  `logical-font`: should be one of :monospace :serif :san-serif"
+  `logical-font`: should be one of :monospace :serif :sans-serif"
   [logical-font]
   (let [skia-logical-font
         (case logical-font

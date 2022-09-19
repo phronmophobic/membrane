@@ -51,7 +51,7 @@
   (logical-font->font-family [toolkit logical-font]
     "Returns the font family for the given `logical-font`.
 
-`logical-font`: should be one of :monospace :serif :san-serif"))
+`logical-font`: should be one of :monospace :serif :sans-serif"))
 
 (defprotocol IToolkitSaveImage
   :extend-via-metadata true
