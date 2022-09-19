@@ -297,32 +297,95 @@
     
     ]))
 
+(defui selectable-text [{:keys [text down-pos mpos last-click cursor select-cursor font]}]
+  (ui/on
+
+   :clipboard-copy
+   (fn []
+     (when select-cursor
+       [[:clipboard-copy (subs text
+                               (min cursor select-cursor)
+                               (max cursor select-cursor))]]))
+   :clipboard-cut
+   (fn []
+     (when select-cursor
+       (let [new-text (when text
+                        (str (subs text 0 (min cursor select-cursor))
+                             (subs text (max cursor select-cursor))))]
+         [[:set $cursor (min cursor select-cursor)]
+          [:set $select-cursor nil]
+          [:set $text new-text]
+          [:clipboard-cut (subs text
+                                (min cursor select-cursor)
+                                (max cursor select-cursor))]
+          [::new-text new-text]])))
+
+   :mouse-up
+   (fn [[mx my :as pos]]
+     [[::finish-drag $select-cursor $cursor $down-pos pos text font]
+      [::text-double-click $last-click $select-cursor $cursor pos text font]])
+
+   :mouse-down
+   (fn [[mx my :as pos]]
+     [[::move-cursor-to-pos $cursor text font pos]
+      [::start-drag $mpos $down-pos pos]
+      [:set $select-cursor nil]])
+
+   :mouse-move
+   (fn [[mx my :as pos]]
+     (when down-pos
+       [[::drag $mpos pos]]))
+
+   [(spacer 100 10)
+    (when select-cursor
+      (ui/with-color
+        [0.6980392156862745
+         0.8431372549019608
+         1]
+        (ui/text-selection text
+                           [(min select-cursor cursor)
+                            (max select-cursor cursor)]
+                           font)))
+    (when-let [[dx dy] down-pos]
+      (when-let [[mx my] mpos]
+        (translate (min mx dx)
+                   (min my dy)
+                   (filled-rectangle
+                    [0.9 0.9 0.9]
+                    (Math/abs
+                     (double (- mx dx)))
+                    (Math/abs
+                     (double (- my dy)))))))
+    (label text font)]))
+
 
 (defui textarea-view
   "Raw component for a basic textarea. textarea should be preferred."
   [{:keys [cursor
-             focus?
-             text
-             down-pos
-             mpos
-             select-cursor
-             last-click
-             font
-             border?]
-      :or {cursor 0
-           text ""
-           border? true}}]
+           focus?
+           text
+           ;; down-pos
+           ;; mpos
+           select-cursor
+           ;; last-click
+           font
+           border?]
+    :or {cursor 0
+         text ""
+         border? true}}]
   (let [text (or text "")
         padding-x (if border? 5 0)
         padding-y (if border? 2 0)]
     (maybe-key-press
      focus?
      (ui/wrap-on
-      :mouse-event
-      (fn [handler [mx my] button mouse-down? mods]
-        (handler [(- mx padding-x)
-                  (- my padding-y)]
-                 button mouse-down? mods))
+      :mouse-down
+      (fn [handler pos]
+        (let [intents (handler pos)]
+          (when (seq intents)
+            (cons [::request-focus]
+                  intents))))
+
       (on
        :key-press
        (fn [s]
@@ -350,20 +413,9 @@
              ;; else
              (when (string? s)
                [[::insert-text  $cursor $select-cursor $text s]]))))
-       :mouse-up
-       (fn [[mx my :as pos]]
-         [[::finish-drag $select-cursor $cursor $down-pos pos text font]
-          [::text-double-click $last-click $select-cursor $cursor pos text font]])
-       :mouse-down
-       (fn [[mx my :as pos]]
-         [[::request-focus]
-          [::move-cursor-to-pos $cursor text font pos]
-          [::start-drag $mpos $down-pos pos]
-          [:set $select-cursor nil]])
-       :mouse-move
-       (fn [[mx my :as pos]]
-         (when down-pos
-           [[::drag $mpos pos]]))
+
+
+
        :clipboard-copy
        (fn []
          (when (and focus? select-cursor)
@@ -389,35 +441,17 @@
        (fn [s]
          (when focus?
            [[::insert-text $cursor $select-cursor $text s]]))
-       (let [body [(spacer 100 10)
-                   (when focus?
+       (let [body [(when focus?
                      (ui/with-color
                        [0.5725490196078431
                         0.5725490196078431
                         0.5725490196078431
                         0.4]
                        (ui/text-cursor text cursor font)))
-                   (when select-cursor
-                     (ui/with-color
-                       [0.6980392156862745
-                        0.8431372549019608
-                        1]
-                       (ui/text-selection text
-                                          [(min select-cursor cursor)
-                                           (max select-cursor cursor)]
-                                          font)))
-
-                   (when-let [[dx dy] down-pos]
-                     (when-let [[mx my] mpos]
-                       (translate (min mx dx)
-                                  (min my dy)
-                                  (filled-rectangle
-                                   [0.9 0.9 0.9]
-                                   (Math/abs
-                                    (double (- mx dx)))
-                                   (Math/abs
-                                    (double (- my dy)))))))
-                   (label text font)]]
+                   (selectable-text {:text text
+                                     :font font
+                                     :select-cursor select-cursor
+                                     :cursor cursor})]]
          (if border?
            (let [gray  0.65
 
@@ -563,17 +597,24 @@
              (let [new-mdownx? (and (> my height)
                                     (> total-width width))
                    new-mdowny? (and (> mx width)
-                                    (> total-height height))]
-               (into
-                [[:set $mdownx? new-mdownx?]
-                 [:set $mdowny? new-mdowny?]]
-                (if new-mdowny?
-                  [[:set $offset-y (clampy (* (div0 (float my) height)
-                                              max-offset-y))]]
-                  (if new-mdownx?
-                    [[:set $offset-x (clampx (* (div0 (float mx) width)
-                                                max-offset-x))]]
-                    (ui/mouse-event scroll-elem mpos button mouse-down? mods)))))
+                                    (> total-height height))
+
+                   intents (remove
+                            nil?
+
+                            (into
+                             [(if (not= new-mdownx? mdownx?)
+                                [:set $mdownx? new-mdownx?]
+                                (if (not= new-mdowny? mdowny?)
+                                  [:set $mdowny? new-mdowny?]))]
+                             (if new-mdowny?
+                               [[:set $offset-y (clampy (* (div0 (float my) height)
+                                                           max-offset-y))]]
+                               (if new-mdownx?
+                                 [[:set $offset-x (clampx (* (div0 (float mx) width)
+                                                             max-offset-x))]]
+                                 (ui/mouse-event scroll-elem mpos button mouse-down? mods)))))]
+               intents)
              ;; mouse up
              (into
               [[:set $mdownx? false]
