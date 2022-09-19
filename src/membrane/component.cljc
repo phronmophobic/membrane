@@ -950,39 +950,47 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
 
 
 
+(defn default-update [atm path f & args]
+  ;; use transform* over transform for graalvm.
+  ;; since the specs are dynamic, I don't think there's any benefit to the
+  ;; macro anyway
+  (spec/transform* (path->spec [ATOM path])
+                   (fn [& spec-args]
+                     (apply f (concat spec-args
+                                      args)))
+                   atm))
+
+(defn default-set [atm path v]
+  ;; use setval* over setval for graalvm.
+  ;; since the specs are dynamic, I don't think there's any benefit to the
+  ;; macro anyway
+  (spec/setval* (path->spec [ATOM path]) v atm))
+
+(defn default-get [atm path]
+  (spec/select-one* (path->spec [ATOM path])
+                    atm))
+
+(defn default-delete [atm path]
+  ;; use setval* over setval for graalvm.
+  ;; since the specs are dynamic, I don't think there's any benefit to the
+  ;; macro anyway
+  (spec/setval* (path->spec [ATOM path]) spec/NONE atm))
 
 (defn dispatch!*
   [atm dispatch! & args]
   (case (first args)
     :update
-    (let [[path f & args ] (next args)]
-      ;; use transform* over transform for graalvm.
-      ;; since the specs are dynamic, I don't think there's any benefit to the
-      ;; macro anyway
-      (spec/transform* (path->spec [ATOM path])
-                       (fn [& spec-args]
-                         (apply f (concat spec-args
-                                          args)))
-                       atm))
+    (apply default-update atm (next args))
+
     :set
-    (let [[path v] (next args)]
-      ;; use setval* over setval for graalvm.
-      ;; since the specs are dynamic, I don't think there's any benefit to the
-      ;; macro anyway
-      (spec/setval* (path->spec [ATOM path]) v atm))
+    (apply default-set atm (next args))
 
     :get
-    (let [path (second args)]
-      (spec/select-one* (path->spec [ATOM path])
-                        atm))
+    (default-get atm (nth args 1))
 
     :delete
-    (let [[path] (next args)]
-      ;; use setval* over setval for graalvm.
-      ;; since the specs are dynamic, I don't think there's any benefit to the
-      ;; macro anyway
-      (spec/setval* (path->spec [ATOM path]) spec/NONE atm))
-
+    (default-delete atm (nth args 1))
+    
     (let [effects @effects]
       (let [type (first args)
             handler (get effects type)]
