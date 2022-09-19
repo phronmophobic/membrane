@@ -317,7 +317,11 @@
                 ~(path-replace body-expr deps))
               (meta form)))
 
-          (fori )
+          (fori for-kv for-with-last)
+          (throw (ex-info (str (first form) " is no longer supported.")
+                          {:form form}))
+
+          #_#_(fori )
           (let [[seq-exprs body-expr] (next form)
                 [deps seq-exprs]
                 (loop [seq-exprs (seq (partition 2 seq-exprs))
@@ -341,7 +345,7 @@
             `(~'for ~seq-exprs
               ~(path-replace body-expr deps)))
 
-          for-with-last
+          #_#_for-with-last
           (let [[[x-sym prev-sym xs-sym] first-body rest-body] (next form)
                 index-sym (gensym "index-")
                 deps (assoc deps x-sym [deps (delay [xs-sym
@@ -361,7 +365,7 @@
                          (recur (inc ~index-sym) (next s#) elem# (conj elems# elem#)))
                        elems#))))))
 
-          for-kv
+          #_#_for-kv
           (let [[seq-exprs body-expr] (next form)
                 [deps seq-exprs]
                 (loop [seq-exprs (seq (partition 2 seq-exprs))
