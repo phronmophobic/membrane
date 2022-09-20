@@ -319,17 +319,18 @@
                        deps deps
                        new-seq-exprs []]
                   (if seq-exprs
-                    (let [[sym val :as binding] (first seq-exprs)]
-                      (if (symbol? sym)
-                        (let [index-sym (gensym "index-")
-                              new-val `(map-indexed vector ~val)
-                              binding [[index-sym sym] new-val]
-                              deps (assoc deps sym [deps (delay [val
-                                                                 `(list (quote ~'nth) ~index-sym)])])
-                              ]
-                          (recur (next seq-exprs)
-                                 deps
-                                 (into new-seq-exprs binding)))
+                    (let [[bind val :as binding] (first seq-exprs)]
+                      (let [index-sym (gensym "index-")
+                            new-val `(map-indexed vector ~val)
+                            binding [[index-sym bind] new-val]
+
+                            val# (gensym "val#_")
+                            deps (assoc deps val# [deps (delay [val
+                                                                `(list (quote ~'nth) ~index-sym)])])
+                            deps (into deps
+                                       (for [[subbind subpath] (destructure-deps bind)]
+                                         [subbind [deps (delay [val#
+                                                                (vec subpath)])]]))]
                         (recur (next seq-exprs)
                                deps
                                (into new-seq-exprs binding))))
