@@ -1082,17 +1082,17 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
       (comp (map-indexed
              (fn [idx bind]
                (map (fn [[subbind path]]
-                      [subbind (cons (list 'nthpath idx) path)])
+                      [subbind (cons (list 'quote (list 'nth idx)) path)])
                     (destructure-deps bind))))
             cat)
       nth-binds)
 
      ;; rest-bind
      (when rest-bind
-       (let [rest-idx (count nth-binds)]
+       (let [drop-n (count nth-binds)]
          (eduction
           (comp (map (fn [[subbind path]]
-                       [subbind (cons (list 'nthrest rest-idx) path)])))
+                       [subbind (cons (list 'quote (list 'drop drop-n)) path)])))
           (destructure-deps rest-bind))))
 
      ;; as-bind
@@ -1113,7 +1113,7 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
                                   sym (-> bind name symbol)
                                   default (get ors sym)
                                   ]
-                              [sym [(list 'get k default)]])))
+                              [sym [(list 'quote (list 'keypath k default))]])))
                      k)
 
                     :strs
@@ -1122,7 +1122,7 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
                             (let [k (name bind)
                                   sym (-> bind name symbol)
                                   default (get ors sym)]
-                              [sym [(list 'get k default)]])))
+                              [sym [(list 'quote (list 'keypath k default))]])))
                      k)
 
                     :syms
@@ -1130,7 +1130,7 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
                      (map (fn [bind]
                             (let [sym (-> bind name symbol)
                                   default (get ors sym)]
-                              [sym [(list 'get sym default)]])))
+                              [sym [(list 'quote (list 'keypath sym default))]])))
                      k)
 
                     :or []
@@ -1138,7 +1138,7 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
                     ;; normal binding
                     (eduction
                      (map (fn [[subbind path]]
-                            [subbind (cons (list 'get k)
+                            [subbind (cons (list 'quote (list 'get k))
                                            path)]))
                      (destructure-deps bind)))))
            cat)
