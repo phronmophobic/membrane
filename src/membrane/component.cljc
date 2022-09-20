@@ -1068,7 +1068,7 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
                                     :handler handler}))]
      top-level)))
 
-(defn destructure-deps-vector [bind]
+(defn- destructure-deps-vector [bind]
   (let [[nth-binds tail] (split-with (complement '#{:as &}) bind)
         [rest-bind tail] (if (= '& (first tail))
                            [(second tail)
@@ -1099,7 +1099,7 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
      (when as-bind
        [[as-bind []]]))))
 
-(defn destructure-deps-map [bind]
+(defn- destructure-deps-map [bind]
   (let [ors (:or bind)]
     (eduction
      (comp (map (fn [[bind k]]
@@ -1144,7 +1144,7 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
            cat)
      bind)))
 
-(defn destructure-deps [bind]
+(defn- destructure-deps [bind]
   (cond
     (symbol? bind)
     [[bind ()]]
@@ -1156,8 +1156,7 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
     (destructure-deps-map bind)
 
     :else (throw (ex-info "Unrecognized binding form"
-                          {:form bind})))
-  )
+                          {:form bind}))))
 
 (comment
   (destructure-deps 'a)
