@@ -1068,3 +1068,102 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
                                     :handler handler}))]
      top-level)))
 
+(defn destructure-deps-vector [bind]
+  (let [[nth-binds tail] (split-with (complement '#{:as &}) bind)
+        [rest-bind tail] (if (= '& (first tail))
+                           [(second tail)
+                            (nthrest tail 2)]
+                           [nil tail])
+        as-bind (when (= ':as (first tail))
+                  (second tail))]
+    (concat
+     ;; nth binds
+     (eduction
+      (comp (map-indexed
+             (fn [idx bind]
+               (map (fn [[subbind path]]
+                      [subbind (cons (list 'nthpath idx) path)])
+                    (destructure-deps bind))))
+            cat)
+      nth-binds)
+
+     ;; rest-bind
+     (when rest-bind
+       (let [rest-idx (count nth-binds)]
+         (eduction
+          (comp (map (fn [[subbind path]]
+                       [subbind (cons (list 'nthrest rest-idx) path)])))
+          (destructure-deps rest-bind))))
+
+     ;; as-bind
+     (when as-bind
+       [[as-bind []]]))))
+
+(defn destructure-deps-map [bind]
+  (let [ors (:or bind)]
+    (eduction
+     (comp (map (fn [[bind k]]
+                  (case bind
+                    :as [[k []]]
+
+                    :keys
+                    (eduction
+                     (map (fn [bind]
+                            (let [k (-> bind name keyword)
+                                  sym (-> bind name symbol)
+                                  default (get ors sym)
+                                  ]
+                              [sym [(list 'get k default)]])))
+                     k)
+
+                    :strs
+                    (eduction
+                     (map (fn [bind]
+                            (let [k (name bind)
+                                  sym (-> bind name symbol)
+                                  default (get ors sym)]
+                              [sym [(list 'get k default)]])))
+                     k)
+
+                    :syms
+                    (eduction
+                     (map (fn [bind]
+                            (let [sym (-> bind name symbol)
+                                  default (get ors sym)]
+                              [sym [(list 'get sym default)]])))
+                     k)
+
+                    :or []
+
+                    ;; normal binding
+                    (eduction
+                     (map (fn [[subbind path]]
+                            [subbind (cons (list 'get k)
+                                           path)]))
+                     (destructure-deps bind)))))
+           cat)
+     bind)))
+
+(defn destructure-deps [bind]
+  (cond
+    (symbol? bind)
+    [[bind ()]]
+
+    (vector? bind)
+    (destructure-deps-vector bind)
+
+    (map? bind)
+    (destructure-deps-map bind)
+
+    :else (throw (ex-info "Unrecognized binding form"
+                          {:form bind})))
+  )
+
+(comment
+  (destructure-deps 'a)
+  (destructure-deps '[[[a]] b c & bar :as xs ] )
+  (destructure-deps '[a b c [x y z] & bar :as xs ] )
+  (destructure-deps '{a :a})
+  (destructure-deps '[a b c & [d e] :as xs] )
+  
+  ,)
