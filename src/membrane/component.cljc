@@ -249,7 +249,22 @@
     #?(:clj (if-let [v (resolve sym)]
               (symbol (name (ns-name (.ns ^clojure.lang.Var v))) (name (.sym ^clojure.lang.Var v)))))))
 
-
+;; deps in `path-replace is a map of the form
+;; {binding-sym [previous-deps
+;;               (delay [dependent-binding
+;;                       path-segment])]}
+;; binding-sym: name of a binding
+;; previous-deps: the existing dependency when at the time of binding.
+;;                the previous deps are required because a binding-sym may be rebound and
+;;                you want to be able to look up the next path segment based on the deps
+;;                at the time a binding occurs. For example, (let [a {} b (:b a) a "something else"] $b).
+;; delay wrapping: I don't quite rememeber why the path segment is wrapped in a delay, but
+;;                 I think it's to simplify the implementation of `parse-path`. `parse-path`
+;;                 may be asked to parse the path of an arbitrary form and we only care about
+;;                 path segments that eventually produce a $reference. ie. Most bindings won't
+;;                 need their paths calculated.
+;; dependent-binding: the previous binding the current path-segment depends on.
+;; path-segment: how the current binding was derived from the dependent-binding
  (defn path-replace
    "Given a form, walk and replace all $syms with the lens (or path) for the sym with the same name."
    ([form]
