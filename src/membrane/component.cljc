@@ -291,14 +291,21 @@
                        deps deps
                        new-bindings []]
                   (if bindings
-                    (let [[sym val] (first bindings)
+                    (let [[bind val] (first bindings)
                           val (path-replace val deps)
                           val-path (parse-path val)
-                          deps (assoc deps sym [deps val-path])]
-                      ;; (println "new val" sym val)
+
+                          val# (gensym "val#_")
+                          deps (assoc deps val# [deps val-path])
+                          deps (into deps
+                                     (for [[subbind subpath] (destructure-deps bind)]
+                                       [subbind [deps (delay [val#
+                                                              (vec subpath)])]]))]
+
+
                       (recur (next bindings)
                              deps
-                             (into new-bindings [sym val])))
+                             (into new-bindings [bind val])))
                     [deps new-bindings]))
                 
                 body (map #(path-replace % deps) body)]
