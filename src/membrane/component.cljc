@@ -410,26 +410,7 @@
                     (assert (vector? bindings) "a vector for its binding")
                     (assert (even? (count bindings)) "an even number of forms in binding vector"))
                 [deps new-bindings]
-                (loop [bindings (seq (partition 2 bindings))
-                       deps deps
-                       new-bindings []]
-                  (if bindings
-                    (let [[bind val] (first bindings)
-                          val (path-replace val deps)
-                          val-path (parse-path val)
-
-                          val# (gensym "val#_")
-                          deps (assoc deps val# [deps val-path])
-                          deps (into deps
-                                     (for [[subbind subpath] (destructure-deps bind)]
-                                       [subbind [deps (delay [val#
-                                                              (vec subpath)])]]))]
-
-
-                      (recur (next bindings)
-                             deps
-                             (into new-bindings [bind val])))
-                    [deps new-bindings]))
+                (path-replace-let-bindings deps bindings)
                 
                 body (map #(path-replace % deps) body)]
             `(~letsym ~new-bindings ~@body))
@@ -443,20 +424,37 @@
                        new-seq-exprs []]
                   (if seq-exprs
                     (let [[bind val :as binding] (first seq-exprs)]
-                      (let [index-sym (gensym "index-")
-                            new-val `(map-indexed vector ~val)
-                            binding [[index-sym bind] new-val]
+                      (if (keyword? bind)
+                        (case bind
+                          (:while :when)
+                          (recur (next seq-exprs)
+                                 deps
+                                 (into new-seq-exprs binding))
 
-                            val# (gensym "val#_")
-                            deps (assoc deps val# [deps (delay [val
-                                                                `(list (quote ~'nth) ~index-sym)])])
-                            deps (into deps
-                                       (for [[subbind subpath] (destructure-deps bind)]
-                                         [subbind [deps (delay [val#
-                                                                (vec subpath)])]]))]
-                        (recur (next seq-exprs)
-                               deps
-                               (into new-seq-exprs binding))))
+                          :let
+                          (let [[_ let-bindings] binding
+
+                                [deps new-bindings]
+                                (path-replace-let-bindings deps let-bindings)]
+                            (recur (next seq-exprs)
+                                   deps
+                                   (into new-seq-exprs [:let new-bindings]))))
+
+                        ;; normal binding
+                        (let [index-sym (gensym "index-")
+                              new-val `(map-indexed vector ~val)
+                              binding [[index-sym bind] new-val]
+
+                              val# (gensym "val#_")
+                              deps (assoc deps val# [deps (delay [val
+                                                                  `(list (quote ~'nth) ~index-sym)])])
+                              deps (into deps
+                                         (for [[subbind subpath] (destructure-deps bind)]
+                                           [subbind [deps (delay [val#
+                                                                  (vec subpath)])]]))]
+                          (recur (next seq-exprs)
+                                 deps
+                                 (into new-seq-exprs binding)))))
                     [deps new-seq-exprs]))]
             (with-meta
               `(~'for ~seq-exprs
