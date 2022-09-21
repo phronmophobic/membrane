@@ -99,6 +99,12 @@
         keypath-list
         (apply spec/keypath arg)
 
+        rest-args-map
+        (spec/parser (fn [xs]
+                       (apply hash-map xs))
+                     (fn [m]
+                       (eduction cat m)))
+
         filter
         (spec/filterer (if (keyword? arg)
                          (fn [x]
@@ -249,6 +255,133 @@
     #?(:clj (if-let [v (resolve sym)]
               (symbol (name (ns-name (.ns ^clojure.lang.Var v))) (name (.sym ^clojure.lang.Var v)))))))
 
+(declare destructure-deps)
+(defn- destructure-deps-vector [bind]
+  (let [[nth-binds tail] (split-with (complement '#{:as &}) bind)
+        [rest-bind tail] (if (= '& (first tail))
+                           [(second tail)
+                            (nthrest tail 2)]
+                           [nil tail])
+        as-bind (when (= ':as (first tail))
+                  (second tail))]
+    (concat
+     ;; nth binds
+     (eduction
+      (comp (map-indexed
+             (fn [idx bind]
+               (map (fn [[subbind path]]
+                      [subbind (cons (list 'quote (list 'nth idx)) path)])
+                    (destructure-deps bind))))
+            cat)
+      nth-binds)
+
+     ;; rest-bind
+     (when rest-bind
+       (let [drop-n (count nth-binds)
+             path-prefix (if (map? rest-bind)
+                           [(list 'quote (list 'drop drop-n))
+                            (list 'quote (list 'rest-args-map))]
+                           (list 'quote (list 'drop drop-n)))]
+         (eduction
+          (comp (map (fn [[subbind path]]
+                       [subbind (cons path-prefix path)])))
+          (destructure-deps rest-bind))))
+
+     ;; as-bind
+     (when as-bind
+       [[as-bind []]]))))
+
+(defn- destructure-deps-map [bind]
+  (let [ors (:or bind)]
+    (eduction
+     (comp (map (fn [[bind k]]
+                  (case bind
+                    :as [[k []]]
+
+                    :keys
+                    (eduction
+                     (map (fn [bind]
+                            (let [k (-> bind name keyword)
+                                  sym (-> bind name symbol)
+                                  default (get ors sym)
+                                  ]
+                              [sym [(list 'quote (list 'keypath k default))]])))
+                     k)
+
+                    :strs
+                    (eduction
+                     (map (fn [bind]
+                            (let [k (name bind)
+                                  sym (-> bind name symbol)
+                                  default (get ors sym)]
+                              [sym [(list 'quote (list 'keypath k default))]])))
+                     k)
+
+                    :syms
+                    (eduction
+                     (map (fn [bind]
+                            (let [sym (-> bind name symbol)
+                                  default (get ors sym)]
+                              [sym [(list 'quote (list 'keypath sym default))]])))
+                     k)
+
+                    :or []
+
+                    ;; normal binding
+                    (eduction
+                     (map (fn [[subbind path]]
+                            [subbind (cons (list 'quote (list 'keypath k))
+                                           path)]))
+                     (destructure-deps bind)))))
+           cat)
+     bind)))
+
+(defn- destructure-deps [bind]
+  (cond
+    (symbol? bind)
+    [[bind ()]]
+
+    (vector? bind)
+    (destructure-deps-vector bind)
+
+    (map? bind)
+    (destructure-deps-map bind)
+
+    :else (throw (ex-info "Unrecognized binding form"
+                          {:form bind}))))
+
+(declare path-replace)
+(defn- path-replace-let-bindings [deps bindings]
+  (loop [bindings (seq (partition 2 bindings))
+         deps deps
+         new-bindings []]
+    (if bindings
+      (let [[bind val] (first bindings)
+            val (path-replace val deps)
+            val-path (parse-path val)
+
+            val# (gensym "val#_")
+            deps (assoc deps val# [deps val-path])
+            deps (into deps
+                       (for [[subbind subpath] (destructure-deps bind)]
+                         [subbind [deps (delay [val#
+                                                (vec subpath)])]]))]
+
+
+        (recur (next bindings)
+               deps
+               (into new-bindings [bind val])))
+      [deps new-bindings])))
+
+(comment
+  (destructure-deps 'a)
+  (destructure-deps '[[[a]] b c & bar :as xs ] )
+  (destructure-deps '[a b c [x y z] & bar :as xs ] )
+  (destructure-deps '{a :a})
+  (destructure-deps '[a b c & [d e] :as xs] )
+  
+  ,)
+
 ;; deps in `path-replace is a map of the form
 ;; {binding-sym [previous-deps
 ;;               (delay [dependent-binding
@@ -287,26 +420,7 @@
                     (assert (vector? bindings) "a vector for its binding")
                     (assert (even? (count bindings)) "an even number of forms in binding vector"))
                 [deps new-bindings]
-                (loop [bindings (seq (partition 2 bindings))
-                       deps deps
-                       new-bindings []]
-                  (if bindings
-                    (let [[bind val] (first bindings)
-                          val (path-replace val deps)
-                          val-path (parse-path val)
-
-                          val# (gensym "val#_")
-                          deps (assoc deps val# [deps val-path])
-                          deps (into deps
-                                     (for [[subbind subpath] (destructure-deps bind)]
-                                       [subbind [deps (delay [val#
-                                                              (vec subpath)])]]))]
-
-
-                      (recur (next bindings)
-                             deps
-                             (into new-bindings [bind val])))
-                    [deps new-bindings]))
+                (path-replace-let-bindings deps bindings)
                 
                 body (map #(path-replace % deps) body)]
             `(~letsym ~new-bindings ~@body))
@@ -320,20 +434,37 @@
                        new-seq-exprs []]
                   (if seq-exprs
                     (let [[bind val :as binding] (first seq-exprs)]
-                      (let [index-sym (gensym "index-")
-                            new-val `(map-indexed vector ~val)
-                            binding [[index-sym bind] new-val]
+                      (if (keyword? bind)
+                        (case bind
+                          (:while :when)
+                          (recur (next seq-exprs)
+                                 deps
+                                 (into new-seq-exprs binding))
 
-                            val# (gensym "val#_")
-                            deps (assoc deps val# [deps (delay [val
-                                                                `(list (quote ~'nth) ~index-sym)])])
-                            deps (into deps
-                                       (for [[subbind subpath] (destructure-deps bind)]
-                                         [subbind [deps (delay [val#
-                                                                (vec subpath)])]]))]
-                        (recur (next seq-exprs)
-                               deps
-                               (into new-seq-exprs binding))))
+                          :let
+                          (let [[_ let-bindings] binding
+
+                                [deps new-bindings]
+                                (path-replace-let-bindings deps let-bindings)]
+                            (recur (next seq-exprs)
+                                   deps
+                                   (into new-seq-exprs [:let new-bindings]))))
+
+                        ;; normal binding
+                        (let [index-sym (gensym "index-")
+                              new-val `(map-indexed vector ~val)
+                              binding [[index-sym bind] new-val]
+
+                              val# (gensym "val#_")
+                              deps (assoc deps val# [deps (delay [val
+                                                                  `(list (quote ~'nth) ~index-sym)])])
+                              deps (into deps
+                                         (for [[subbind subpath] (destructure-deps bind)]
+                                           [subbind [deps (delay [val#
+                                                                  (vec subpath)])]]))]
+                          (recur (next seq-exprs)
+                                 deps
+                                 (into new-seq-exprs binding)))))
                     [deps new-seq-exprs]))]
             (with-meta
               `(~'for ~seq-exprs
@@ -568,13 +699,15 @@
           ))
 
       (symbol? form)
-      (let [form-name (name form)]
-        (if (.startsWith form-name "$")
-          (let [k (symbol (subs form-name 1))]
-            (if (contains? deps k)
-              (calculate-path deps k)
-              form))
-          form))
+      (if (contains? deps form)
+        form
+        (let [form-name (name form)]
+          (if (.startsWith form-name "$")
+            (let [k (symbol (subs form-name 1))]
+              (if (contains? deps k)
+                (calculate-path deps k)
+                form))
+            form)))
 
       (string? form)
       form
@@ -1076,101 +1209,6 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
                                     :handler handler}))]
      top-level)))
 
-(defn- destructure-deps-vector [bind]
-  (let [[nth-binds tail] (split-with (complement '#{:as &}) bind)
-        [rest-bind tail] (if (= '& (first tail))
-                           [(second tail)
-                            (nthrest tail 2)]
-                           [nil tail])
-        as-bind (when (= ':as (first tail))
-                  (second tail))]
-    (concat
-     ;; nth binds
-     (eduction
-      (comp (map-indexed
-             (fn [idx bind]
-               (map (fn [[subbind path]]
-                      [subbind (cons (list 'quote (list 'nth idx)) path)])
-                    (destructure-deps bind))))
-            cat)
-      nth-binds)
 
-     ;; rest-bind
-     (when rest-bind
-       (let [drop-n (count nth-binds)]
-         (eduction
-          (comp (map (fn [[subbind path]]
-                       [subbind (cons (list 'quote (list 'drop drop-n)) path)])))
-          (destructure-deps rest-bind))))
 
-     ;; as-bind
-     (when as-bind
-       [[as-bind []]]))))
 
-(defn- destructure-deps-map [bind]
-  (let [ors (:or bind)]
-    (eduction
-     (comp (map (fn [[bind k]]
-                  (case bind
-                    :as [[k []]]
-
-                    :keys
-                    (eduction
-                     (map (fn [bind]
-                            (let [k (-> bind name keyword)
-                                  sym (-> bind name symbol)
-                                  default (get ors sym)
-                                  ]
-                              [sym [(list 'quote (list 'keypath k default))]])))
-                     k)
-
-                    :strs
-                    (eduction
-                     (map (fn [bind]
-                            (let [k (name bind)
-                                  sym (-> bind name symbol)
-                                  default (get ors sym)]
-                              [sym [(list 'quote (list 'keypath k default))]])))
-                     k)
-
-                    :syms
-                    (eduction
-                     (map (fn [bind]
-                            (let [sym (-> bind name symbol)
-                                  default (get ors sym)]
-                              [sym [(list 'quote (list 'keypath sym default))]])))
-                     k)
-
-                    :or []
-
-                    ;; normal binding
-                    (eduction
-                     (map (fn [[subbind path]]
-                            [subbind (cons (list 'quote (list 'get k))
-                                           path)]))
-                     (destructure-deps bind)))))
-           cat)
-     bind)))
-
-(defn- destructure-deps [bind]
-  (cond
-    (symbol? bind)
-    [[bind ()]]
-
-    (vector? bind)
-    (destructure-deps-vector bind)
-
-    (map? bind)
-    (destructure-deps-map bind)
-
-    :else (throw (ex-info "Unrecognized binding form"
-                          {:form bind}))))
-
-(comment
-  (destructure-deps 'a)
-  (destructure-deps '[[[a]] b c & bar :as xs ] )
-  (destructure-deps '[a b c [x y z] & bar :as xs ] )
-  (destructure-deps '{a :a})
-  (destructure-deps '[a b c & [d e] :as xs] )
-  
-  ,)
