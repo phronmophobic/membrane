@@ -320,7 +320,7 @@
                     ;; normal binding
                     (eduction
                      (map (fn [[subbind path]]
-                            [subbind (cons (list 'quote (list 'get k))
+                            [subbind (cons (list 'quote (list 'keypath k))
                                            path)]))
                      (destructure-deps bind)))))
            cat)
