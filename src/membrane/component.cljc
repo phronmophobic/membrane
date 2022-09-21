@@ -99,6 +99,12 @@
         keypath-list
         (apply spec/keypath arg)
 
+        rest-args-map
+        (spec/parser (fn [xs]
+                       (apply hash-map xs))
+                     (fn [m]
+                       (eduction cat m)))
+
         filter
         (spec/filterer (if (keyword? arg)
                          (fn [x]
@@ -271,10 +277,14 @@
 
      ;; rest-bind
      (when rest-bind
-       (let [drop-n (count nth-binds)]
+       (let [drop-n (count nth-binds)
+             path-prefix (if (map? rest-bind)
+                           [(list 'quote (list 'drop drop-n))
+                            (list 'quote (list 'rest-args-map))]
+                           (list 'quote (list 'drop drop-n)))]
          (eduction
           (comp (map (fn [[subbind path]]
-                       [subbind (cons (list 'quote (list 'drop drop-n)) path)])))
+                       [subbind (cons path-prefix path)])))
           (destructure-deps rest-bind))))
 
      ;; as-bind
