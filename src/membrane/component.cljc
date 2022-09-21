@@ -699,13 +699,15 @@
           ))
 
       (symbol? form)
-      (let [form-name (name form)]
-        (if (.startsWith form-name "$")
-          (let [k (symbol (subs form-name 1))]
-            (if (contains? deps k)
-              (calculate-path deps k)
-              form))
-          form))
+      (if (contains? deps form)
+        form
+        (let [form-name (name form)]
+          (if (.startsWith form-name "$")
+            (let [k (symbol (subs form-name 1))]
+              (if (contains? deps k)
+                (calculate-path deps k)
+                form))
+            form)))
 
       (string? form)
       form
