@@ -2,6 +2,7 @@
   #?(:cljs (:require-macros [membrane.component :refer [defui path-replace-macro]]))
   (:require ;; [clojure.core.async :refer [go put! chan <! timeout dropping-buffer promise-chan]
    ;;  :as async]
+   [clojure.string :as str]
    [com.rpl.specter :as spec
     :refer [ATOM ALL FIRST LAST MAP-VALS META]]
    #?(:cljs cljs.analyzer.api)
@@ -461,7 +462,88 @@
   "handles the case where the fn call is a non-literal map
 
   Still assumes the form for the arg represents a map"
-  [deps form fn-meta])
+  [deps form fn-meta]
+  (let [first-form (first form)
+        call-arg (second form)
+
+        arglists (:arglists fn-meta)
+        first-arglist (first arglists)
+        arg-map (first first-arglist)
+
+        defaults (:or arg-map)
+
+        m# (gensym "m#_")
+        $m# (symbol (str "$" (name m#)))
+
+        ;; add missing :$keys
+        ;; expressions will go inside of a (cond-> ~'m# ...)
+        missing-:$keys
+        (eduction
+         (mapcat (fn [sym]
+                   (let [k (keyword sym)
+                         $k (->> sym
+                                 name
+                                 (str "$")
+                                 keyword)
+                         contextual (-> sym meta ::contextual)]
+                     [`(not (contains? ~m# ~$k))
+                      `(assoc! ~$k
+                               ~(cond
+                                  (= 'context sym)
+                                  '[$context]
+
+                                  contextual
+                                  `[~'$context (quote (~'keypath ~k))]
+
+                                  :else
+                                  (if-let [default (get defaults sym)]
+                                    `[~$m#
+                                      (quote (~'keypath ~k))
+                                      (quote (~'nil->val ~default))]
+                                    `[~$m# (quote (~'keypath ~k))])))])))
+         (:keys arg-map))
+
+
+        ;; add missing context and default values
+        ;; expressions will go inside of a (cond-> ~'m# ...)
+        ;; still not sure if extra should just go directly in the map
+        ;;    or if it should be put somewhere else (like the parent extra).
+        ;;    currently just putting extra directly in the map.
+        missing-defaults-and-context
+        (eduction
+         (keep (fn [sym]
+                 (let [k (keyword sym)
+                       _ (prn sym (meta sym))
+                       contextual (-> sym meta ::contextual)
+                       _ (prn sym (meta sym) contextual)
+                       default (get defaults sym)]
+                   (cond
+                     (= 'context sym)
+                     [`(not (contains? ~m# ~k))
+                      `(assoc! ~k ~'context)]
+
+                     contextual
+                     [`(not (contains? ~m# ~k))
+                      `(assoc! ~k (get ~'context ~k))]
+
+                     default
+                     [`(not (contains? ~m# ~k))
+                      `(assoc! ~k ~default)]))))
+         cat
+         (:keys arg-map))]
+
+    (with-meta
+        `(~first-form
+          ~(path-replace
+            `(let [~m# ~call-arg
+                   full-m#
+                   (persistent!
+                    (cond-> (transient ~m#)
+                      ~@missing-:$keys
+                      ~@missing-defaults-and-context))]
+               full-m#)
+            deps))
+        (meta form))))
 
 (defn- path-replace-fn-call [deps form]
   (let [first-form (first form)]
