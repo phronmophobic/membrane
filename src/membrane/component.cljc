@@ -2,7 +2,6 @@
   #?(:cljs (:require-macros [membrane.component :refer [defui path-replace-macro]]))
   (:require ;; [clojure.core.async :refer [go put! chan <! timeout dropping-buffer promise-chan]
    ;;  :as async]
-   [clojure.string :as str]
    [com.rpl.specter :as spec
     :refer [ATOM ALL FIRST LAST MAP-VALS META]]
    #?(:cljs cljs.analyzer.api)
@@ -513,9 +512,7 @@
         (eduction
          (keep (fn [sym]
                  (let [k (keyword sym)
-                       _ (prn sym (meta sym))
                        contextual (-> sym meta ::contextual)
-                       _ (prn sym (meta sym) contextual)
                        default (get defaults sym)]
                    (cond
                      (= 'context sym)
