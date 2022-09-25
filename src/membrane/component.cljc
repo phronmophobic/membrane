@@ -373,6 +373,204 @@
                (into new-bindings [bind val])))
       [deps new-bindings])))
 
+(defn- path-replace-fn-call-map-literal [deps form fn-meta]
+  (let [first-form (first form)
+        call-arg (second form)
+
+        arglists (:arglists fn-meta)
+        first-arglist (first arglists)
+        arg-map (first first-arglist)
+
+        defaults (:or arg-map)
+
+        ;; sort by explicit arguments since
+        ;; they are used by the key prefix
+        all-args (sort-by
+                  (fn [sym]
+                    [(not (contains? call-arg (keyword sym)))
+                     (.startsWith (name sym) "$")])
+                  (distinct
+                   (concat (:keys arg-map)
+                           (->> call-arg
+                                (map (comp symbol name first)))
+                           (->> (:keys arg-map)
+                                (map name)
+                                (map #(str "$" %))
+                                (map symbol)))))
+
+        binding-syms
+        (into {}
+              (for [arg all-args
+                    :let [arg-name (name arg)]]
+                [arg (gensym (str arg-name  "-"))]))
+
+        keypath-prefix
+        (vec
+         (for [k (keys call-arg)
+               :let [arg-name (name k)
+                     dollar-arg? (.startsWith arg-name "$")]
+               :when (or dollar-arg?
+                         (not (contains? call-arg (keyword (str "$" (name k))))))]
+           (if dollar-arg?
+             (get binding-syms (symbol arg-name))
+             (symbol (str "$"
+                          (name (get binding-syms (symbol arg-name))) )))))
+
+        bindings (for [arg all-args
+                       :when (contains? binding-syms arg)
+                       :let [binding-sym (get binding-syms arg)
+                             arg-val
+                             (if (.startsWith (name arg) "$")
+                               (if-let [arg-val (get call-arg (keyword arg))]
+                                 arg-val
+                                 (let [val-sym (get binding-syms (symbol (subs (name arg) 1)))]
+                                   (symbol (str "$"  (name val-sym)))))
+
+                               (get call-arg (keyword arg)
+                                    (if (= 'context arg)
+                                      'context
+                                      (if (-> arg meta ::contextual)
+                                        `(get ~'context ~(keyword (name arg)))
+                                        `(get ~'extra
+                                              [~keypath-prefix
+                                               ~(keyword (str "$" (name arg)))]
+                                              ~(when (contains? defaults arg)
+                                                 (get defaults arg))
+                                              )))))]]
+                   [binding-sym arg-val])
+
+        new-args
+        (apply
+         concat
+         (for [arg all-args
+               :let [arg-name (name arg)
+                     arg-key (keyword arg-name)]]
+           (if (.startsWith arg-name "$")
+             [arg-key
+              (get binding-syms (symbol arg-name))]
+             [arg-key (get binding-syms arg)])))]
+    (with-meta
+      `(~first-form
+        ~(path-replace
+          `(let [~@(apply concat bindings)]
+             ~(apply hash-map new-args))
+          deps))
+      (meta form))))
+
+(defn- path-replace-fn-call*
+  "handles the case where the fn call is a non-literal map
+
+  Still assumes the form for the arg represents a map"
+  [deps form fn-meta]
+  (let [first-form (first form)
+        call-arg (second form)
+
+        arglists (:arglists fn-meta)
+        first-arglist (first arglists)
+        arg-map (first first-arglist)
+
+        defaults (:or arg-map)
+
+        m# (gensym "m#_")
+        $m# (symbol (str "$" (name m#)))
+
+        ;; add missing :$keys
+        ;; expressions will go inside of a (cond-> ~'m# ...)
+        missing-:$keys
+        (eduction
+         (mapcat (fn [sym]
+                   (let [k (keyword sym)
+                         $k (->> sym
+                                 name
+                                 (str "$")
+                                 keyword)
+                         contextual (-> sym meta ::contextual)]
+                     [`(not (contains? ~m# ~$k))
+                      `(assoc! ~$k
+                               ~(cond
+                                  (= 'context sym)
+                                  '[$context]
+
+                                  contextual
+                                  `[~'$context (quote (~'keypath ~k))]
+
+                                  :else
+                                  (if-let [default (get defaults sym)]
+                                    `[~$m#
+                                      (quote (~'keypath ~k))
+                                      (quote (~'nil->val ~default))]
+                                    `[~$m# (quote (~'keypath ~k))])))])))
+         (:keys arg-map))
+
+
+        ;; add missing context and default values
+        ;; expressions will go inside of a (cond-> ~'m# ...)
+        ;; still not sure if extra should just go directly in the map
+        ;;    or if it should be put somewhere else (like the parent extra).
+        ;;    currently just putting extra directly in the map.
+        missing-defaults-and-context
+        (eduction
+         (keep (fn [sym]
+                 (let [k (keyword sym)
+                       contextual (-> sym meta ::contextual)
+                       default (get defaults sym)]
+                   (cond
+                     (= 'context sym)
+                     [`(not (contains? ~m# ~k))
+                      `(assoc! ~k ~'context)]
+
+                     contextual
+                     [`(not (contains? ~m# ~k))
+                      `(assoc! ~k (get ~'context ~k))]
+
+                     default
+                     [`(not (contains? ~m# ~k))
+                      `(assoc! ~k ~default)]))))
+         cat
+         (:keys arg-map))]
+
+    (with-meta
+        `(~first-form
+          ~(path-replace
+            `(let [~m# ~call-arg
+                   full-m#
+                   (persistent!
+                    (cond-> (transient ~m#)
+                      ~@missing-:$keys
+                      ~@missing-defaults-and-context))]
+               full-m#)
+            deps))
+        (meta form))))
+
+(defn- path-replace-fn-call [deps form]
+  (let [first-form (first form)]
+    (let [full-sym (delay
+                     (fully-qualified first-form))
+          special? (if (symbol? first-form)
+                     ;; should change `(meta first-form) to be first
+                     (if-let [m (or (when (cljs-env-compiler)
+                                      (:meta (cljs-resolve-var *env* first-form)))
+                                    #?(:clj (meta (resolve first-form)))
+                                    (resolve-sci-meta first-form)
+                                    (meta first-form))]
+                       (::special? m)
+                       (contains? @special-fns @full-sym)))]
+      (if (not special?)
+        ;; other fn call
+        (with-meta
+          (map #(path-replace % deps) form)
+          (meta form))
+
+        ;; call to defui component
+        (let [call-arg (second form)
+              fn-meta (get @special-fns @full-sym
+                           (or #?(:clj (meta (resolve first-form)))
+                               (resolve-sci-meta first-form)
+                               (meta first-form)))]
+          (if (map? call-arg)
+            (path-replace-fn-call-map-literal deps form fn-meta)
+            (path-replace-fn-call* deps form fn-meta)))))))
+
 (comment
   (destructure-deps 'a)
   (destructure-deps '[[[a]] b c & bar :as xs ] )
@@ -475,76 +673,6 @@
           (throw (ex-info (str (first form) " is no longer supported.")
                           {:form form}))
 
-          #_#_(fori )
-          (let [[seq-exprs body-expr] (next form)
-                [deps seq-exprs]
-                (loop [seq-exprs (seq (partition 2 seq-exprs))
-                       deps deps
-                       new-seq-exprs []]
-                  (if seq-exprs
-                    (let [[[index-sym sym] val :as binding] (first seq-exprs)]
-                      (if (symbol? sym)
-                        (let [new-val `(map-indexed vector ~val)
-                              binding [[index-sym sym] new-val]
-                              deps (assoc deps sym [deps (delay [val
-                                                                 `(list (quote ~'nth) ~index-sym)])])
-                              ]
-                          (recur (next seq-exprs)
-                                 deps
-                                 (into new-seq-exprs binding)))
-                        (recur (next seq-exprs)
-                               deps
-                               (into new-seq-exprs binding))))
-                    [deps new-seq-exprs]))]
-            `(~'for ~seq-exprs
-              ~(path-replace body-expr deps)))
-
-          #_#_for-with-last
-          (let [[[x-sym prev-sym xs-sym] first-body rest-body] (next form)
-                index-sym (gensym "index-")
-                deps (assoc deps x-sym [deps (delay [xs-sym
-                                                     `(list (quote ~'nth) ~index-sym)])])]
-            `(let [s# (seq ~xs-sym)]
-               (when s#
-                 (let [~index-sym 0
-                       ~x-sym (first s#)
-                       first-elem# ~(path-replace first-body deps)]
-                   (loop [~index-sym (inc ~index-sym)
-                          s# (next s#)
-                          ~prev-sym first-elem#
-                          elems# [first-elem#]]
-                     (if s#
-                       (let [~x-sym (first s#)
-                             elem# ~(path-replace rest-body deps)]
-                         (recur (inc ~index-sym) (next s#) elem# (conj elems# elem#)))
-                       elems#))))))
-
-          #_#_for-kv
-          (let [[seq-exprs body-expr] (next form)
-                [deps seq-exprs]
-                (loop [seq-exprs (seq (partition 2 seq-exprs))
-                       deps deps
-                       new-seq-exprs []]
-                  (if seq-exprs
-                    (let [binding-row (first seq-exprs)
-                          [left-side val :as binding] binding-row]
-                      (if (and (vector? left-side)
-                               (every? symbol? left-side))
-                        (let [[key-sym val-sym] left-side
-                              deps (assoc deps key-sym [deps (delay [val
-                                                                     `(list (quote ~'map-key) ~key-sym)])])
-                              deps (assoc deps val-sym [deps (delay [val
-                                                                     `(list (quote ~'keypath) ~key-sym)])])]
-                          (recur (next seq-exprs)
-                                 deps
-                                 (into new-seq-exprs binding)))
-                        (recur (next seq-exprs)
-                               deps
-                               (into new-seq-exprs binding))))
-                    [deps new-seq-exprs]))]
-            `(~'for ~seq-exprs
-              ~(path-replace body-expr deps)))
-
           ;; this doesn't cover all of the binding forms
           fn
           (let [sigs (rest form)
@@ -593,110 +721,8 @@
           reify*
           form
 
-          (let [full-sym (delay
-                          (fully-qualified first-form))
-                special? (if (symbol? first-form)
-                           ;; should change `(meta first-form) to be first
-                           (if-let [m (or (when (cljs-env-compiler)
-                                            (:meta (cljs-resolve-var *env* first-form)))
-                                          #?(:clj (meta (resolve first-form)))
-                                          (resolve-sci-meta first-form)
-                                          (meta first-form))]
-                             (::special? m)
-                             (contains? @special-fns @full-sym)))]
-            (if special?
-              (let [args (second form)
-                    _ (assert (map? args) (str "membrane components must be called with a literal map. Invalid call:\n" (pr-str form)))
-                    fn-meta (get @special-fns @full-sym
-                                 (or #?(:clj (meta (resolve first-form)))
-                                     (resolve-sci-meta first-form)
-                                     (meta first-form)))
-
-                    arglists (:arglists fn-meta)
-                    first-arglist (first arglists)
-                    arg-map (first first-arglist)
-
-                    defaults (:or arg-map)
-                    
-                    ;; sort by explicit arguments since
-                    ;; they are used by the key prefix
-                    all-args (sort-by
-                              (fn [sym]
-                                [(not (contains? args (keyword sym)))
-                                 (.startsWith (name sym) "$")])
-                              (distinct
-                               (concat (:keys arg-map)
-                                       (->> args
-                                            (map (comp symbol name first)))
-                                       (->> (:keys arg-map)
-                                            (map name)
-                                            (map #(str "$" %))
-                                            (map symbol)))))
-
-                    binding-syms
-                    (into {}
-                          (for [arg all-args
-                                :let [arg-name (name arg)]]
-                            [arg (gensym (str arg-name  "-"))]))
-
-                    keypath-prefix
-                    (vec
-                     (for [k (keys args)
-                           :let [arg-name (name k)
-                                 dollar-arg? (.startsWith arg-name "$")]
-                           :when (or dollar-arg?
-                                     (not (contains? args (keyword (str "$" (name k))))))]
-                       (if dollar-arg?
-                         (get binding-syms (symbol arg-name))
-                         (symbol (str "$"
-                                      (name (get binding-syms (symbol arg-name))) )))))
-
-                    bindings (for [arg all-args
-                                   :when (contains? binding-syms arg)
-                                   :let [binding-sym (get binding-syms arg)
-                                         arg-val
-                                         (if (.startsWith (name arg) "$")
-                                           (if-let [arg-val (get args (keyword arg))]
-                                             arg-val
-                                             (let [val-sym (get binding-syms (symbol (subs (name arg) 1)))]
-                                               (symbol (str "$"  (name val-sym)))))
-
-                                           (get args (keyword arg)
-                                                (if (= 'context arg)
-                                                  'context
-                                                  (if (-> arg meta ::contextual)
-                                                    `(get ~'context ~(keyword (name arg)))
-                                                    `(get ~'extra
-                                                          [~keypath-prefix
-                                                           ~(keyword (str "$" (name arg)))]
-                                                          ~(when (contains? defaults arg)
-                                                             (get defaults arg))
-                                                          )))))]]
-                               [binding-sym arg-val])
-
-                    new-args
-                    (apply
-                     concat
-                     (for [arg all-args
-                           :let [arg-name (name arg)
-                                 arg-key (keyword arg-name)]]
-                       (if (.startsWith arg-name "$")
-                         [arg-key
-                          (get binding-syms (symbol arg-name))]
-                         [arg-key (get binding-syms arg)])))]
-                (with-meta
-                  `(~first-form
-                    ~(path-replace
-                      `(let [~@(apply concat bindings)]
-                         ~(apply hash-map new-args))
-                      deps))
-                  (meta form)))
-              
-              ;; else
-              (with-meta
-                (map #(path-replace % deps) form)
-                (meta form))))
-          ))
+          ;; other fn call
+          (path-replace-fn-call deps form)))
 
       (symbol? form)
       (if (contains? deps form)
