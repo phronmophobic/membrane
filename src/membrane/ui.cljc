@@ -1894,7 +1894,9 @@
                         elem))))))
 
 
-(defn center [elem [width height]]
+(defn center
+  "Centers `elem` within a space of `[width, height]`"
+  [elem [width height]]
   (let [[ewidth eheight] (bounds elem)]
     (translate (int (- (/ width 2)
                        (/ ewidth 2)))
