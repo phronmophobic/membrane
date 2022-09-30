@@ -194,6 +194,17 @@
          [(nth form 1)
           `(list (quote ~'nil->val) ~(nth form 2))]
 
+         ;; There are some good and bad reasons to do this
+         ;; - Associng onto a map doesn't logically change its path
+         ;; - there are some questions as to if it shouldn't modify its
+         ;;   path at all or if it should include the key and value
+         ;;   that was assoced. see also https://github.com/phronmophobic/membrane/issues/59
+         #_#_(clojure.core/assoc assoc)
+         [(nth form 1)
+          `(list ~(quote ~'assoc)
+                 ~(nth form 1)
+                 ~(nth form 2))]
+
          ;;else
          (if (keyword? f) 
            [(second form)
