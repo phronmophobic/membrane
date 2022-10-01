@@ -1,5 +1,6 @@
 {:source-paths ["src"]
- :dependencies [[com.rpl/specter "1.1.3"]]
+ :dependencies [[com.rpl/specter "1.1.3"]
+                [com.phronemophobic/cljs-cache "0.1.5"]]
  :builds {:webgltest { ;;:figwheel {:on-jsload "membrane.webgltest/on-js-reload"}
                       :modules {:main {:init-fn membrane.webgltest/-main}}
                       :asset-path "js/compiled/out.webgltest"

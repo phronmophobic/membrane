@@ -14,7 +14,7 @@
                  [com.rpl/specter "1.1.3"]
                  [org.apache.commons/commons-text "1.9"]
 
-
+                 [org.clojure/core.cache "1.0.225"]
                  ;; these two go together
                  ;; built and installed locally!
                  ;; [com.oracle/appbundler "1.0ea-local"]
