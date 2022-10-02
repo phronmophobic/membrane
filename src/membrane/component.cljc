@@ -1074,53 +1074,51 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
                     args))]
    (membrane.ui/on-bubble
     (fn [intents]
-       (run! #(apply handler %) intents))
+      (handler intents))
     (membrane.ui/on-scroll
      (fn [offset mpos]
        (let [intents (membrane.ui/scroll main-view offset mpos)]
-         (run! #(apply handler %) intents)))
+         (handler intents)))
      (membrane.ui/on-mouse-move-global
       (fn [pos]
         (let [intents (membrane.ui/mouse-move-global main-view pos)]
-          (run! #(apply handler %) intents)))
+          (handler intents)))
       (membrane.ui/on-mouse-move
        (fn [pos]
          (let [intents (membrane.ui/mouse-move main-view pos)]
-           (run! #(apply handler %) intents)))
+           (handler intents)))
        (membrane.ui/on-mouse-event
         (fn [pos button mouse-down? mods]
           (let [intents (membrane.ui/mouse-event main-view pos button mouse-down? mods)]
             (if (seq intents)
-              (run! #(apply handler %) intents)
+              (handler intents)
               (when mouse-down?
-                (handler :set [$context :focus] nil)
+                (handler [[:set [$context :focus] nil]])
                 nil))))
         (ui/on-key-press
          (fn [s]
            (let [intents (membrane.ui/key-press main-view s)]
-             (run! #(apply handler %) intents))
-           )
+             (handler intents)))
          (membrane.ui/on-key-event
           (fn [key scancode action mods]
             (let [intents (membrane.ui/key-event main-view key scancode action mods)]
-              (run! #(apply handler %) intents))
-            )
+              (handler intents)))
           (membrane.ui/on-clipboard-cut
            (fn []
              (let [intents (membrane.ui/clipboard-cut main-view)]
-               (run! #(apply handler %) intents)))
+               (handler intents)))
            (membrane.ui/on-clipboard-copy
             (fn []
               (let [intents (membrane.ui/clipboard-copy main-view)]
-                (run! #(apply handler %) intents)))
+                (handler intents)))
             (membrane.ui/on-clipboard-paste
              (fn [s]
                (let [intents (membrane.ui/clipboard-paste main-view s)]
-                 (run! #(apply handler %) intents)))
+                 (handler intents)))
              (membrane.ui/on-drop
               (fn [paths pos]
                 (let [intents (membrane.ui/drop main-view paths pos)]
-                  (run! #(apply handler %) intents)))
+                  (handler intents)))
               main-view)))))))))))))
 
 
@@ -1174,8 +1172,11 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
           (println "no handler for " type))))))
 
 (defn default-handler [atm]
-  (fn dispatch! [& args]
-    (apply dispatch!* atm dispatch! args)))
+  (fn dispatch!
+    ([effects]
+     (run! #(apply dispatch! %) effects))
+    ([effect-type & args]
+     (apply dispatch!* atm dispatch! effect-type args))))
 
 (defn make-app
   "`ui-var` The var for a component
