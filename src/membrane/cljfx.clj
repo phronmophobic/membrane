@@ -285,7 +285,8 @@
 (defn membrane-component [ui-var state set-state]
   (let [
         handler (fn dispatch!
-                  ([] nil)
+                  ([effects]
+                   (run! #(apply dispatch! %) effects))
                   ([type & args]
                    (case type
                      :update
