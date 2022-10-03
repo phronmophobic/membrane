@@ -4,6 +4,10 @@
    ;;  :as async]
    [com.rpl.specter :as spec
     :refer [ATOM ALL FIRST LAST MAP-VALS META]]
+   #?(:clj [clojure.core.cache :as cache]
+      :cljs [cljs.cache :as cache])
+   #?(:clj [clojure.core.cache.wrapped :as cw]
+      :cljs [cljs.cache.wrapped :as cw])
    #?(:cljs cljs.analyzer.api)
    #?(:cljs [cljs.analyzer :as cljs])
    #?(:cljs cljs.env)
@@ -193,6 +197,17 @@
          (clojure.core/or or)
          [(nth form 1)
           `(list (quote ~'nil->val) ~(nth form 2))]
+
+         ;; There are some good and bad reasons to do this
+         ;; - Associng onto a map doesn't logically change its path
+         ;; - there are some questions as to if it shouldn't modify its
+         ;;   path at all or if it should include the key and value
+         ;;   that was assoced. see also https://github.com/phronmophobic/membrane/issues/59
+         #_#_(clojure.core/assoc assoc)
+         [(nth form 1)
+          `(list ~(quote ~'assoc)
+                 ~(nth form 1)
+                 ~(nth form 2))]
 
          ;;else
          (if (keyword? f) 
@@ -778,238 +793,212 @@
 
 (defn doall* [s] (dorun (tree-seq seqable? seq s)) s)
 
+(def component-cache (cw/basic-cache-factory {}))
+(defn reset-component-cache!
+  "For debugging purposes only. Ideally, should never be necessary."
+  []
+  (swap! component-cache cache/seed {}))
 
+;; make it easier for syntax quote to use the correct
+;; namespaced symbol
+(def cache-lookup-or-miss cw/lookup-or-miss)
+(def cache-has? cache/has?)
+(def cache-evict cache/evict)
+(def cache-miss cache/miss)
 
-(def component-cache (atom {}))
+(def has-key-press-memo (memoize ui/has-key-press))
+(def has-key-event-memo (memoize ui/has-key-event))
+(def has-mouse-move-global-memo (memoize ui/has-mouse-move-global))
 
 (defmacro defui
- "Define a component.
+  "Define a component.
 
   The arguments for a component must take the form (defui my-component [ & {:keys [arg1 arg2 ...]}])
 
   "
-   [ui-name & fdecl]
-   (let [def-meta (if (string? (first fdecl))
-                    {:doc (first fdecl)}
-                    {})
-         fdecl (if (string? (first fdecl))
-                 (next fdecl)
-                 fdecl)
-         def-meta (if (map? (first fdecl))
-                    (conj def-meta (first fdecl))
-                    def-meta)
-         fdecl (if (map? (first fdecl))
-                      (next fdecl)
-                      fdecl)
-         _ (assert (vector? (first fdecl)) "only one arglist allowed for defui.")
-         [args & body] fdecl
+  [ui-name & fdecl]
+  (let [def-meta (if (string? (first fdecl))
+                   {:doc (first fdecl)}
+                   {})
+        fdecl (if (string? (first fdecl))
+                (next fdecl)
+                fdecl)
+        def-meta (if (map? (first fdecl))
+                   (conj def-meta (first fdecl))
+                   def-meta)
+        fdecl (if (map? (first fdecl))
+                (next fdecl)
+                fdecl)
+        _ (assert (vector? (first fdecl)) "only one arglist allowed for defui.")
+        [args & body] fdecl
 
-         _ (assert (= 1 (count args))
-                   "defui arglist must have exactly one arg")
+        _ (assert (= 1 (count args))
+                  "defui arglist must have exactly one arg")
 
-         arg-map-or-sym (first args)
-         _ (assert (or (symbol? arg-map-or-sym)
-                       (map? arg-map-or-sym)
-                       "defui arglist must have exactly one arg and it must be either a symbol or map."
-                       ))
-         ;; [ampersand arg-map-or-sym] args
+        arg-map-or-sym (first args)
+        _ (assert (or (symbol? arg-map-or-sym)
+                      (map? arg-map-or-sym)
+                      "defui arglist must have exactly one arg and it must be either a symbol or map."
+                      ))
+        ;; [ampersand arg-map-or-sym] args
 
-         ;; arg-syms (get arg-map-or-sym :keys)
+        ;; arg-syms (get arg-map-or-sym :keys)
 
-         args-map-sym (if (symbol? arg-map-or-sym)
-                        arg-map-or-sym
-                        (get arg-map-or-sym :as (gensym "m-")))
+        args-map-sym (if (symbol? arg-map-or-sym)
+                       arg-map-or-sym
+                       (get arg-map-or-sym :as (gensym "m-")))
 
-         arg-keys (get arg-map-or-sym :keys [])
-         arg-keys (if (some #(= 'extra %) arg-keys)
-                    arg-keys
-                    (conj arg-keys 'extra))
+        arg-keys (get arg-map-or-sym :keys [])
+        arg-keys (if (some #(= 'extra %) arg-keys)
+                   arg-keys
+                   (conj arg-keys 'extra))
 
-         arg-keys (if (some #(= 'context %) arg-keys)
-                    arg-keys
-                    (conj arg-keys 'context))
+        arg-keys (if (some #(= 'context %) arg-keys)
+                   arg-keys
+                   (conj arg-keys 'context))
          
-         defaults (:or arg-map-or-sym)
+        defaults (:or arg-map-or-sym)
 
-         arg-path-syms (for [arg-name arg-keys]
-                         (gensym (str "arg-path-" (name arg-name) "-")))
-         arg-path-bindings (mapcat                                     
-                            (fn [arg-sym path-sym]
-                              (let [arg-key (keyword arg-sym)
-                                    $arg-key (keyword (str "$" (name arg-sym)))]
-                                [path-sym
-                                 ;; should be same as below with one less vector wrap
-                                 (let [fn-arg-path `(get ~args-map-sym ~$arg-key [~(list 'list '(quote keypath) (list 'quote arg-key))])]
-                                   (if-let [default (get defaults arg-sym)]
-                                     [fn-arg-path [`((quote ~'nil->val) ~default)]]
-                                     fn-arg-path))
-                                 #_(vec
-                                    (concat
-                                     [`(get ~args-map-sym ~$arg-key [::unknown])]
-                                     (when-let [default (get defaults arg-sym)]
-                                       [`((quote ~'nil->val) ~default)])))
-                                 ]))
-                            arg-keys
-                            arg-path-syms)
-         deps (into {}
-                    (for [[arg-name path-sym] (map vector arg-keys arg-path-syms)]
-                      [arg-name
-                       [{}
-                        (delay
+        arg-path-syms (for [arg-name arg-keys]
+                        (gensym (str "arg-path-" (name arg-name) "-")))
+        arg-path-bindings (mapcat
+                           (fn [arg-sym path-sym]
+                             (let [arg-key (keyword arg-sym)
+                                   $arg-key (keyword (str "$" (name arg-sym)))]
+                               [path-sym
+                                ;; should be same as below with one less vector wrap
+                                (let [fn-arg-path `(get ~args-map-sym ~$arg-key [~(list 'list '(quote keypath) (list 'quote arg-key))])]
+                                  (if-let [default (get defaults arg-sym)]
+                                    [fn-arg-path [`((quote ~'nil->val) ~default)]]
+                                    fn-arg-path))
+                                #_(vec
+                                   (concat
+                                    [`(get ~args-map-sym ~$arg-key [::unknown])]
+                                    (when-let [default (get defaults arg-sym)]
+                                      [`((quote ~'nil->val) ~default)])))
+                                ]))
+                           arg-keys
+                           arg-path-syms)
+        deps (into {}
+                   (for [[arg-name path-sym] (map vector arg-keys arg-path-syms)]
+                     [arg-name
+                      [{}
+                       (delay
                          [nil (with-meta path-sym
                                 {::flatten? true})])]]))
-         ui-arg-map
-         (merge (when (map? arg-map-or-sym)
-                  arg-map-or-sym)
-                {:keys arg-keys
-                 :as args-map-sym}
-                (when defaults
-                  {:or defaults}))
-         ui-name-meta (merge
-                       {::special? true :arglists `([~(dissoc ui-arg-map :as)])}
-                       def-meta)
-]
+        ui-arg-map
+        (merge (when (map? arg-map-or-sym)
+                 arg-map-or-sym)
+               {:keys arg-keys
+                :as args-map-sym}
+               (when defaults
+                 {:or defaults}))
+        ui-name-meta (merge
+                      {::special? true :arglists `([~(dissoc ui-arg-map :as)])}
+                      def-meta)
+        ]
 
-     (let [component-name (symbol (clojure.string/capitalize (name ui-name)))
-           component-map-constructor (symbol (str "map->" (name component-name)))
-           draw-fn-name (symbol (str (name (str ui-name "-draw"))))
-           ui-name-kw (keyword (name (ns-name *ns*))
-                               (name ui-name))
-           rerender-fn-name (symbol (str ui-name "-rerender!"))
-           elem-sym (gensym "elem-")
-           result 
-           `(do
+    (let [component-name (symbol (clojure.string/capitalize (name ui-name)))
+          component-map-constructor (symbol (str "map->" (name component-name)))
+          component-arg-constructor (symbol (str "->" (name component-name)))
+          render-fn-name (symbol (str (name (str ui-name "-render"))))
+          ui-name-kw (keyword (name (ns-name *ns*))
+                              (name ui-name))
+          render-cached-fn-name (symbol (str ui-name "-render-cached!"))
+          elem-sym (gensym "elem-")
 
+          result
+          `(do
 
-              (declare ~ui-name)
-              (defn ~draw-fn-name {:no-doc true} [~ui-arg-map]
-                (let [~@arg-path-bindings]
-                  ;; force evaluation so *ns* variable is set
-                  ;; correctly. we need to know the *ns* for clojurescript
-                  ;; so we can correctly replace calls to other ui components
-                  ;; with their provenance info
-                  ~@(binding [*env* &env]
-                      (doall* (map #(path-replace % deps) body)))))
+             (declare ~ui-name)
+             (defn ~render-fn-name {:no-doc true} [~ui-arg-map]
+               #_(prn "rendering " ~(str ui-name))
+               (let [~@arg-path-bindings]
+                 ;; force evaluation so *ns* variable is set
+                 ;; correctly. we need to know the *ns* for clojurescript
+                 ;; so we can correctly replace calls to other ui components
+                 ;; with their provenance info
+                 ~@(binding [*env* &env]
+                     (doall* (map #(path-replace % deps) body)))))
 
-              (defrecord ~component-name [~@arg-keys]
-                  membrane.ui/IOrigin
-                  (~'-origin [this#]
-                   [0 0])
+             (defn ~render-cached-fn-name  {:no-doc true} [elem#]
+               (cache-lookup-or-miss component-cache
+                                     elem#
+                                     ~render-fn-name))
 
-                membrane.ui/IBounds
-                (~'-bounds [this#]
-                 (::bounds this#)
-                 )
+             (defrecord ~component-name []
+               membrane.ui/IOrigin
+               (~'-origin [this#]
+                [0 0])
 
-                membrane.ui/IHasMouseMoveGlobal
-                (~'has-mouse-move-global [this#]
-                 (::has-mouse-move-global this#))
+               membrane.ui/IBounds
+               (~'-bounds [this#]
+                (ui/bounds (~render-cached-fn-name this#)))
 
-                membrane.ui/IHasKeyPress
-                (~'has-key-press [this#]
-                 (::has-key-press this#))
+               membrane.ui/IHasMouseMoveGlobal
+               (~'has-mouse-move-global [this#]
+                (has-mouse-move-global-memo (~render-cached-fn-name this#)))
 
-                membrane.ui/IHasKeyEvent
-                (~'has-key-event [this#]
-                 (::has-key-event this#))
+               membrane.ui/IHasKeyPress
+               (~'has-key-press [this#]
+                (has-key-press-memo (~render-cached-fn-name this#)))
 
-                membrane.ui/IKeyPress
-                (~'-key-press [this# info#]
-                 (when (::has-key-press this#)
-                   (when-let [xs# (children this#)]
-                     (mapcat #(membrane.ui/-key-press % info#) xs#))))
+               membrane.ui/IHasKeyEvent
+               (~'has-key-event [this#]
+                (has-key-event-memo (~render-cached-fn-name this#)))
 
-                membrane.ui/IKeyEvent
-                (~'-key-event [this# key# scancode# action# mods#]
-                 (when (::has-key-event this#)
-                   (when-let [xs# (children this#)]
-                     (mapcat #(membrane.ui/-key-event % key# scancode# action# mods#) xs#))))
+               membrane.ui/IKeyPress
+               (~'-key-press [this# info#]
+                (let [rendered# (~render-cached-fn-name this#)]
+                  (when (has-key-press-memo rendered#)
+                    (ui/-key-press rendered# info#))))
 
-                membrane.ui/IMouseMoveGlobal
-                (~'-mouse-move-global [this# pos#]
-                 (when (::has-mouse-move-global this#)
-                   (membrane.ui/-default-mouse-move-global this# pos#)))
+               membrane.ui/IKeyEvent
+               (~'-key-event [this# key# scancode# action# mods#]
+                (let [rendered# (~render-cached-fn-name this#)]
+                  (when (has-key-event-memo rendered#)
+                    (ui/-key-event rendered# key# scancode# action# mods#))))
 
-                membrane.ui/IChildren
-                (~'-children [this#]
-                 ;; [(~draw-fn-name this# )]
-                 (::children this#)
-                 )
-                
-                )
-              (alter-meta! (var ~ui-name) (fn [old-meta#]
-                                            (merge old-meta# (quote ~ui-name-meta))))
+               membrane.ui/IMouseMoveGlobal
+               (~'-mouse-move-global [this# pos#]
+                (let [rendered# (~render-cached-fn-name this#)]
+                  (when (has-mouse-move-global-memo rendered#)
+                    (membrane.ui/-mouse-move-global rendered# pos#))))
 
-              ;; i'm not sure there's a good reason to ever call this function
-              ;; as parent components will also cache themselves and so unless
-              ;; you wipe the full component cache, then rerendering a child component
-              ;; won't be reflected in most cases since the parent component's cache
-              ;; won't have been updated
-              (defn ~rerender-fn-name  {:no-doc true} [m#]
-                (let [~elem-sym (~component-map-constructor m#)
-                      key# [~ui-name-kw
-                            [~@(for [k arg-keys]
-                                 `(~(keyword k) ~elem-sym))
+               membrane.ui/IChildren
+               (~'-children [this#]
+                [(~render-cached-fn-name this#)]))
 
-                             ~@(for [k arg-keys]
-                                 `(~(keyword (str "$" (name k))) ~elem-sym))]]
-                      rendered# (~draw-fn-name ~elem-sym)
-                      ~elem-sym (-> ~elem-sym
-                                    (assoc ::bounds (membrane.ui/child-bounds rendered#))
-                                    (assoc ::children [rendered#])
-                                    (assoc ::rendered rendered#)
-                                    (assoc ::has-key-event (membrane.ui/has-key-event rendered#))
-                                    (assoc ::has-key-press (membrane.ui/has-key-press rendered#))
-                                    (assoc ::has-mouse-move-global (membrane.ui/has-mouse-move-global rendered#)))]
-                  ;; (println "need new " ~(name ui-name))
-                  (swap! membrane.component/component-cache
-                         assoc-in key# ~elem-sym)
-                  ~elem-sym))
+             (alter-meta! (var ~ui-name) (fn [old-meta#]
+                                           (merge old-meta# (quote ~ui-name-meta))))
 
-              (let [
-                    ret#
-                    (defn ~ui-name ~(dissoc ui-name-meta
-                                            :arglists)
-                      [~ui-arg-map]
-                      (let [key# [~ui-name-kw
-                                  [~@arg-keys
-                                   ;; ideally, the provenance keys shouldn't need
-                                   ;; to be included since the component really
-                                   ;; is the same, but it currently doesn't
-                                   ;; work as is because of the event handlers
-                                   ~@(for [k arg-keys]
-                                       `(~(keyword (str "$" (name k)))
-                                         ~args-map-sym))]]
-                            elem# (if-let [elem# (get-in @membrane.component/component-cache key#)]
-                                    elem#
-                                    (~rerender-fn-name ~args-map-sym)
-                                    #_(let [elem# (~component-map-constructor ~args-map-sym)
-                                            rendered# (~draw-fn-name elem#)
-                                            elem# (-> elem#
-                                                      (assoc ::bounds (bounds rendered#))
-                                                      (assoc ::children [rendered#])
-                                                      (assoc ::rendered rendered#)
-                                                      (assoc ::has-key-event (membrane.ui/has-key-event rendered#))
-                                                      (assoc ::has-key-press (membrane.ui/has-key-press rendered#)))]
-                                        ;; (println "need new " ~(name ui-name))
-                                        (swap! membrane.component/component-cache
-                                               assoc-in key# elem#)
-                                        elem#))]
-                        elem#))]
-                (reset! component-cache {})
+             (let [
+                   ret#
+                   (defn ~ui-name ~(dissoc ui-name-meta
+                                           :arglists)
+                     [~ui-arg-map]
 
-                ;; needed for bootstrapped cljs
-                (swap! special-fns
-                       assoc
-                       (quote ~(symbol (name (ns-name *ns*)) (name ui-name)))
-                       (quote ~ui-name-meta))
-                (alter-meta! (var ~ui-name) (fn [old-meta#]
-                                              (merge old-meta# (quote ~ui-name-meta))))
-                ret#)
+                     (let [elem# (~component-map-constructor ~args-map-sym)]
+                       (swap! component-cache
+                              (fn [c#]
+                                (-> c#
+                                    (cache-evict elem#)
+                                    (cache-miss elem# (~render-cached-fn-name elem#)))))
+                       elem#))]
+               (reset-component-cache!)
+
+               ;; needed for bootstrapped cljs
+               (swap! special-fns
+                      assoc
+                      (quote ~(symbol (name (ns-name *ns*)) (name ui-name)))
+                      (quote ~ui-name-meta))
+               (alter-meta! (var ~ui-name) (fn [old-meta#]
+                                             (merge old-meta# (quote ~ui-name-meta))))
+               ret#)
               
-              )]
-       (swap! special-fns assoc (symbol (name (ns-name *ns*)) (name ui-name)) ui-name-meta)
-       result)))
+             )]
+      (swap! special-fns assoc (symbol (name (ns-name *ns*)) (name ui-name)) ui-name-meta)
+      result)))
 
 
 (defonce effects (atom {}))
@@ -1085,53 +1074,51 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
                     args))]
    (membrane.ui/on-bubble
     (fn [intents]
-       (run! #(apply handler %) intents))
+      (handler intents))
     (membrane.ui/on-scroll
      (fn [offset mpos]
        (let [intents (membrane.ui/scroll main-view offset mpos)]
-         (run! #(apply handler %) intents)))
+         (handler intents)))
      (membrane.ui/on-mouse-move-global
       (fn [pos]
         (let [intents (membrane.ui/mouse-move-global main-view pos)]
-          (run! #(apply handler %) intents)))
+          (handler intents)))
       (membrane.ui/on-mouse-move
        (fn [pos]
          (let [intents (membrane.ui/mouse-move main-view pos)]
-           (run! #(apply handler %) intents)))
+           (handler intents)))
        (membrane.ui/on-mouse-event
         (fn [pos button mouse-down? mods]
           (let [intents (membrane.ui/mouse-event main-view pos button mouse-down? mods)]
             (if (seq intents)
-              (run! #(apply handler %) intents)
+              (handler intents)
               (when mouse-down?
-                (handler :set [$context :focus] nil)
+                (handler [[:set [$context :focus] nil]])
                 nil))))
         (ui/on-key-press
          (fn [s]
            (let [intents (membrane.ui/key-press main-view s)]
-             (run! #(apply handler %) intents))
-           )
+             (handler intents)))
          (membrane.ui/on-key-event
           (fn [key scancode action mods]
             (let [intents (membrane.ui/key-event main-view key scancode action mods)]
-              (run! #(apply handler %) intents))
-            )
+              (handler intents)))
           (membrane.ui/on-clipboard-cut
            (fn []
              (let [intents (membrane.ui/clipboard-cut main-view)]
-               (run! #(apply handler %) intents)))
+               (handler intents)))
            (membrane.ui/on-clipboard-copy
             (fn []
               (let [intents (membrane.ui/clipboard-copy main-view)]
-                (run! #(apply handler %) intents)))
+                (handler intents)))
             (membrane.ui/on-clipboard-paste
              (fn [s]
                (let [intents (membrane.ui/clipboard-paste main-view s)]
-                 (run! #(apply handler %) intents)))
+                 (handler intents)))
              (membrane.ui/on-drop
               (fn [paths pos]
                 (let [intents (membrane.ui/drop main-view paths pos)]
-                  (run! #(apply handler %) intents)))
+                  (handler intents)))
               main-view)))))))))))))
 
 
@@ -1185,8 +1172,11 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
           (println "no handler for " type))))))
 
 (defn default-handler [atm]
-  (fn dispatch! [& args]
-    (apply dispatch!* atm dispatch! args)))
+  (fn dispatch!
+    ([effects]
+     (run! #(apply dispatch! %) effects))
+    ([effect-type & args]
+     (apply dispatch!* atm dispatch! effect-type args))))
 
 (defn make-app
   "`ui-var` The var for a component
@@ -1234,7 +1224,6 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
                                     :defaults defaults
                                     :handler handler}))]
      top-level)))
-
 
 
 

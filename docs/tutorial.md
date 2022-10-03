@@ -267,8 +267,7 @@ To draw multiple elements, simply use a vector. The elements will be drawn in or
 
 ### Common UI Elements
 
-Typically, the graphics for elements and their event handling code is intertwined. These elements are simply views and have no default behavior associated with them. If you do want both the default behavior, check out `membrane.component/button` and `membrane.component/checkbox`.
-
+Typically, the graphics for elements and their event handling code is intertwined. These elements are simply views and have no default behavior associated with them. If you do want both the default behavior, check out `membrane.basic-components/button` and `membrane.basic-components/checkbox`.
 ![checkbox](/docs/images/checkbox-elem.png?raw=true)
 
 ```clojure
@@ -290,8 +289,8 @@ Typically, the graphics for elements and their event handling code is intertwine
 
 ## Events
 
-With membrane, events handlers are pure functions that take events and return a sequence of effects.
-Effects are a data description of what to do rather than a side effect.
+With membrane, events handlers are pure functions that take events and return a sequence of intents.
+Intents are a data description of what to do rather than a side effect.
 
 ```clojure
 ;; mouse-down event at location [15 15]
@@ -299,7 +298,7 @@ Effects are a data description of what to do rather than a side effect.
   (ui/mouse-down
    (ui/translate 10 10
                  (ui/on :mouse-down (fn [[mx my]]
-                                   ;;return a sequence of effects
+                                   ;;return a sequence of intents
                                    [[:say-hello]])
                      (ui/label "Hello")))
    mpos))
@@ -308,12 +307,12 @@ Effects are a data description of what to do rather than a side effect.
 
 ### Event flow
 
-Conceptually, event handling is hierarchical. When an event occurs, it asks the root element what effects should take place. The root element may
-1) simply return effects
-2) fully delegate to its child elements by asking them what effects should take place and returning those effects
-3) partially delegate by asking its child elements what effects should take place and transforming or filtering those effects before returning
+Conceptually, event handling is hierarchical. When an event occurs, it asks the root element what intents should take place. The root element may
+1) simply return intents
+2) fully delegate to its child elements by asking them what intents should take place and returning those intents
+3) partially delegate by asking its child elements what intents should take place and transforming or filtering those intents before returning
 
-The default behavior for most container components is #2, delegating to their child components. However, the parent component always has the final say over what effects should occur over its child components. This is the functional equivalent of the browser's `event.preventDefault` and `event.stopPropagation`.
+The default behavior for most container components is #2, delegating to their child components. However, the parent component always has the final say over what intents should occur over its child components. This is the functional equivalent of the browser's `event.preventDefault` and `event.stopPropagation`.
 
 Here are few illustrative examples:
 
@@ -343,14 +342,14 @@ It's useful for graphical GUI builders and testing to be able to silence compone
 
 #### Filter some events
 
-Here, we'll only ask `child-elem` what effects should occur if the key pressed is a lower case letter. No symbols, numbers, or upper case letters allowed!
+Here, we'll only ask `child-elem` what intents should occur if the key pressed is a lower case letter. No symbols, numbers, or upper case letters allowed!
 
 ```clojure
 (let [lower-case-letters (set (map str "abcdefghijklmnopqrstuvwxyz"))
       child-elem (ui/on :key-press
                         (fn [s]
-                          [[:child-effect1 s]
-                           [:child-effect2 s]])
+                          [[:child-intent1 s]
+                           [:child-intent2 s]])
                         (ui/label "child elem"))
       elem (ui/on
             :key-press (fn [s]
@@ -359,7 +358,7 @@ Here, we'll only ask `child-elem` what effects should occur if the key pressed i
             child-elem)]
   {"a" (ui/key-press elem "a")
    "." (ui/key-press elem ".")})
->>> {"a" [[:child-effect1 "a"] [:child-effect2 "a"]], 
+>>> {"a" [[:child-intent1 "a"] [:child-intent2 "a"]],
      "." nil}
 ```
 
@@ -368,8 +367,8 @@ Here, we'll only ask `child-elem` what effects should occur if the key pressed i
 ```clojure
 (let [child-elem (ui/on :key-press
                         (fn [s]
-                          [[:child-effect1 s]
-                           [:child-effect2 s]])
+                          [[:child-intent1 s]
+                           [:child-intent2 s]])
                         (ui/label "child elem"))
       elem (ui/on
             :key-press (fn [s]
@@ -380,7 +379,7 @@ Here, we'll only ask `child-elem` what effects should occur if the key pressed i
             child-elem)]
   {"a" (ui/key-press elem "a")
    "." (ui/key-press elem ".")})
->>> {"a" [[:child-effect1 "a"] [:child-effect2 "a"]],
+>>> {"a" [[:child-intent1 "a"] [:child-intent2 "a"]],
      "." [[:do-something-special]]}
 ```
 
@@ -397,7 +396,7 @@ mpos is a vector of `[mx, my]` in the elements local coordinates.
 Will only be called if [mx my] is within the element's bounds
 ```clojure
 (on :mouse-down (fn [[mx my :as mpos]]
-                  ;;return a sequence of effects
+                  ;;return a sequence of intents
                   [[:hello mx my]])
     (ui/label "Hello"))
 ```
@@ -410,7 +409,7 @@ Will only be called if [mx my] is within the element's bounds
 
 ```clojure
 (on :mouse-up (fn [[mx my :as mpos]]
-                ;;return a sequence of effects
+                ;;return a sequence of intents
                 [[:hello mx my]])
     (ui/label "Hello"))
 ```
@@ -424,7 +423,7 @@ Will only be called if [mx my] is within the element's bounds
 
 ```clojure
 (on :mouse-move (fn [[mx my :as mpos]]
-                  ;;return a sequence of effects
+                  ;;return a sequence of intents
                   [[:hello mx my]])
     (ui/label "Hello"))
 ```
@@ -449,7 +448,7 @@ Will only be called if `[mx my]` is within the element's bounds
 
 ```clojure
 (on :mouse-event (fn [[[mx my] button mouse-down? mods]]
-                   ;;return a sequence of effects
+                   ;;return a sequence of intents
                    [[:hello mx my]])
     (ui/label "Hello"))
 ```
@@ -506,9 +505,9 @@ Called when a cliboard cut event occurs.
 `s` is the string being pasted
 Called when a clipboard paste event occurs.
 
-### Effect bubbling
+### Event bubbling
 
-Another benefit of having a value based event system is that you can also easily transform and filter effects.
+Another benefit of having a value based event system is that you can also easily transform and filter intents.
 
 
 ```clojure
@@ -532,11 +531,9 @@ Another benefit of having a value based event system is that you can also easily
 ```
 
 
-
-
 ### Side effects in event handlers
 
-The effects returned by event handlers are meant to be used in conjuction with UI frameworks. If you're making a simple UI, then you can just put your side effects in the event handler. Just note that you'll want to return nil from the handler since the event machinery expects a sequence of events. Nothing bad will happen if you don't, but you may see IllegalArgumentExceptions in the logs with the message "Don't know how to create ISeq from: ...".
+The intents returned by event handlers are meant to be used in conjuction with UI frameworks. If you're making a simple UI, then you can just put your side effects in the event handler. Just note that you'll want to return nil from the handler since the event machinery expects a sequence of events. Nothing bad will happen if you don't, but you may see IllegalArgumentExceptions in the logs with the message "Don't know how to create ISeq from: ...".
 
 ```clojure
 (ui/translate 10 10
@@ -622,7 +619,7 @@ You'll notice a few differences in the code.
 4) The value returned by the mouse down handler includes a mysterious symbol, `$checked?`
 5) There is a `::toggle` effect defined by `defeffect` 
 
-The most interesting part of this example is the `:mouse-down` event handler which returns `[[::toggle $checked?]]`. Loosely translated, this means "when a `:mouse-down` event occurs, the checkbox proposes 1 effect which toggles the value of `checked?`." It does not specify _how_ the `::toggle` effect is implemented.
+The most interesting part of this example is the `:mouse-down` event handler which returns `[[::toggle $checked?]]`. Loosely translated, this means "when a `:mouse-down` event occurs, the checkbox proposes 1 intent which toggles the value of `checked?`." It does not specify _how_ the `::toggle` effect is implemented.
 
 What exactly is `$checked?`? The symbol `$checked?` is replaced by the `defui` macro with a value that specifies the path to `checked?`. In fact, the `defui` macro will replace all symbols that start with "$" that derive from a keyword parameter with a value that represents the path of the corresponding symbol.
 
@@ -639,7 +636,6 @@ You can find the implementation of the `::toggle` effect by checking its `defeff
 
 The arglist for `dispatch!` is `[type & args]`. Calling `dispatch!` will invoke the effect of `type` with `args`.
 The role of `dispatch!` is to allow effects to define themselves in terms of other effects. Effects should not be called directly because while the default for an application is to use all the globally defined effects, this can be overridden for testing, development, or otherwise.
-
 
 
 ### Running components

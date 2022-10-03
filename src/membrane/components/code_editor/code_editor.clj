@@ -189,7 +189,7 @@
 
 (defeffect ::insert-text [$buf s]
   (dispatch! :update $buf (comp highlight
-                                #(buffer/insert-string % s))))
+                                #(reduce buffer/insert-char % s))))
 
 (defeffect ::handle-key [$buf s]
   (case s

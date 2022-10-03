@@ -148,7 +148,7 @@
                   (js/console.log err))
               (do
                 (swap! font-cache assoc font-name font)
-                (reset! membrane.component/component-cache {})
+                (membrane.component/reset-component-cache!)
                 (doseq [cb @freetype-callbacks]
                   (cb))
                 (reset! freetype-callbacks [])

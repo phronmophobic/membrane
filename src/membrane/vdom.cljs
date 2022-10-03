@@ -53,7 +53,7 @@
          (js/console.log err))
      (do
        (set! freetype-font font)
-       (reset! membrane.component/component-cache {})
+       (membrane.component/reset-component-cache!)
        (doseq [cb @freetype-callbacks]
          (cb freetype-font))
        (reset! freetype-callbacks [])))))
