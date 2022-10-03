@@ -1069,52 +1069,19 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
                     args))]
    (membrane.ui/on-bubble
     (fn [intents]
-      (handler intents))
-    (membrane.ui/on-scroll
-     (fn [offset mpos]
-       (let [intents (membrane.ui/scroll main-view offset mpos)]
-         (handler intents)))
-     (membrane.ui/on-mouse-move-global
-      (fn [pos]
-        (let [intents (membrane.ui/mouse-move-global main-view pos)]
-          (handler intents)))
-      (membrane.ui/on-mouse-move
-       (fn [pos]
-         (let [intents (membrane.ui/mouse-move main-view pos)]
-           (handler intents)))
-       (membrane.ui/on-mouse-event
-        (fn [pos button mouse-down? mods]
-          (let [intents (membrane.ui/mouse-event main-view pos button mouse-down? mods)]
-            (if (seq intents)
-              (handler intents)
-              (when mouse-down?
-                (handler [[:set [$context :focus] nil]])
-                nil))))
-        (ui/on-key-press
-         (fn [s]
-           (let [intents (membrane.ui/key-press main-view s)]
-             (handler intents)))
-         (membrane.ui/on-key-event
-          (fn [key scancode action mods]
-            (let [intents (membrane.ui/key-event main-view key scancode action mods)]
-              (handler intents)))
-          (membrane.ui/on-clipboard-cut
-           (fn []
-             (let [intents (membrane.ui/clipboard-cut main-view)]
-               (handler intents)))
-           (membrane.ui/on-clipboard-copy
-            (fn []
-              (let [intents (membrane.ui/clipboard-copy main-view)]
-                (handler intents)))
-            (membrane.ui/on-clipboard-paste
-             (fn [s]
-               (let [intents (membrane.ui/clipboard-paste main-view s)]
-                 (handler intents)))
-             (membrane.ui/on-drop
-              (fn [paths pos]
-                (let [intents (membrane.ui/drop main-view paths pos)]
-                  (handler intents)))
-              main-view)))))))))))))
+      (when (seq intents)
+        (handler intents)))
+    (membrane.ui/on-mouse-event
+     (fn [pos button mouse-down? mods]
+       (let [intents (membrane.ui/mouse-event main-view pos button mouse-down? mods)]
+         (if (seq intents)
+           (handler intents)
+           (when mouse-down?
+             (let [focus (:focus context)]
+               (when focus
+                 (handler [[:set $focus nil]])))
+             nil))))
+     main-view))))
 
 
 
