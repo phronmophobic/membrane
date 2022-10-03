@@ -979,11 +979,6 @@
                      [~ui-arg-map]
 
                      (let [elem# (~component-map-constructor ~args-map-sym)]
-                       (swap! component-cache
-                              (fn [c#]
-                                (-> c#
-                                    (cache-evict elem#)
-                                    (cache-miss elem# (~render-cached-fn-name elem#)))))
                        elem#))]
                (reset-component-cache!)
 
