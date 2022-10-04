@@ -793,11 +793,15 @@
 
 (defn doall* [s] (dorun (tree-seq seqable? seq s)) s)
 
-(def component-cache (cw/basic-cache-factory {}))
+(def component-cache (cw/basic-cache-factory {::basis 1}))
+
 (defn reset-component-cache!
   "For debugging purposes only. Ideally, should never be necessary."
   []
-  (swap! component-cache cache/seed {}))
+  (swap! component-cache
+         (fn [old-cache]
+           (let [old-basis (cache/lookup old-cache ::basis)]
+             (cache/seed old-cache {::basis (inc old-basis)}))) ))
 
 ;; make it easier for syntax quote to use the correct
 ;; namespaced symbol
@@ -1184,7 +1188,8 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
                                     :body ui-var
                                     :arg-names arg-names
                                     :defaults defaults
-                                    :handler handler}))]
+                                    :handler handler
+                                    ::basis (::basis @component-cache)}))]
      top-level)))
 
 
