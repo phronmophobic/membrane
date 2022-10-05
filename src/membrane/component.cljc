@@ -561,15 +561,24 @@
   (let [first-form (first form)]
     (let [full-sym (delay
                      (fully-qualified first-form))
+
+          recursive-call-meta
+          (when (and (simple-symbol? first-form)
+                     (not (contains? deps first-form)))
+            (get @special-fns
+                 (symbol (name (ns-name *ns*))
+                         (name first-form))))
+
           special? (if (symbol? first-form)
                      ;; should change `(meta first-form) to be first
-                     (if-let [m (or (when (cljs-env-compiler)
-                                      (:meta (cljs-resolve-var *env* first-form)))
-                                    #?(:clj (meta (resolve first-form)))
-                                    (resolve-sci-meta first-form)
-                                    (meta first-form))]
-                       (::special? m)
-                       (contains? @special-fns @full-sym)))]
+                     (or recursive-call-meta
+                         (if-let [m (or (when (cljs-env-compiler)
+                                          (:meta (cljs-resolve-var *env* first-form)))
+                                        #?(:clj (meta (resolve first-form)))
+                                        (resolve-sci-meta first-form)
+                                        (meta first-form))]
+                           (::special? m)
+                           (contains? @special-fns @full-sym))))]
       (if (not special?)
         ;; other fn call
         (with-meta
@@ -578,10 +587,11 @@
 
         ;; call to defui component
         (let [call-arg (second form)
-              fn-meta (get @special-fns @full-sym
-                           (or #?(:clj (meta (resolve first-form)))
-                               (resolve-sci-meta first-form)
-                               (meta first-form)))]
+              fn-meta (or recursive-call-meta
+                          (get @special-fns @full-sym
+                               (or #?(:clj (meta (resolve first-form)))
+                                   (resolve-sci-meta first-form)
+                                   (meta first-form))))]
           (if (map? call-arg)
             (path-replace-fn-call-map-literal deps form fn-meta)
             (path-replace-fn-call* deps form fn-meta)))))))
@@ -899,8 +909,13 @@
                  {:or defaults}))
         ui-name-meta (merge
                       {::special? true :arglists `([~(dissoc ui-arg-map :as)])}
-                      def-meta)
-        ]
+                      def-meta)]
+    ;; needed for cljs
+    ;; and recursive calls
+    (swap! special-fns
+           assoc
+           (symbol (name (ns-name *ns*)) (name ui-name))
+           ui-name-meta)
 
     (let [component-name (symbol (clojure.string/capitalize (name ui-name)))
           component-map-constructor (symbol (str "map->" (name component-name)))
@@ -996,7 +1011,7 @@
                ret#)
               
              )]
-      (swap! special-fns assoc (symbol (name (ns-name *ns*)) (name ui-name)) ui-name-meta)
+
       result)))
 
 
