@@ -130,19 +130,20 @@
 
 
 (defn draw-buffer [buf focused?]
-  (let [buf (highlight-paren buf)
-        ]
-    [
-     (let [cursor (::buffer/cursor buf)
-           row (::buffer/row cursor)
-           col (::buffer/col cursor)
-           ]
-       (ui/translate (* lw (dec col))
-                     (+ 2 (* lh (dec row)))
-                     (ui/filled-rectangle [0 0 0 (if focused?
-                                                   0.5
-                                                   0.1)]
-                                          lw lh)))
+  (let [cursor (::buffer/cursor buf)
+        buf (if cursor
+              (highlight-paren buf)
+              buf)]
+    [(when cursor
+       (let [row (::buffer/row cursor)
+             col (::buffer/col cursor)]
+         (when cursor
+           (ui/translate (* lw (dec col))
+                         (+ 2 (* lh (dec row)))
+                         (ui/filled-rectangle [0 0 0 (if focused?
+                                                       0.5
+                                                       0.1)]
+                                              lw lh)))))
      (vec
       (for [[row line] (map-indexed vector (::buffer/lines buf))]
         (ui/translate
