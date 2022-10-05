@@ -238,11 +238,10 @@
     (com.sun.jna.Native/detach true)))
 
 
-
-
-
-
-
+(defn- copy-to-clipboard [s]
+  (let [window *window*]
+    (GLFW/glfwSetClipboardString window s)))
+(intern (the-ns 'membrane.ui) 'copy-to-clipboard copy-to-clipboard)
 
 (extend-type membrane.ui.WithStrokeWidth
   IDraw
@@ -854,28 +853,14 @@
                       (and (= key 86)
                            (= action :press)
                            (= mods 8))
-                      (let [nodes (->> (tree-seq (fn [n]
-                                                   true)
-                                                 ui/children
-                                                 ui)
-                                       (filter #(satisfies? ui/IClipboardPaste %)))]
-                        (when-let [s (GLFW/glfwGetClipboardString window)]
-                          (doseq [node nodes]
-                            (ui/-clipboard-paste node s))))
+                      (when-let [s (GLFW/glfwGetClipboardString window)]
+                        (ui/clipboard-paste ui s))
 
                       ;; cut
                       (and (= key 88)
                            (= action :press)
                            (= mods 8))
-                      (let [node (->> (tree-seq (fn [n]
-                                                  true)
-                                                ui/children
-                                                ui)
-                                      (filter #(satisfies? ui/IClipboardCut %))
-                                      ;; maybe should be last?
-                                      first)]
-                        (when-let [s (ui/-clipboard-cut node)]
-                          #_(GLFW/glfwSetClipboardString window s )))
+                      (ui/clipboard-cut ui)
 
                       ;; copy
                       (and (= key 67)

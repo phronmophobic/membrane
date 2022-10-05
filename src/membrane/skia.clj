@@ -1444,28 +1444,14 @@
       (and (= key 86)
            (= action :press)
            (= mods 8))
-      (let [nodes (->> (tree-seq (fn [n]
-                                   true)
-                                 children
-                                 ui)
-                       (filter #(satisfies? IClipboardPaste %)))]
-        (when-let [s (glfw-call String glfwGetClipboardString window-handle)]
-          (doseq [node nodes]
-            (-clipboard-paste node s))))
+      (when-let [s (glfw-call String glfwGetClipboardString window-handle)]
+        (ui/clipboard-paste ui s))
 
       ;; cut
       (and (= key 88)
            (= action :press)
            (= mods 8))
-      (let [node (->> (tree-seq (fn [n]
-                                  true)
-                                children
-                                ui)
-                      (filter #(satisfies? IClipboardCut %))
-                      ;; maybe should be last?
-                      first)]
-        (when-let [s (-clipboard-cut node)]
-          (glfw-call void glfwSetClipboardString window-handle s)))
+      (ui/clipboard-cut ui)
 
       ;; copy
       (and (= key 67)
