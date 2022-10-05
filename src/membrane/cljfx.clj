@@ -282,68 +282,14 @@
          (some? block)
          (not= block java.lang.Character$UnicodeBlock/SPECIALS))))
 
-(defn membrane-component [ui-var state set-state]
-  (let [
-        handler (fn dispatch!
-                  ([effects]
-                   (run! #(apply dispatch! %) effects))
-                  ([type & args]
-                   (case type
-                     :update
-                     (let [[path f & args ] args]
-                       (set-state
-                        (fn [state]
-                          (spec/transform* (membrane.component/path->spec path)
-                                           (fn [& spec-args]
-                                             (apply f (concat spec-args
-                                                              args)))
-                                           state))))
-                     :set
-                     (let [[path v] args]
-                       (set-state
-                        (fn [state]
-                          (spec/setval* (membrane.component/path->spec path) v state))))
-
-                     :get
-                     (let [path (first args)]
-                       (spec/select-one* (membrane.component/path->spec path)
-                                         state))
-
-                     :delete
-                     (let [[path] args]
-                       (set-state
-                        (fn [state]
-                          (spec/setval* (membrane.component/path->spec path) spec/NONE state))))
-
-                     (let [effects @membrane.component/effects]
-                       (let [handler (get effects type)]
-                         (if handler
-                           (apply handler dispatch! args)
-                           (println "no handler for " type)))))))
-        
-        arglist (-> ui-var
-                    meta
-                    :arglists
-                    first)
-        m (first arglist)
-        arg-names (disj (set (:keys m))
-                        'extra
-                        'context)
-        defaults (:or m)
-        top-level (membrane.component/top-level-ui
-                   {:state state :$state []
-                    :body ui-var
-                    :arg-names arg-names
-                    :defaults defaults
-                    :handler handler})
-        [width height] (ui/bounds top-level)]
+(defn membrane-component [ui]
+  (let [[width height] (ui/bounds ui)]
     {:fx/type :canvas
      :width width
      :height height
      :focus-traversable true
      :on-key-typed (fn [e]
-                     (let [s (.getCharacter ^javafx.scene.input.KeyEvent e)
-                           ui top-level]
+                     (let [s (.getCharacter ^javafx.scene.input.KeyEvent e)]
                        (try
                          (when-let [c (first s)]
                            (when (printable? c)
@@ -356,11 +302,11 @@
                              mods 0 ;; (.getModifiers e)
                              code (.getCode ^javafx.scene.input.KeyEvent e)
                              key-char (.getCharacter ^javafx.scene.input.KeyEvent e)]
-                         (ui/key-event top-level key code action mods)
+                         (ui/key-event ui key code action mods)
                          (let [k (get keymap code)]
                            (when (keyword? k)
                              (try
-                               (ui/key-press top-level k)
+                               (ui/key-press ui k)
                                (catch Exception e
                                  (println e)))))))
      :on-key-released (fn [e]
@@ -368,36 +314,36 @@
                               mods 0 ;; (.getModifiers e)
                               code (.getCode ^javafx.scene.input.KeyEvent e)
                               key-char (.getCharacter ^javafx.scene.input.KeyEvent e)]
-                          (ui/key-event top-level key code action mods)))
+                          (ui/key-event ui key code action mods)))
      :on-mouse-moved (fn [e]
                        (let [
                              x (.getX ^MouseEvent e)
                              y (.getY ^MouseEvent e)
                              pos [x y]]
                          (try
-                           (doall (membrane.ui/mouse-move top-level pos))
-                           (doall (membrane.ui/mouse-move-global top-level pos))
+                           (doall (membrane.ui/mouse-move ui pos))
+                           (doall (membrane.ui/mouse-move-global ui pos))
 
                            (catch Exception e
                              (println e)))))
      :on-mouse-dragged (fn [e]
-                       (let [
-                             x (.getX ^MouseEvent e)
-                             y (.getY ^MouseEvent e)
-                             pos [x y]]
-                         (try
-                           (doall (membrane.ui/mouse-move top-level pos))
-                           (doall (membrane.ui/mouse-move-global top-level pos))
+                         (let [
+                               x (.getX ^MouseEvent e)
+                               y (.getY ^MouseEvent e)
+                               pos [x y]]
+                           (try
+                             (doall (membrane.ui/mouse-move ui pos))
+                             (doall (membrane.ui/mouse-move-global ui pos))
 
-                           (catch Exception e
-                             (println e)))))
+                             (catch Exception e
+                               (println e)))))
      :on-mouse-pressed (fn [e]
                          (let [x (.getX ^MouseEvent e)
                                y (.getY ^MouseEvent e)
                                button (mouse-button->int (.getButton ^MouseEvent e))
                                mouse-down? true]
                            (try
-                             (membrane.ui/mouse-event top-level [x y] button mouse-down? nil)
+                             (membrane.ui/mouse-event ui [x y] button mouse-down? nil)
                              (catch Exception e
                                (throw e))))
                          )
@@ -407,7 +353,7 @@
                                 button (mouse-button->int (.getButton ^MouseEvent e))
                                 mouse-down? false]
                             (try
-                              (membrane.ui/mouse-event top-level [x y] button mouse-down? nil)
+                              (membrane.ui/mouse-event ui [x y] button mouse-down? nil)
                               (catch Exception e
                                 (throw e)))))
      :draw (fn [^Canvas canvas]
@@ -417,7 +363,7 @@
                (.setFill ^GraphicsContext *ctx* Color/BLACK)
                (.setStroke ^GraphicsContext *ctx* Color/BLACK)
                
-               (draw top-level)))}))
+               (draw ui)))}))
 
 
 
@@ -907,10 +853,11 @@
 
 (intern (the-ns 'membrane.ui) 'index-for-position index-for-position)
 
-(defn run-app [app state]
-  (assert (var? app))
+(defn run-app [ui-var state]
+  (assert (var? ui-var))
   (assert (instance? clojure.lang.Atom state))
-  (let [renderer
+  (let [app (membrane.component/make-app ui-var state)
+        renderer
         (fx/create-renderer
          :middleware
          (fx/wrap-map-desc
@@ -920,13 +867,13 @@
              :scene {:fx/type :scene
                      :root
                      {:fx/type :group
-                      :children [(membrane-component app
-                                                     current-state
-                                                     #(swap! state %))]}}})))]
+                      :children [(membrane-component (app))]}}})))]
     (fx/mount-renderer state renderer)))
 
 (defn -main [& args]
   (let [app-state (atom {:progress 0.3})
+        app (membrane.component/make-app (requiring-resolve 'membrane.example.todo/todo-app)
+                                         app-state)
         renderer
         (fx/create-renderer
          :middleware
@@ -938,9 +885,7 @@
                      :root {:fx/type :v-box
                             :padding 100
                             :spacing 50
-                            :children [(membrane-component (requiring-resolve 'membrane.example.todo/todo-app)
-                                                           (:todo-state all-state)
-                                                           #(swap! app-state update :todo-state %))
+                            :children [(membrane-component (app))
                                        {:fx/type :slider
                                         :pref-width 100
                                         :min 0

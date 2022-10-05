@@ -1055,53 +1055,43 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
 
 
 
-(defui top-level-ui [{:keys [extra
-                             state
+(defui top-level-ui [{:keys [state
                              body
-                             arg-names
-                             defaults
+                             path-keys
+                             val-key-fns
                              handler]
                       :as m}]
   (let [extra (::extra state)
         context (::context state)
-        args (apply
-              hash-map
-              (apply concat
-                     (for [nm arg-names
-                           :let [kw (keyword nm)
-                                 $kw (keyword (str "$" (name kw)))]]
-                       [kw
-                        (get state kw
-                             (get defaults nm))
 
-                        $kw
-                        (into
-                         `[(~'keypath ~kw)]
-                         (when (contains? defaults nm)
-                           [(list 'nil->val (get defaults nm))]))])))
+        base
+        (assoc path-keys
+               :extra extra
+               :$extra $extra
+               :context context
+               :$context $context)
 
-        main-view (@body
-                   (merge
-                    {:extra extra
-                     :$extra  $extra
-                     :context context
-                     :$context $context}
-                    args))]
-   (membrane.ui/on-bubble
-    (fn [intents]
-      (when (seq intents)
-        (handler intents)))
-    (membrane.ui/on-mouse-event
-     (fn [pos button mouse-down? mods]
-       (let [intents (membrane.ui/mouse-event main-view pos button mouse-down? mods)]
-         (if (seq intents)
-           (handler intents)
-           (when mouse-down?
-             (let [focus (:focus context)]
-               (when focus
-                 (handler [[:set $focus nil]])))
-             nil))))
-     main-view))))
+        arg (into base
+                  (map (fn [[kw kw-fn]]
+                         [kw (kw-fn state context)]))
+                  val-key-fns)
+
+        main-view (@body arg)]
+    (membrane.ui/on-bubble
+     (fn [intents]
+       (when (seq intents)
+         (handler intents)))
+     (membrane.ui/on-mouse-event
+      (fn [pos button mouse-down? mods]
+        (let [intents (membrane.ui/mouse-event main-view pos button mouse-down? mods)]
+          (if (seq intents)
+            (handler intents)
+            (when mouse-down?
+              (let [focus (:focus context)]
+                (when focus
+                  (handler [[:set $focus nil]])))
+              nil))))
+      main-view))))
 
 
 
@@ -1160,6 +1150,56 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
     ([effect-type & args]
      (apply dispatch!* atm dispatch! effect-type args))))
 
+(defn ui-var->top-level-ui [ui-var]
+  (let [arglist (-> ui-var
+                    meta
+                    :arglists
+                    first)
+        m (first arglist)
+        arg-names (disj (set (:keys m))
+                        'extra
+                        'context)
+        defaults (:or m)
+
+        path-keys (into {}
+                        (map (fn [nm]
+                               (let [kw (keyword nm)
+                                     $kw (keyword (str "$" (name nm)))
+                                     contextual? (-> nm meta ::contextual)]
+                                 [$kw
+                                  (if contextual?
+                                    ['(keypath ::context) (list 'keypath kw)]
+                                    ;; else
+                                    (into
+                                     `[(~'keypath ~kw)]
+                                     (when (contains? defaults nm)
+                                       [(list 'nil->val (get defaults nm))])))])))
+                        arg-names)
+
+        val-key-fns
+        (into []
+              (map (fn [nm]
+                     (let [kw (keyword nm)
+                           $kw (keyword (str "$" (name kw)))
+                           contextual? (-> nm meta ::contextual)]
+                       [kw
+                        (if contextual?
+                          (fn [state context]
+                            (get context kw
+                                 ;; path-replace-fn-call-map-literal doesn't
+                                 ;; currently check defaults for contextual.
+                                 ;; revisit?
+                                 #_(get defaults nm)
+                                 ))
+                          (fn [state context]
+                            (get state kw
+                                 (get defaults nm))))])))
+              arg-names)]
+    (top-level-ui {:$state []
+                   :body ui-var
+                   :path-keys path-keys
+                   :val-key-fns val-key-fns})))
+
 (defn make-app
   "`ui-var` The var for a component
   `initial-state` The initial state of the component to run or an atom that contains the initial state.
@@ -1190,23 +1230,12 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
          handler (if handler
                    handler
                    (default-handler state-atom))
-         arglist (-> ui-var
-                     meta
-                     :arglists
-                     first)
-         m (first arglist)
-         arg-names (disj (set (:keys m))
-                         'extra
-                         'context)
-         defaults (:or m)
+         top-ui (ui-var->top-level-ui ui-var)
+         top-ui (assoc top-ui :handler handler)
          top-level (fn []
-                     (top-level-ui {:state @state-atom :$state []
-                                    :body ui-var
-                                    :arg-names arg-names
-                                    :defaults defaults
-                                    :handler handler
-                                    ::basis (::basis @component-cache)}))]
+                     (assoc top-ui
+                            :state @state-atom
+                            ::basis (::basis @component-cache)))]
      top-level)))
-
 
 
