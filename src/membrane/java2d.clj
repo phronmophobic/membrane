@@ -922,6 +922,9 @@
                     window-start-height
                     window-start-x
                     window-start-y] :as options}]
+   (if window-start-x
+     (assert window-start-y "If window-start-x is specified, window-start-y must be too.")
+     (assert (not window-start-y) "If window-start-y is specified, window-start-x must be too."))
    (let [^Toolkit default-toolkit (Toolkit/getDefaultToolkit)
          window {:panel (atom nil)
                  :ui (atom nil)
@@ -951,6 +954,8 @@
                         window-start-height
                         (ui/height @initial-view))]
      (.setSize f start-width start-height)
+     (when (and window-start-x window-start-y)
+       (.setLocation f window-start-x window-start-y))
      (.show f)
      {::repaint (fn []
                   (.repaint ^java.awt.Component panel)
@@ -1036,4 +1041,11 @@
                :refer [defui]]
              '[membrane.basic-components :as basic])
 
-    (run (component/make-app #'todo/todo-app todo/todo-state))))
+    (run (component/make-app #'todo/todo-app todo/todo-state)))
+
+  (run (component/make-app #'todo/todo-app todo/todo-state)
+    {:window-start-x 400
+     :window-start-y 100})
+
+  ,)
+
