@@ -445,6 +445,7 @@
                                     (if (= 'context arg)
                                       'context
                                       (if (-> arg meta ::contextual)
+                                        ;; should contextual state also check defaults?
                                         `(get ~'context ~(keyword (name arg)))
                                         `(get ~'extra
                                               [~keypath-prefix
