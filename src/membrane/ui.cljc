@@ -2354,7 +2354,9 @@
            (draw (:drawable this)))))
 
 
-(defmacro maybe-key-event [test body]
+(defmacro maybe-key-event
+  "Only respond to key events when `test` is true."
+  [test body]
   `(if ~test
      ~body
      (NoKeyEvent. ~body)))
@@ -2388,7 +2390,9 @@
            (draw (:drawable this)))))
 
 
-(defmacro maybe-key-press [test body]
+(defmacro maybe-key-press
+  "Only respond to key press events when `test` is true."
+  [test body]
   `(if ~test
      ~body
      (NoKeyPress. ~body)))
