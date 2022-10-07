@@ -2466,6 +2466,53 @@
 
 (defn copy-to-clipboard [s])
 
+;; (defrecord WhenDraw [when-draw! drawable]
+;;   IOrigin
+;;   (-origin [this]
+;;     [0 0])
+
+;;   IMakeNode
+;;   (make-node [this childs]
+;;     (assert (= (count childs) 1))
+;;     (WhenDraw. when-draw! (first childs)))
+
+;;   IChildren
+;;   (-children [this]
+;;     [drawable])
+
+;;   IBounds
+;;   (-bounds [this]
+;;     (child-bounds drawable)))
+
+;; (swap! default-draw-impls
+;;        assoc WhenDraw (fn [draw]
+;;                         (fn [this]
+;;                           ((:when-draw! this) draw (:drawable this)))))
+
+;; (defn ^:private when-draw!
+;;   "Warning! You probably don't want to do this!
+
+;;   This function may be removed.
+
+;;   `when-draw!` is a callback that receives the draw function
+;;   and the elem to be drawn.
+
+;;   Called when `elem` is being drawn.
+
+;;   The `elem` is not drawn unless you
+;;   draw it. The return value is ignored.
+
+;;   Example:
+
+;;   (backend/run
+;;     (fn []
+;;   (when-draw!
+;;     (fn [draw elem]
+
+
+;;   "
+;;   [when-draw! elem]
+;;   (WhenDraw. when-draw! elem))
 
 #?(:clj
    (do
