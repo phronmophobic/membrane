@@ -2343,6 +2343,10 @@
     (-children [this]
         [drawable])
 
+    IKeyEvent
+    (-key-event [this key scancode action mods]
+      nil)
+
     IHasKeyEvent
     (has-key-event [this]
         false))
@@ -2378,6 +2382,10 @@
     IChildren
     (-children [this]
         [drawable])
+
+    IKeyPress
+    (-key-press [this info]
+      nil)
 
     IHasKeyPress
     (has-key-press [this]
