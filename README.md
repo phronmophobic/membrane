@@ -243,6 +243,18 @@ Screenshot:
 
 ![Overview](/docs/images/overview.gif?raw=true)
 
+## Built With Membrane
+
+[membrane.term](https://github.com/phronmophobic/membrane.term) - A simple terminal emulator in clojure.  
+[snowball](https://github.com/phronmophobic/snowball) - View the sizes of your dependencies.  
+[grease](https://github.com/phronmophobic/grease) - An example of building a clojure library for iOS with graalvm native-image.  
+[htmltoimage](https://github.com/phronmophobic/clj-cef/tree/main/examples/htmltoimage) - Example of using clj-cef to convert a URL to an image.  
+[browser](https://github.com/phronmophobic/clj-cef/tree/main/examples/browser) - Example of building a very simplistic browser using membrane+skija.  
+[clj-media](https://github.com/phronmophobic/clj-media) - View or create videos and gifs with clojure.  
+[codetogif](https://github.com/phronmophobic/clj-media/tree/main/examples/codetogif) - A basic example of creating gifs using clj-media.  
+[viscous](https://github.com/phronmophobic/viscous) - A visual data inspector/explorer that runs in constant space, time, and screen space.  
+[treemap-clj](https://github.com/phronmophobic/treemap-clj) - An alternative to pprint for generically visualizing heterogeneous, hierarchical data.  
+
 ## More Info
 
 That's it! For more in-depth info, check out the [tutorial](/docs/tutorial.md).
