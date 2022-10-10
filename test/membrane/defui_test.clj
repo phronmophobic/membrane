@@ -56,3 +56,218 @@
       (ui/mouse-down [0 0])
       )
 )
+
+
+(defui seq-nth1 [{:keys [obj]}]
+  (vec
+   (for [[k v] obj]
+     (ui/on
+      :key-press
+      (fn [s]
+        [[:set $v s]])
+      ))))
+
+;; setting keys doesn't make sense
+#_(defui seq-nth2 [{:keys [obj]}]
+  (vec
+   (for [[k v] obj]
+     (ui/on
+      :key-press
+      (fn [s]
+        [[:set $k s]])
+      ))))
+
+(defui seq-nth3 [{:keys [obj]}]
+  (let [[[k1 v1] [k2 v2] & _more] obj]
+    (ui/on
+     :key-press
+     (fn [s]
+       [[:set $k1 s]
+        [:set $v1 s]
+        [:set $k2 s]
+        [:set $v2 s]]))))
+
+(defui seq-nth4 [{:keys [obj]}]
+  (vec
+   (for [[k v] obj]
+     (ui/on
+      :key-press
+      (fn [s]
+        [[:set $v s]])
+      ))))
+
+(deftest seq-nth-test
+  (testing "seq-nth setting vals"
+    (let [arg {:obj {:a 1 :b 2}}
+          intents (ui/key-press
+                   (seq-nth1 arg)
+                   "s")]
+      (is
+       (= #{1 2}
+          (into #{}
+                (map (fn [[_set path v]]
+                       (spec/select-one (path->spec path)
+                                        arg)))
+                intents)))
+
+      (is
+       (every? (fn [[_set path v]]
+                 (= :new-val
+                    (spec/select-one (path->spec path)
+                                     (spec/setval (path->spec path)
+                                                  :new-val
+                                                  arg))))
+               intents))
+
+      (is
+       (every? 
+        (fn [[_set path v]]
+          (=
+           (inc (spec/select-one (path->spec path)
+                                 arg))
+           (spec/select-one
+            (path->spec path)
+            (spec/transform (path->spec path)
+                            inc
+                            arg))))
+        intents))))
+
+
+  (let [arg {:obj {:a 1 :b 2 :c 3}}
+        intents (ui/key-press
+                (seq-nth3 arg)
+    "s")]
+    (is (= #{:a 1 :b 2}
+           (into #{}
+                 (map (fn [[_set path v]]
+                        (spec/select-one (path->spec path)
+                                         arg)))
+                 intents)))))
+
+
+(defui when-let-ui1 [{:keys [obj]}]
+  (when-let [{:keys [a]} obj]
+    (ui/on
+     :key-press
+     (fn [s]
+       [[:set $a s]]))))
+
+(deftest when-let-test
+  (let [arg {:obj {:a 1}}
+        intents (ui/key-press
+                 (when-let-ui1 arg)
+                 "s")
+        [set_ path v :as intent] (first intents)]
+    (is
+     (= 1
+        (spec/select-one (path->spec path)
+                         arg)))
+
+    (is
+     (= {:obj {:a 2}}
+        (spec/setval (path->spec path)
+                     2
+                     arg)))
+
+    (is
+     (= {:obj {:a 2}}
+        (spec/transform (path->spec path)
+                        inc
+                        arg))))
+
+  (let [arg {:obj nil}
+        intents (ui/key-press
+                 (when-let-ui1 arg)
+                 "s")]
+    (is (empty? intents))))
+
+(defui if-let-ui1 [{:keys [obj]}]
+  (if-let [{:keys [a]} obj]
+    (ui/on
+     :key-press
+     (fn [s]
+       [[:set $a s]]))))
+
+(defui if-let-ui2 [{:keys [obj not-obj]}]
+  (if-let [{:keys [a]} obj]
+    (ui/on
+     :key-press
+     (fn [s]
+       [[:set $a s]]))
+    (ui/on
+     :key-press
+     (fn [s]
+       [[:set $not-obj :obj]]))))
+
+(deftest if-let-test
+  (let [arg {:obj {:a 1}}
+        intents (ui/key-press
+                 (if-let-ui1 arg)
+                 "s")
+        [set_ path v :as intent] (first intents)]
+    (is
+     (= 1
+        (spec/select-one (path->spec path)
+                         arg)))
+
+    (is
+     (= {:obj {:a 2}}
+        (spec/setval (path->spec path)
+                     2
+                     arg)))
+
+    (is
+     (= {:obj {:a 2}}
+        (spec/transform (path->spec path)
+                        inc
+                        arg))))
+
+  (let [arg {:obj nil}
+        intents (ui/key-press
+                 (if-let-ui1 arg)
+                 "s")]
+    (is (empty? intents)))
+
+  (let [arg {:obj {:a 1}}
+        intents (ui/key-press
+                 (if-let-ui2 arg)
+                 "s")
+        [set_ path v :as intent] (first intents)]
+    (is
+     (= 1
+        (spec/select-one (path->spec path)
+                         arg)))
+
+    (is
+     (= {:obj {:a 2}}
+        (spec/setval (path->spec path)
+                     2
+                     arg)))
+
+    (is
+     (= {:obj {:a 2}}
+        (spec/transform (path->spec path)
+                        inc
+                        arg))))
+
+  (let [arg {:not-obj 1}
+        intents (ui/key-press
+                 (if-let-ui2 arg)
+                 "s")
+        [set_ path v :as intent] (first intents)]
+    (is
+     (= 1
+        (spec/select-one (path->spec path)
+                         arg)))
+
+    (is
+     (= {:not-obj 2}
+        (spec/setval (path->spec path)
+                     2
+                     arg)))
+
+    (is
+     (= {:not-obj 2}
+        (spec/transform (path->spec path)
+                        inc
+                        arg)))))
