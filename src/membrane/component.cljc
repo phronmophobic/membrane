@@ -675,7 +675,7 @@
       (seq? form)
       (let [first-form (first form)]
         (case (first form)
-          (clojure.core/let let loop)
+          (clojure.core/let let loop clojure.core/when-let when-let)
           (let [[letsym bindings & body] form
                 _ (do
                     (assert (vector? bindings) "a vector for its binding")
@@ -685,6 +685,23 @@
                 
                 body (map #(path-replace % deps) body)]
             `(~letsym ~new-bindings ~@body))
+
+          (clojure.core/if-let if-let)
+          (let [[letsym bindings then else] form
+                _ (do
+                    (assert (vector? bindings) "a vector for its binding")
+                    (assert (even? (count bindings)) "an even number of forms in binding vector"))
+
+
+                [then-deps new-bindings]
+                (path-replace-let-bindings deps bindings)
+
+                then (path-replace then then-deps)]
+            (if (= (count form) 4)
+              (let [;; else uses old original deps
+                    else (path-replace else deps)]
+                `(~letsym ~new-bindings ~then ~else))
+              `(~letsym ~new-bindings ~then)))
           
 
           (for clojure.core/for)
