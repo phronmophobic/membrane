@@ -15,6 +15,7 @@
                  [org.apache.commons/commons-text "1.9"]
 
                  [org.clojure/core.cache "1.0.225"]
+                 [com.phronemophobic/cljs-cache "0.1.8"]
                  ;; these two go together
                  ;; built and installed locally!
                  ;; [com.oracle/appbundler "1.0ea-local"]
