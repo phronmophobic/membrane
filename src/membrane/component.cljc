@@ -11,6 +11,7 @@
    #?(:cljs cljs.analyzer.api)
    #?(:cljs [cljs.analyzer :as cljs])
    #?(:cljs cljs.env)
+   com.rpl.specter.impl
    [membrane.ui :as ui :refer [children bounds origin]]))
 
 #?
@@ -73,6 +74,39 @@
    'META spec/META
    'END spec/END})
 
+(defn- do-map-nth-transform [vals structure idx next-fn]
+  (let [prev-entry (nth (seq structure) idx)
+        newv (next-fn vals prev-entry)]
+    (if (identical? newv com.rpl.specter.impl/NONE)
+      (dissoc structure (key prev-entry))
+      (let [;; guaranteed map entry
+            old-k (key prev-entry)
+            ;; possibly vector
+            new-k (nth newv 0)]
+        (if (= old-k new-k)
+          (conj structure newv)
+          (if prev-entry
+            (-> structure
+                (dissoc old-k)
+                (conj newv))
+            (conj newv)))))))
+
+(spec/defrichnav
+  ^:private
+  map-nth
+  [idx]
+  (select* [this vals structure next-fn]
+           (next-fn vals (nth (seq structure) idx)))
+  (transform* [this vals structure next-fn]
+    (do-map-nth-transform vals structure idx next-fn)))
+
+
+(defn nthpath+
+  "Similar to spec/nthpath, but preserves maps."
+  [idx]
+  (spec/if-path map?
+   (map-nth idx)
+   (spec/nthpath idx)))
 
 (defn path->spec [elem]
   (cond
@@ -87,6 +121,9 @@
         
         get
         (spec/keypath arg)
+
+        seq-nth
+        (nthpath+ arg)
 
         path
         (spec/path arg)
@@ -285,7 +322,7 @@
       (comp (map-indexed
              (fn [idx bind]
                (map (fn [[subbind path]]
-                      [subbind (cons (list 'quote (list 'nth idx)) path)])
+                      [subbind (cons (list 'quote (list 'seq-nth idx)) path)])
                     (destructure-deps bind))))
             cat)
       nth-binds)
@@ -681,7 +718,7 @@
 
                               val# (gensym "val#_")
                               deps (assoc deps val# [deps (delay [val
-                                                                  `(list (quote ~'nth) ~index-sym)])])
+                                                                  `(list (quote ~'seq-nth) ~index-sym)])])
                               deps (into deps
                                          (for [[subbind subpath] (destructure-deps bind)]
                                            [subbind [deps (delay [val#
