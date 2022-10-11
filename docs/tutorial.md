@@ -42,13 +42,13 @@ Add this dependency to your project:
 Leiningen dependency:
 
 ```clojure
-[com.phronemophobic/membrane  "0.9.31.5-beta"]
+[com.phronemophobic/membrane  "0.10.2-beta"]
 ```
 
 deps.edn dependency:
 
 ```clojure
-com.phronemophobic/membrane {:mvn/version "0.9.31.5-beta"}
+com.phronemophobic/membrane {:mvn/version "0.10.2-beta"}
 ```
 
 ## Hello World
