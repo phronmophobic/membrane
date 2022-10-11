@@ -1,16 +1,18 @@
 # Membrane
 
-### Membrane is a platform agnostic clojure library for creating user interfaces.
+### Membrane is a cross platform clojure library for building user interfaces.
 
-Membrane provides three layers:
+![Architecture Overview](/docs/overview-01.png?raw=true)
+
+Membrane provides all the tools you need to build a user interface. While all the pieces are built to work together, each piece is optional or can be mixed and matched with other implementations. For example, you could use [your favorite UI framework](https://github.com/phronmophobic/membrane-re-frame-example) and the other layers to reach another platform. Alternatively, you could provide your own ncurses graphics backend and leverage the ui framework and graphics model.
+
+The three main pieces are:
 
 1. A **UI framework**, `membrane.component`, that provides state management for GUIs
 2. A platform agnostic **model** for graphics and events
 3. Multiple **graphics backends** that provide concrete implementations for #2
 
-While these three layers are made to work together, they can also be mixed and matched with other implementations. For example, you could use [your favorite UI framework](https://github.com/phronmophobic/membrane-re-frame-example) and the other layers to reach another platform. Alternatively, you could provide your own ncurses graphics backend and leverage the ui framework and graphics model.
-
-For membrane to run on a platform, the only requirements are 
+For membrane to run on a platform, the only requirements are:
 1) Drawing implementations for graphical primitives like rectangles, text, and images
 2) An event loop that forwards events (eg. mouse clicks, key presses) to membrane and repaints
 
@@ -23,7 +25,6 @@ For membrane to run on a platform, the only requirements are
 - Windows (see skija, swing, and javafx backends)
 - Terminal ([extra docs](/docs/terminal-uis.md),  [example project](https://github.com/phronmophobic/terminal-todo-mvc))
 - virtual dom
-- java swing
 - [skija](https://github.com/JetBrains/skija) (see [example project](https://github.com/phronmophobic/membrane-skija-example))
 - javafx via cljfx (see [example project](https://github.com/phronmophobic/reveal-treemap))
 - iOS via graalvm (see [example project](https://github.com/phronmophobic/mobiletest))
@@ -52,16 +53,7 @@ Membrane was written because I wanted to build a desktop app with clojure, but I
 
 Membrane does not build on top of any existing ui toolkits like Swing, JavaFX, HTML, UIKit, GTK, etc. These toolkits are fundamentally based on an object oriented model and have a deep impedance mismatch with idiomatic clojure code.
 
-As much as possible, the development of the library was meant to follow clojure's principles
-* Use the simplest construct that does the job
-* Data first
-* Pure functions that work with the data
-* Side effects and process at the edges
-
-By applying clojure's principles, several "extras" were obtained for free
-* platform agnostic
-* flexible
-* great for tooling
+Views are values. Components and event handlers are pure functions.
 
 For more info covering the design of membrane:  
 [What is a User Interface?](https://blog.phronemophobic.com/what-is-a-user-interface.html)  
@@ -80,6 +72,19 @@ deps.edn dependency:
 ```clojure
 com.phronemophobic/membrane {:mvn/version "0.9.31.8-beta"}
 ```
+
+## Built With Membrane
+
+[membrane.term](https://github.com/phronmophobic/membrane.term) - A simple terminal emulator in clojure.  
+[snowball](https://github.com/phronmophobic/snowball) - View the sizes of your dependencies.  
+[grease](https://github.com/phronmophobic/grease) - An example of building a clojure library for iOS with graalvm native-image.  
+[htmltoimage](https://github.com/phronmophobic/clj-cef/tree/main/examples/htmltoimage) - Example of using clj-cef to convert a URL to an image.  
+[browser](https://github.com/phronmophobic/clj-cef/tree/main/examples/browser) - Example of building a very simplistic browser using membrane+skija.  
+[clj-media](https://github.com/phronmophobic/clj-media) - View or create videos and gifs with clojure.  
+[codetogif](https://github.com/phronmophobic/clj-media/tree/main/examples/codetogif) - A basic example of creating gifs using clj-media.  
+[viscous](https://github.com/phronmophobic/viscous) - A visual data inspector/explorer that runs in constant space, time, and screen space.  
+[treemap-clj](https://github.com/phronmophobic/treemap-clj) - An alternative to pprint for generically visualizing heterogeneous, hierarchical data. 
+
 ## Examples
 
 ### A Simple Example without the UI Framework
@@ -199,7 +204,7 @@ Screenshot:
 >> [30.79296875 27.0]
 
 
-;; events are pure functions that return effects which are also values
+;; events are pure functions that return intents which are also values
 (let [mpos [15 15]]
   (ui/mouse-down
    (ui/translate 10 10
@@ -241,19 +246,7 @@ Screenshot:
 ```
 ## Screenshots
 
-![Overview](/docs/images/overview.gif?raw=true)
-
-## Built With Membrane
-
-[membrane.term](https://github.com/phronmophobic/membrane.term) - A simple terminal emulator in clojure.  
-[snowball](https://github.com/phronmophobic/snowball) - View the sizes of your dependencies.  
-[grease](https://github.com/phronmophobic/grease) - An example of building a clojure library for iOS with graalvm native-image.  
-[htmltoimage](https://github.com/phronmophobic/clj-cef/tree/main/examples/htmltoimage) - Example of using clj-cef to convert a URL to an image.  
-[browser](https://github.com/phronmophobic/clj-cef/tree/main/examples/browser) - Example of building a very simplistic browser using membrane+skija.  
-[clj-media](https://github.com/phronmophobic/clj-media) - View or create videos and gifs with clojure.  
-[codetogif](https://github.com/phronmophobic/clj-media/tree/main/examples/codetogif) - A basic example of creating gifs using clj-media.  
-[viscous](https://github.com/phronmophobic/viscous) - A visual data inspector/explorer that runs in constant space, time, and screen space.  
-[treemap-clj](https://github.com/phronmophobic/treemap-clj) - An alternative to pprint for generically visualizing heterogeneous, hierarchical data.  
+![Overview](/docs/images/overview.gif?raw=true) 
 
 ## More Info
 
