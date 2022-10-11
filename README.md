@@ -37,7 +37,6 @@ For membrane to run on a platform, the only requirements are:
 
 [Tutorial](/docs/tutorial.md)  
 [Documentation Organized by Topic](https://phronmophobic.github.io/membrane/membrane-topics.html)  
-[API Docs](https://phronmophobic.github.io/membrane/api)  
 [Examples](https://github.com/phronmophobic/membrane/tree/master/src/membrane/example)  
 [Distributing your desktop app](/docs/distribution.md)  
 [Targeting WebGL](/docs/webgl.md)  
@@ -254,7 +253,6 @@ That's it! For more in-depth info, check out the [tutorial](/docs/tutorial.md).
 
 [Tutorial](/docs/tutorial.md)  
 [Documentation Organized by Topic](https://phronmophobic.github.io/membrane/membrane-topics.html)  
-[API Docs](https://phronmophobic.github.io/membrane/api)  
 [Examples](https://github.com/phronmophobic/membrane/tree/master/src/membrane/example)  
 [Distributing your desktop app](/docs/distribution.md)  
 [Targeting WebGL](/docs/webgl.md)  
