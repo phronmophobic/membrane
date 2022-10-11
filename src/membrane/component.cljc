@@ -240,11 +240,13 @@
          ;; - there are some questions as to if it shouldn't modify its
          ;;   path at all or if it should include the key and value
          ;;   that was assoced. see also https://github.com/phronmophobic/membrane/issues/59
-         #_#_(clojure.core/assoc assoc)
+         (clojure.core/assoc assoc)
          [(nth form 1)
-          `(list ~(quote ~'assoc)
-                 ~(nth form 1)
-                 ~(nth form 2))]
+          ;; currently don't add anything to the path
+          nil
+          #_`(list ~(quote ~'assoc)
+                   ~(nth form 1)
+                   ~(nth form 2))]
 
          ;;else
          (if (keyword? f) 
@@ -537,21 +539,27 @@
         extra-key# (gensym "extra-key-")
         extra-base-key
         (into []
-              (comp (remove '#{context extra})
-                    (map (fn [sym]
-                           (let [k (keyword sym)
-                                 $k (->> sym
-                                         name
-                                         (str "$")
-                                         keyword)]
-                             `(get ~m# ~$k
-                                   (when (contains? ~m# ~k)
-                                     ~(if-let [default (get defaults sym)]
-                                        `[~$m#
-                                          (quote (~'keypath ~k))
-                                          (quote (~'nil->val ~default))]
-                                        `[~$m# (quote (~'keypath ~k))])
-                                     ))))))
+              (comp
+               ;; It's not totally clear whether
+               ;; explicit context,extra should
+               ;; affect the identity.
+               ;; The current policy is that any
+               ;; explicit arg should.
+               #_ (remove '#{context extra})
+               (map (fn [sym]
+                      (let [k (keyword sym)
+                            $k (->> sym
+                                    name
+                                    (str "$")
+                                    keyword)]
+                        `(get ~m# ~$k
+                              (when (contains? ~m# ~k)
+                                ~(if-let [default (get defaults sym)]
+                                   `[~$m#
+                                     (quote (~'keypath ~k))
+                                     (quote (~'nil->val ~default))]
+                                   `[~$m# (quote (~'keypath ~k))])
+                                ))))))
               (sort (:keys arg-map)))
         extra-base-key-form ['$extra `(list (quote ~'keypath)
                                             ~extra-key#)]
