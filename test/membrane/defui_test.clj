@@ -271,3 +271,64 @@
         (spec/transform (path->spec path)
                         inc
                         arg)))))
+
+(defprotocol ITestExtract
+  :extend-via-metadata true
+  (-test-extract [elem m]))
+
+(extend-protocol ITestExtract
+  nil
+  (-test-extract [this m] nil)
+
+  Object
+  (-test-extract [this m]
+    (mapcat #(-test-extract % m) (ui/children this))))
+
+
+(defn extract [elem m]
+  (-test-extract elem m))
+
+(defn on-extract [f elem]
+  (vary-meta elem
+             assoc `-test-extract (fn [_ m]
+                                    (f m))))
+
+
+(do
+  (defui non-literal-target [{:keys [a b
+                                     has-default
+                                     ^::component/contextual
+                                     is-context]
+                              :or {has-default 42}
+                              :as arg}]
+    (on-extract
+     (fn [m]
+       (case (:sym m)
+         a [a $a]
+         b [b $b]
+         has-default [has-default $has-default]
+         is-context [is-context $is-context]
+         all [[a $a]
+              [b $b]
+              [has-default $has-default]
+              [is-context $is-context]]
+         arg [arg]
+         nil))
+     []))
+
+  (defui non-literal-origin [{:keys [m]}]
+    (let [nle (get extra :foo)]
+     (non-literal-target (assoc m
+                                :extra nle
+                                ;; :$extra $nle
+                                ))))
+  (comment
+    (clojure.pprint/pprint
+     (extract (non-literal-origin {:m {:a 12
+                                       :has-default 4}
+                                   :context {:is-context 13}})
+              '{:sym arg})))
+  ,
+  )
+
+
