@@ -527,6 +527,38 @@
         m# (gensym "m#_")
         $m# (symbol (str "$" (name m#)))
 
+        ;; Ideally the base key would match
+        ;; the literal map version, but it doesn't
+        ;; seem that big a deal if it's different.
+        ;; The main constraint is that it must
+        ;; be consistent for the same component call
+        ;; over time.
+        $extra# (gensym "$extra-")
+        extra-key# (gensym "extra-key-")
+        extra-base-key
+        (into []
+              (comp (remove '#{context extra})
+                    (map (fn [sym]
+                           (let [k (keyword sym)
+                                 $k (->> sym
+                                         name
+                                         (str "$")
+                                         keyword)]
+                             `(get ~m# ~$k
+                                   (when (contains? ~m# ~k)
+                                     ~(if-let [default (get defaults sym)]
+                                        `[~$m#
+                                          (quote (~'keypath ~k))
+                                          (quote (~'nil->val ~default))]
+                                        `[~$m# (quote (~'keypath ~k))])
+                                     ))))))
+              (sort (:keys arg-map)))
+        extra-base-key-form ['$extra `(list (quote ~'keypath)
+                                            ~extra-key#)]
+
+        extra# (gensym "extra-")
+        extra-form `(get ~'extra ~extra-key#)
+
         ;; add missing :$keys
         ;; expressions will go inside of a (cond-> ~'m# ...)
         missing-:$keys
@@ -548,11 +580,15 @@
                                   `[~'$context (quote (~'keypath ~k))]
 
                                   :else
-                                  (if-let [default (get defaults sym)]
-                                    `[~$m#
-                                      (quote (~'keypath ~k))
-                                      (quote (~'nil->val ~default))]
-                                    `[~$m# (quote (~'keypath ~k))])))])))
+                                  (let [$base# (gensym "$base-")]
+                                    `(let [~$base# (if (contains? ~m# ~k)
+                                                     ~$m#
+                                                     ~$extra#)]
+                                       ~(if-let [default (get defaults sym)]
+                                          `[~$base#
+                                            (quote (~'keypath ~k))
+                                            (quote (~'nil->val ~default))]
+                                          `[~$base# (quote (~'keypath ~k))])))))])))
          (:keys arg-map))
 
 
@@ -561,7 +597,7 @@
         ;; still not sure if extra should just go directly in the map
         ;;    or if it should be put somewhere else (like the parent extra).
         ;;    currently just putting extra directly in the map.
-        missing-defaults-and-context
+        missing-vals
         (eduction
          (keep (fn [sym]
                  (let [k (keyword sym)
@@ -576,24 +612,34 @@
                      [`(not (contains? ~m# ~k))
                       `(assoc! ~k (get ~'context ~k))]
 
-                     default
+                     :else
                      [`(not (contains? ~m# ~k))
-                      `(assoc! ~k ~default)]))))
+                      (if default
+                        `(assoc! ~k (get ~extra# ~k ~default))
+                        `(assoc! ~k (get ~extra# ~k)))]))))
          cat
          (:keys arg-map))]
 
     (with-meta
-        `(~first-form
-          ~(path-replace
-            `(let [~m# ~call-arg
-                   full-m#
-                   (persistent!
-                    (cond-> (transient ~m#)
-                      ~@missing-:$keys
-                      ~@missing-defaults-and-context))]
-               full-m#)
-            deps))
-        (meta form))))
+      `(~first-form
+        ~(path-replace
+          `(let [~m# ~call-arg
+                 ;; paths can contains some calculations
+                 ;; since $m is used multiple times
+                 ;; make a binding
+                 ~$m# ~$m#
+                 ~extra-key# ~extra-base-key
+                 ~$extra# ~extra-base-key-form
+                 ~extra# ~extra-form
+
+                 full-m#
+                 (persistent!
+                  (cond-> (transient ~m#)
+                    ~@missing-:$keys
+                    ~@missing-vals))]
+             full-m#)
+          deps))
+      (meta form))))
 
 (defn- path-replace-fn-call [deps form]
   (let [first-form (first form)]
