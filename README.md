@@ -13,7 +13,7 @@ The three main pieces are:
 3. Multiple **graphics backends** that provide concrete implementations for #2
 
 For membrane to run on a platform, the only requirements are:
-1) Drawing implementations for graphical primitives like rectangles, text, and images
+1) Drawing implementations for graphical primitives like shapes, text, and images
 2) An event loop that forwards events (eg. mouse clicks, key presses) to membrane and repaints
 
 #### Supported platforms:
