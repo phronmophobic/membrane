@@ -1,6 +1,6 @@
 # Membrane
 
-### Membrane is a cross platform clojure library for building user interfaces.
+### A Simple UI Library That Runs Anywhere
 
 ![Architecture Overview](/docs/overview-01.png?raw=true)
 
