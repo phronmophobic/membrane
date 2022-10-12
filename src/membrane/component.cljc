@@ -850,7 +850,9 @@
 
           var form
 
-          catch form
+          catch
+          (let [[catch* cls bind & body] form]
+            `(~catch* ~cls ~bind ~@(map #(path-replace % deps) body)))
 
           reify*
           form
