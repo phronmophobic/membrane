@@ -2410,7 +2410,7 @@
     (-origin [_]
         (try
           (origin drawable)
-          (catch #?(:clj Exception
+          (catch #?(:clj Throwable
                     :cljs js/Object) e
             (bounds (label "error")))))
 
@@ -2439,7 +2439,7 @@
          (fn [this]
            (try
              (draw (:drawable this))
-             (catch #?(:clj Exception
+             (catch #?(:clj Throwable
                        :cljs js/Object) e
                ((:error-draw this) draw e))))))
 
