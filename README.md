@@ -38,6 +38,7 @@ For membrane to run on a platform, the only requirements are:
 [Tutorial](/docs/tutorial.md)  
 [Documentation Organized by Topic](https://phronmophobic.github.io/membrane/membrane-topics.html)  
 [Examples](https://github.com/phronmophobic/membrane/tree/master/src/membrane/example)  
+[Background and Theory](https://blog.phronemophobic.com/what-is-a-user-interface.html)  
 [Distributing your desktop app](/docs/distribution.md)  
 [Targeting WebGL](/docs/webgl.md)  
 Questions? Comments? Connect with us on clojurians slack in [#membrane](https://clojurians.slack.com/archives/CVB8K7V50) (join [here](http://clojurians.net/)) or discuss on [twitter](https://twitter.com/phronmophobic).
@@ -254,6 +255,7 @@ That's it! For more in-depth info, check out the [tutorial](/docs/tutorial.md).
 [Tutorial](/docs/tutorial.md)  
 [Documentation Organized by Topic](https://phronmophobic.github.io/membrane/membrane-topics.html)  
 [Examples](https://github.com/phronmophobic/membrane/tree/master/src/membrane/example)  
+[Background and Theory](https://blog.phronemophobic.com/what-is-a-user-interface.html)  
 [Distributing your desktop app](/docs/distribution.md)  
 [Targeting WebGL](/docs/webgl.md)  
 Questions? Comments? Connect with us on clojurians slack in [#membrane](https://clojurians.slack.com/archives/CVB8K7V50)
