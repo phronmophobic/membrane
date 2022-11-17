@@ -106,6 +106,7 @@
          :main-opts ["-m" "cognitect.test-runner"]
          :exec-fn cognitect.test-runner.api/test}
   :project {:extra-paths ["test"]
+            :jvm-opts ["-XX:-OmitStackTraceInFastThrow"]
             :extra-deps
             {com.phronemophobic.membrane/skialib-macosx-x86-64 {:mvn/version "RELEASE"
                                                                 ;;:local/root "csource/macos-aarch64"
