@@ -475,8 +475,9 @@
                        :let [binding-sym (get binding-syms arg)
                              arg-val
                              (if (.startsWith (name arg) "$")
-                               (if-let [arg-val (get call-arg (keyword arg))]
-                                 arg-val
+                               (if (contains? call-arg (keyword arg))
+                                 (let [arg-val (get call-arg (keyword arg))]
+                                   arg-val)
                                  (let [val-sym (get binding-syms (symbol (subs (name arg) 1)))]
                                    (symbol (str "$"  (name val-sym)))))
 
