@@ -538,7 +538,7 @@
     (.setAttribute "height" height)
     (.setAttribute "tabindex" "0")))
 
-(defrecord WebglCanvas [ui make-ui last-touch touch-check? canvas-elem draw-cache ctx])
+(defrecord WebglCanvas [ui view-fn last-touch touch-check? canvas-elem draw-cache ctx])
 
 (defn update-scale [canvas]
   (let [content-scale (.-devicePixelRatio js/window)]
@@ -561,11 +561,11 @@
                ;;(:name ui/default-font "Ubuntu")
                ))))))
 
-(defn webgl-canvas [canvas-elem make-ui]
+(defn webgl-canvas [canvas-elem view-fn]
   (let [ctx (.getContext canvas-elem "2d")
         canvas (WebglCanvas.
                 (atom nil)
-                make-ui
+                view-fn
                 (atom nil)
                 (atom false)
                 canvas-elem
@@ -595,7 +595,7 @@
           (println "resizing canvas")
           (update-scale canvas-elem))
 
-        (reset! ui ((:make-ui canvas)))
+        (reset! ui ((:view-fn canvas)))
         (push-state *ctx*
                     (let [content-scale (.-devicePixelRatio js/window)]
                       (when (and content-scale (not= 1 content-scale))
@@ -605,9 +605,9 @@
 
 
 
-(defn run [make-ui options]
+(defn run [view-fn options]
   (let [canvas-elem (:container options)
-        canvas (webgl-canvas canvas-elem make-ui)]
+        canvas (webgl-canvas canvas-elem view-fn)]
     (when (get options ::warn-on-missing-tabindex true)
       (let [tabindex (.-tabIndex canvas-elem)]
         (when (not (>= tabindex 0))
