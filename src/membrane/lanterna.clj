@@ -661,7 +661,7 @@
                      (log "got resize signal")
                      (async/put! ch true)))))
 
-(defn run-helper [make-ui {:keys [repaint-ch close-ch handler in out] :as options}]
+(defn run-helper [view-fn {:keys [repaint-ch close-ch handler in out] :as options}]
   (let [
         term (doto (UnixTerminal. in out (Charset/defaultCharset))
                (.setMouseCaptureMode MouseCaptureMode/CLICK_RELEASE_DRAG_MOVE))
@@ -709,7 +709,7 @@
 
               (let [last-ui @ui
                     current-ui (vreset! ui (try
-                                             (make-ui)
+                                             (view-fn)
                                              (catch Exception e
                                                (label (str e)))))
                     term-size (.getTerminalSize screen)
@@ -801,9 +801,9 @@
     nil))
 
 (defn run-sync
-  ([make-ui]
-   (run-sync make-ui nil))
-  ([make-ui {:keys [handler repaint-ch close-ch in out] :as options}]
+  ([view-fn]
+   (run-sync view-fn nil))
+  ([view-fn {:keys [handler repaint-ch close-ch in out] :as options}]
    (let [default-options
          (let [repaint-ch (async/chan (async/sliding-buffer 1))
                close-ch (async/promise-chan)]
@@ -812,17 +812,17 @@
             :in System/in
             :out System/out
             :close-ch close-ch})]
-     (run-helper make-ui
+     (run-helper view-fn
                  (merge default-options
                         options)))))
 
 (defn run
-  ([make-ui {:keys [handler repaint-ch close-ch in out] :as options}]
+  ([view-fn {:keys [handler repaint-ch close-ch in out] :as options}]
    (async/thread
-     (run-sync make-ui options)))
-  ([make-ui]
+     (run-sync view-fn options)))
+  ([view-fn]
    (async/thread
-     (run-sync make-ui))))
+     (run-sync view-fn))))
 
 
 
