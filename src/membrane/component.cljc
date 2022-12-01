@@ -263,6 +263,10 @@
          (vector? form)
          (set? form)
          (nil? form))
+     ;; this causes a lot of bloat
+     ;; it's possible we want to use a hash instead.
+     ;; there's some argument that the full form is easier
+     ;; for debugging
      `[nil (list (quote ~'constant) ~form)]
 
      
