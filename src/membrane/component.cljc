@@ -1064,7 +1064,7 @@
 
                membrane.ui/IBounds
                (~'-bounds [this#]
-                (ui/bounds (~render-cached-fn-name this#)))
+                (ui/child-bounds (~render-cached-fn-name this#)))
 
                membrane.ui/IHasMouseMoveGlobal
                (~'has-mouse-move-global [this#]
