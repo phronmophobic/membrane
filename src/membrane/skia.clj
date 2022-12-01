@@ -1799,8 +1799,8 @@
     (let [[xscale yscale :as content-scale] (get-window-content-scale-size window)
           [fb-width fb-height] (get-framebuffer-size window)]
       (reset! window-content-scale content-scale)
-      (reset! window-size [(int (/ width xscale))
-                           (int (/ height yscale))])
+      (reset! window-size [(int (/ fb-width xscale))
+                           (int (/ fb-height yscale))])
       ;; force repaint
       (reset! ui nil)
       (Skia/skia_reshape skia-resource fb-width fb-height xscale yscale))
