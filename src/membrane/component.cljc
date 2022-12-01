@@ -1347,10 +1347,18 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
                    (default-handler state-atom))
          top-ui (ui-var->top-level-ui ui-var)
          top-ui (assoc top-ui :handler handler)
-         top-level (fn []
-                     (assoc top-ui
-                            :state @state-atom
-                            ::basis (::basis @component-cache)))]
+         top-level (fn
+                     ([]
+                      (assoc top-ui
+                             :state @state-atom
+                             ::basis (::basis @component-cache)))
+                     ([container-info]
+                      (assoc top-ui
+                             :state
+                             (assoc-in @state-atom
+                                       [::context :membrane.stretch/container-size]
+                                       (:container-size container-info))
+                             ::basis (::basis @component-cache))))]
      top-level)))
 
 

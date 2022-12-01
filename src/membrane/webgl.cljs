@@ -581,7 +581,11 @@
     (binding [*ctx* (:ctx canvas)
               *draw-cache* (:draw-cache canvas)]
       (let [ui (:ui canvas)
-            canvas-elem (:canvas-elem canvas)]
+            canvas-elem (:canvas-elem canvas)
+
+            container-info {:container-size [(.-clientWidth canvas-elem)
+                                             (.-clientHeight canvas-elem)]
+                            :container canvas}]
         (.clearRect *ctx*
                     0 0
                     (.-width canvas-elem) (.-height canvas-elem))
@@ -595,7 +599,7 @@
           (println "resizing canvas")
           (update-scale canvas-elem))
 
-        (reset! ui ((:view-fn canvas)))
+        (reset! ui ((:view-fn canvas) container-info))
         (push-state *ctx*
                     (let [content-scale (.-devicePixelRatio js/window)]
                       (when (and content-scale (not= 1 content-scale))
@@ -607,6 +611,10 @@
 
 (defn run [view-fn options]
   (let [canvas-elem (:container options)
+        view-fn (if (:include-container-info options)
+                  view-fn
+                  (fn [_]
+                    (view-fn)))
         canvas (webgl-canvas canvas-elem view-fn)]
     (when (get options ::warn-on-missing-tabindex true)
       (let [tabindex (.-tabIndex canvas-elem)]

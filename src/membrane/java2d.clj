@@ -848,9 +848,14 @@
       (paint [g]
         (binding [*g* g
                   *image-cache* (atom {})]
-          (let [to-render (swap! (:ui window)
+          (let [width (.getWidth ^Component this)
+                height (.getHeight ^Component this)
+                container-size [width height]
+                to-render (swap! (:ui window)
                                  (fn [_]
-                                   (render)))]
+                                   (let [container-info {:container-size container-size
+                                                         :container window}]
+                                     (render container-info))))]
             (.setColor ^Graphics2D *g* Color/white)
             (.fillRect ^Graphics2D *g* 0 0 (.getWidth ^Component this) (.getHeight ^Component this))
             (.setColor ^Graphics2D *g* Color/black)
@@ -926,6 +931,10 @@
      (assert window-start-y "If window-start-x is specified, window-start-y must be too.")
      (assert (not window-start-y) "If window-start-y is specified, window-start-x must be too."))
    (let [^Toolkit default-toolkit (Toolkit/getDefaultToolkit)
+         view-fn (if (:include-container-info options)
+                   view-fn
+                   (fn [_]
+                     (view-fn)))
          window {:panel (atom nil)
                  :ui (atom nil)
                  :render view-fn}
@@ -946,7 +955,9 @@
          f (doto (JFrame. window-title)
              (.add panel)
              (.show))
-         initial-view (delay (view-fn))
+         initial-view (delay
+                        ;; use a default container size
+                        (view-fn {:container-size [600 400]}))
          start-width (if window-start-width
                        window-start-width
                        (ui/width @initial-view))

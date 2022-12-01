@@ -659,13 +659,17 @@
                 (.getTerminalSize term)
                 (.doResizeIfNecessary ^TerminalScreen screen))
 
-              (let [last-ui @ui
+              (let [term-size (.getTerminalSize screen)
+                    size-change? (not= @last-term-size term-size)
+                    container-info {:container-size [(.getColumns term-size)
+                                               (.getRows term-size)]
+                                 :container screen}
+
+                    last-ui @ui
                     current-ui (vreset! ui (try
-                                             (view-fn)
+                                             (view-fn container-info)
                                              (catch Exception e
-                                               (label (str e)))))
-                    term-size (.getTerminalSize screen)
-                    size-change? (not= @last-term-size term-size)]
+                                               (label (str e)))))]
                 (when (or size-change?
                           (not= current-ui last-ui))
                   (binding [*tg* tg
@@ -758,7 +762,11 @@
             :repaint-ch repaint-ch
             :in System/in
             :out System/out
-            :close-ch close-ch})]
+            :close-ch close-ch})
+         view-fn (if (:include-container-info options)
+                   view-fn
+                   (fn [_]
+                     (view-fn)))]
      (run-helper view-fn
                  (merge default-options
                         options)))))

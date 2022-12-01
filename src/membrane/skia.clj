@@ -1695,7 +1695,7 @@
                        quality
                        path)))))
 
-(defrecord GlfwSkiaWindow [view-fn window handlers callbacks ui mouse-position skia-resource image-cache font-cache draw-cache window-content-scale window-start-width window-start-height window-start-x window-start-y window-title]
+(defrecord GlfwSkiaWindow [view-fn window handlers callbacks ui mouse-position skia-resource image-cache font-cache draw-cache window-content-scale window-start-width window-start-height window-start-x window-start-y window-title window-size]
   IWindow
   (init! [this]
     (let [window-width (int (or window-start-width 787))
@@ -1724,6 +1724,7 @@
                  :ui (atom nil)
                  :mouse-position (atom [0 0])
                  :window-content-scale (atom [1 1])
+                 :window-size (atom nil)
                  :skia-resource (Skia/skia_init))
           drop-callback (make-drop-callback this (get handlers :drop -drop-callback))
           key-callback (make-key-callback this (get handlers :key -key-callback))
@@ -1798,6 +1799,8 @@
     (let [[xscale yscale :as content-scale] (get-window-content-scale-size window)
           [fb-width fb-height] (get-framebuffer-size window)]
       (reset! window-content-scale content-scale)
+      (reset! window-size [(int (/ width xscale))
+                           (int (/ height yscale))])
       ;; force repaint
       (reset! ui nil)
       (Skia/skia_reshape skia-resource fb-width fb-height xscale yscale))
@@ -1828,10 +1831,11 @@
               *window* this
               *draw-cache* draw-cache
               *skia-resource* skia-resource]
-      (let [ ;; should only updated here on the main thread
-            ;; so not a race condition
-            last-view @ui
-            view (reset! ui (view-fn))]
+      (let [container-info {:container-size @window-size
+                            :content-scale @window-content-scale
+                            :container this}
+            [last-view view] (reset-vals! ui
+                                          (view-fn container-info))]
 
         ;; TODO: should try to implement
         ;; Yes, that's fine.  Another common approach is to record the entire scene normally as an SkPicture, and just play it back into each tile, clipped and translated as appropriate.
@@ -1891,7 +1895,10 @@
    (assert membraneskialib "Could not run because membraneskia could not be loaded.")
 
    (async/>!! window-chan (map->GlfwSkiaWindow (merge
-                                                {:view-fn view-fn}
+                                                {:view-fn
+                                                 (if (:include-container-info options)
+                                                   view-fn
+                                                   (fn [_] (view-fn)))}
                                                 options)))
 
    (dispatch-sync!

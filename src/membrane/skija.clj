@@ -744,6 +744,10 @@
   (GLFW/glfwWindowHint GLFW/GLFW_RESIZABLE GLFW/GLFW_TRUE)
   (let [width  (int (or window-start-width  640))
         height (int (or window-start-height 480))
+        view-fn (if (:include-container-info options)
+                  view-fn
+                  (fn [_]
+                    (view-fn)))
         window-title (if window-title
                        (do
                          (assert (string? window-title) "If window title is provided, it must be a string")
@@ -772,7 +776,8 @@
 
             view-atom (atom nil)
             last-draw (atom nil)
-            mouse-position (atom [0 0])]
+            mouse-position (atom [0 0])
+            container-size (atom nil)]
         (letfn [(release-skija-resources []
                   (set! *canvas* nil)
                   (set! *context* nil)
@@ -790,6 +795,8 @@
                         target  (BackendRenderTarget/makeGL width height 0 8 fb-id FramebufferFormat/GR_GL_RGBA8)
                         surface (Surface/makeFromBackendRenderTarget context target SurfaceOrigin/BOTTOM_LEFT SurfaceColorFormat/RGBA_8888 (ColorSpace/getSRGB))
                         canvas  (.getCanvas surface)]
+                    (reset! container-size [(int (/ width scale-x))
+                                            (int (/ height scale-y))])
                     (set! *context* context)
                     (set! *canvas* canvas)
                     ;; release in reverse order of creation
@@ -802,7 +809,8 @@
                   (let [canvas *canvas*
                         layer (.save canvas)
 
-                        view (view-fn)
+                        container-info {:container-size @container-size}
+                        view (view-fn container-info)
                         last-view @view-atom]
                     (when (not= view last-view)
                       (reset! view-atom view)
