@@ -4,7 +4,7 @@
   <packaging>jar</packaging>
   <groupId>com.phronemophobic.membrane</groupId>
   <artifactId>skialib-macosx-aarch64</artifactId>
-  <version>0.9.28-beta</version>
+  <version>0.11.0-beta-SNAPSHOT</version>
   <name>membrane-skialib-macosx-aarch64</name>
   <dependencies>
     <dependency>

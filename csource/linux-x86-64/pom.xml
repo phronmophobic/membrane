@@ -4,7 +4,7 @@
   <packaging>jar</packaging>
   <groupId>com.phronemophobic.membrane</groupId>
   <artifactId>skialib-linux-x86-64</artifactId>
-  <version>0.9.28-beta</version>
+  <version>0.11.0-beta-SNAPSHOT</version>
   <name>membrane-skialib-linux-x86-64</name>
   <dependencies>
     <dependency>
