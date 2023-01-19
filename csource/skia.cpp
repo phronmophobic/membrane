@@ -238,20 +238,7 @@ extern "C" {
     }
 
     float skia_advance_x(SkFont* font, const char* text, int text_length){
-        SkAutoToGlyphs atg(*font, text, text_length, SkTextEncoding::kUTF8);
-        const int glyphCount = atg.count();
-        const SkGlyphID* glyphIDs = atg.glyphs();
-
-        SkStrikeSpec strikeSpec = SkStrikeSpec::MakeCanonicalized(*font);
-        SkBulkGlyphMetrics metrics{strikeSpec};
-        SkSpan<const SkGlyph*> glyphs = metrics.glyphs(SkMakeSpan(glyphIDs, glyphCount));
-
-        if ( glyphCount ){
-            return glyphs[0]->advanceX();
-        }else{
-            return 0;
-        }
-
+        return font->measureText(text, text_length, SkTextEncoding::kUTF8, NULL);
     }
 
     void skia_text_bounds(SkFont* font, const char* text, int text_length, float* ox, float* oy, float* width, float* height){
@@ -360,102 +347,55 @@ extern "C" {
         sourceResource->surface->draw(destinationResource->surface->getCanvas(), 0, 0, &destinationResource->getPaint());
     }
 
-    // void skia_text_bounds2(SkFont* font, const char* text, int text_length, float* ox, float* oy, float* width, float* height){
-
-    //         sk_sp<ResourceFontCollection> fontCollection = sk_make_sp<ResourceFontCollection>();
-    //         sk_sp<ResourceFontCollection> fontCollection = sk_make_sp<ResourceFontCollection>();
-    //         if (!fontCollection->fontsFound()) return;
-    //         const char* text = "Hello World Text Dialog";
-    //         const size_t len = strlen(text);
-
-    //         ParagraphStyle paragraph_style;
-    //         paragraph_style.turnHintingOff();
-    //         ParagraphBuilderImpl builder(paragraph_style, fontCollection);
-
-    //         TextStyle text_style;
-    //         text_style.setFontFamilies({SkString("Roboto")});
-    //         text_style.setColor(SK_ColorBLACK);
-    //         builder.pushStyle(text_style);
-    //         builder.addText(text, len);
-    //         builder.pop();
-
-    //         auto paragraph = builder.Build();
-    //         paragraph->layout(200);
-    //         paragraph->paint(canvas.get(), 0, 0);
-
-    // }
     
     void skia_render_cursor(SkiaResource* resource, SkFont * font, const char* text, int text_length , int cursor){
-        SkAutoToGlyphs atg(*font, text, text_length, SkTextEncoding::kUTF8);
-        const int glyphCount = atg.count();
-        const SkGlyphID* glyphIDs = atg.glyphs();
+        int glyphCount = font->textToGlyphs(text, text_length, SkTextEncoding::kUTF8, NULL, 0);
+        std::vector<SkGlyphID> glyphs(glyphCount);
+        font->textToGlyphs(text, text_length, SkTextEncoding::kUTF8, glyphs.data(), glyphs.size());
 
-        SkStrikeSpec strikeSpec = SkStrikeSpec::MakeCanonicalized(*font, nullptr);
-        SkBulkGlyphMetrics metrics{strikeSpec};
-        SkSpan<const SkGlyph*> glyphs = metrics.glyphs(SkMakeSpan(glyphIDs, glyphCount));
+        std::vector<SkScalar> xposs(glyphCount);
+        font->getXPos(glyphs.data(), glyphs.size(), xposs.data());
 
-        float x = 0;
-        float startX = 0;
-        float endX = 0;
-        int index = 0;
-        for( ; ; index ++ ) {
+        std::vector<SkScalar> widths(glyphCount);
+        font->getWidths(glyphs.data(), glyphs.size(), widths.data());
 
-            if ( index == cursor ){
-                startX = x;
-
-
-                if ( index >= glyphs.size() ){
-                    endX = x + font->measureText("8",1, SkTextEncoding::kUTF8);
-
-                }else{
-                    endX = x + glyphs[index]->advanceX();
-                }
-                break;
+        float startX;
+        float endX;
+        
+        if ( cursor < glyphCount ){
+            startX = xposs[cursor];
+            endX = startX + widths[cursor];
+        } else {
+            if ( xposs.empty() ){
+                startX = 0;
+            } else {
+                startX = xposs.back() + widths.back();
             }
-
-            const SkGlyph* glyph = glyphs[index];
-            x += glyph->advanceX();
+            endX = startX + font->measureText("8",1, SkTextEncoding::kUTF8);
         }
-
-        SkRect rect = SkRect::MakeXYWH(startX, 0, endX - startX, font->getSpacing() + 1);
+        SkRect rect = SkRect::MakeXYWH(startX, 0, endX - startX, font->getSpacing());
         resource->surface->getCanvas()->drawRect(rect, resource->getPaint());
     }
 
     void skia_render_selection(SkiaResource* resource, SkFont * font, const char* text, int text_length , int selection_start, int selection_end){
-        SkAutoToGlyphs atg(*font, text, text_length, SkTextEncoding::kUTF8);
-        const int glyphCount = atg.count();
-        if (glyphCount == 0) {
-            return;
-        }
-        const SkGlyphID* glyphIDs = atg.glyphs();
+        if ( selection_start == selection_end){ return; }
 
-        SkStrikeSpec strikeSpec = SkStrikeSpec::MakeCanonicalized(*font, nullptr);
-        SkBulkGlyphMetrics metrics{strikeSpec};
-        SkSpan<const SkGlyph*> glyphs = metrics.glyphs(SkMakeSpan(glyphIDs, glyphCount));
+        int glyphCount = font->textToGlyphs(text, text_length, SkTextEncoding::kUTF8, NULL, 0);
+        std::vector<SkGlyphID> glyphs(glyphCount);
+        font->textToGlyphs(text, text_length, SkTextEncoding::kUTF8, glyphs.data(), glyphs.size());
 
-        float x = 0;
-        float startX = 0;
-        float endX = 0;
-        // int textSize = strlen(text);
-        int index = 0;
-        for( ; ; index ++ ) {
+        if (glyphCount == 0){ return; }
 
-            if ( index == selection_start ){
-                startX = x;
-            }
-            if (index == selection_end ){
-                endX = x;
-                break;
-            }
+        std::vector<SkScalar> xposs(glyphCount);
+        font->getXPos(glyphs.data(), glyphs.size(), xposs.data());
 
-            if ( index >= glyphs.size() ){
-                endX = x;
-                break;
-            }
-
-            const SkGlyph* glyph = glyphs[index];
-            x += glyph->advanceX();
-        }
+        std::vector<SkScalar> widths(glyphCount);
+        font->getWidths(glyphs.data(), glyphs.size(), widths.data());
+        
+        float startX = xposs[selection_start];
+        int endIndex = std::min(std::min(selection_end, (int)widths.size() - 1),
+                                (int)xposs.size() - 1);
+        float endX = xposs[endIndex] + widths[endIndex];
 
         SkRect rect = SkRect::MakeXYWH(startX, 0, endX - startX, font->getSpacing());
         resource->surface->getCanvas()->drawRect(rect, resource->getPaint());
@@ -464,36 +404,31 @@ extern "C" {
 
     //https://developer.apple.com/fonts/TrueType-Reference-Manual/
     int skia_index_for_position(SkFont* font, const char* text, int text_length, float px){
+        int glyphCount = font->textToGlyphs(text, text_length, SkTextEncoding::kUTF8, NULL, 0);
+        std::vector<SkGlyphID> glyphs(glyphCount);
+        font->textToGlyphs(text, text_length, SkTextEncoding::kUTF8, glyphs.data(), glyphs.size());
 
-        SkAutoToGlyphs atg(*font, text, text_length, SkTextEncoding::kUTF8);
-        const int glyphCount = atg.count();
-        if (glyphCount == 0) {
-            return 0;
-        }
-        const SkGlyphID* glyphIDs = atg.glyphs();
+        std::vector<SkScalar> xposs(glyphCount);
+        font->getXPos(glyphs.data(), glyphs.size(), xposs.data());
 
-        SkStrikeSpec strikeSpec = SkStrikeSpec::MakeCanonicalized(*font, nullptr);
-        SkBulkGlyphMetrics metrics{strikeSpec};
-        SkSpan<const SkGlyph*> glyphs = metrics.glyphs(SkMakeSpan(glyphIDs, glyphCount));
+        std::vector<SkScalar> widths(glyphCount);
+        font->getWidths(glyphs.data(), glyphs.size(), widths.data());
 
         float x = 0;
-        // int textSize = strlen(text);
         int index = 0;
         for( ; ; index ++ ) {
 
-            if ( index >= glyphs.size() ){
+            if ( index >= glyphCount ){
                 return index;
             }
 
-            const SkGlyph* glyph = glyphs[index];
-            x += glyph->advanceX();
-            if ( x > px){
+            float glyphEndX = xposs[index] + widths[index];
+            if ( glyphEndX > px){
                 break;
             }
         }
 
         return index;
-
     }
 
     void skia_save(SkiaResource* resource){
