@@ -13,8 +13,13 @@
 
 #endif
 
+#include "modules/skparagraph/include/Paragraph.h"
+#include "modules/skparagraph/include/ParagraphBuilder.h"
+
 #include "modules/skparagraph/include/FontCollection.h"
 #include "modules/skparagraph/include/TypefaceFontProvider.h"
+#include <SkEncodedImageFormat.h>
+#include <SkColorSpace.h>
 #include <iostream>
 #include <fstream>
 
@@ -39,37 +44,7 @@ typedef struct _cef_rect_t {
   int height;
 } cef_rect_t;
 
-class SimpleFontCollection : public skia::textlayout::FontCollection {
-public:
-    SimpleFontCollection(sk_sp<SkTypeface> typeface)
-        : fFontProvider(sk_make_sp<skia::textlayout::TypefaceFontProvider>()) 
-{
-
-        fFontProvider->registerTypeface(typeface);
-
-        // if (testOnly) {
-        //     this->setTestFontManager(std::move(fFontProvider));
-        // } else {
-        //     this->setAssetFontManager(std::move(fFontProvider));
-        // }
-        // this->disableFontFallback();
-        this->setDefaultFontManager(std::move(fFontProvider));
-    }
-
-    ~SimpleFontCollection() = default;
-
-
-private:
-    sk_sp<skia::textlayout::TypefaceFontProvider> fFontProvider;
-};
-
-
-// void log(std::string s){
-//     std::ofstream myfile;
-//     myfile.open ("/var/tmp/skia.log",  std::ios::out | std::ios::app);
-//     myfile << s;
-//     myfile.close();
-// }
+using namespace skia::textlayout;
 
 
 extern "C" {
@@ -474,6 +449,29 @@ extern "C" {
         strncpy(familyName, s.c_str(), len);
     }
 
+    SkFontStyle* skia_FontStyle_make(int weight, int width, int slant){
+        if ( width == -1 ){ width = SkFontStyle::kNormal_Width; }
+        if ( weight == -1 ){ weight = SkFontStyle::kNormal_Weight; }
+
+        SkFontStyle::Slant skslant;
+        switch ( slant ){
+        case 2:
+            skslant = SkFontStyle::kItalic_Slant;
+            break;
+        case 3:
+            skslant = SkFontStyle::kOblique_Slant;
+            break;
+        case -1:
+        case 1:
+        default:
+            skslant = SkFontStyle::kUpright_Slant;
+            break;
+        }
+
+        SkFontStyle* style = new SkFontStyle(weight, width, skslant);
+        return style;
+    }
+
     SkFont* skia_load_font2(const char* name, float size, int weight, int width, int slant){
         if ( name ){
             sk_sp<SkTypeface> typeface = SkTypeface::MakeFromFile(name);
@@ -734,6 +732,363 @@ extern "C" {
 
         return -1;
 
+    }
+
+    SkColor skia_SkColor4f_make(float red, float green, float blue, float alpha){
+        SkColor4f color;
+        color.fR = red;
+        color.fG = green;
+        color.fB = blue;
+        color.fA = alpha;
+        return color.toSkColor();
+    }
+
+
+
+    ParagraphBuilder* skia_ParagraphBuilder_make(ParagraphStyle* paragraphStyle){
+
+        auto fontCollection = sk_make_sp<FontCollection>();
+        fontCollection->setDefaultFontManager(SkFontMgr::RefDefault());
+        // fontCollection->enableFontFallback();
+
+        ParagraphBuilder* pb = ParagraphBuilder::make(*paragraphStyle, fontCollection).release();
+        return pb;
+    }
+    ParagraphBuilder* skia_ParagraphBuilder_pushStyle(ParagraphBuilder *pb, TextStyle* style){
+        pb->pushStyle(*style);
+        return pb;
+    }
+    ParagraphBuilder* skia_ParagraphBuilder_pop(ParagraphBuilder *pb){
+        pb->pop();
+        return pb;
+    }
+    ParagraphBuilder* skia_ParagraphBuilder_addText(ParagraphBuilder *pb, char* text, int len){
+        pb->addText(text, len);
+        return pb;
+    }
+    ParagraphBuilder* skia_ParagraphBuilder_addPlaceholder(ParagraphBuilder *pb, PlaceholderStyle* placeholderStyle){
+        pb->addPlaceholder(*placeholderStyle);
+        return pb;
+    }
+    Paragraph* skia_ParagraphBuilder_build(ParagraphBuilder *pb){
+        return pb->Build().release();
+    }
+    ParagraphBuilder* skia_ParagraphBuilder_reset(ParagraphBuilder *pb){
+        pb->Reset();
+        return pb;
+    }
+
+    TextStyle* skia_TextStyle_make(){
+        return new TextStyle();
+    }
+
+    TextStyle* skia_TextStyle_setColor(TextStyle* style, uint32_t color ){
+        style->setColor(color);
+
+        return style;
+    }
+    TextStyle* skia_TextStyle_setForeground(TextStyle* style, SkPaint* foregroundColor){
+        style->setForegroundColor(*foregroundColor);
+
+        return style;
+    }
+
+    TextStyle* skia_TextStyle_clearForegroundColor(TextStyle* style){
+        style->clearForegroundColor();
+        return style;
+    }
+    TextStyle* skia_TextStyle_setBackgroundColor(TextStyle* style, SkPaint* backgroundColor){
+        style->setBackgroundColor(*backgroundColor);
+        return style;
+    }
+    TextStyle* skia_TextStyle_clearBackgroundColor(TextStyle* style){
+        style->clearBackgroundColor();
+        return style;
+    }
+    TextStyle* skia_TextStyle_setDecoration(TextStyle* style, int decoration){
+        style->setDecoration((TextDecoration)decoration);
+        return style;
+    }
+
+    TextStyle* skia_TextStyle_setDecorationMode(TextStyle* style, int mode) {
+
+
+        TextDecorationMode m;
+        switch(m){
+        case 0: m = kGaps; break;
+        case 1: m = kThrough; break;
+        }
+
+        style->setDecorationMode(m);
+        return style;
+    }
+    TextStyle* skia_TextStyle_setDecorationStyle(TextStyle* style, int tdStyle) {
+        TextDecorationStyle s;
+        switch(tdStyle){
+        case 0: s = kSolid; break;
+        case 1: s =  kDouble; break;
+        case 2: s = kDotted ; break;
+        case 3: s = kDashed; break;
+        case 4: s = kWavy; break;
+        }
+
+        style->setDecorationStyle(s);
+        return style;
+    }
+    TextStyle* skia_TextStyle_setDecorationColor(TextStyle* style, uint32_t color) {
+        style->setDecorationColor(color);
+        return style;
+    }
+    TextStyle* skia_TextStyle_setDecorationThicknessMultiplier(TextStyle* style, float m) {
+        style->setDecorationThicknessMultiplier(m);
+        return style;
+    }
+
+    TextStyle* skia_TextStyle_setFontStyle(TextStyle* style, SkFontStyle* fontStyle){
+        style->setFontStyle(*fontStyle);
+        return style;
+    }
+    TextStyle* skia_TextStyle_addShadow(TextStyle* style, TextShadow* shadow){
+        style->addShadow(*shadow);
+        return style;
+    }
+    TextStyle* skia_TextStyle_resetShadows(TextStyle* style){
+        style->resetShadows();
+        return style;
+    }
+    TextStyle* skia_TextStyle_setFontSize(TextStyle* style, float fontSize){
+        style->setFontSize(fontSize);
+        return style;
+    }
+    TextStyle* skia_TextStyle_setFontFamilies(TextStyle* style, SkString** familiesArr, int familiesCount){
+        std::vector<SkString> families(familiesCount);
+        for (int i = 0; i < familiesCount; ++i) {
+            families[i] = *familiesArr[i];
+            LOG("font family: %s\n", familiesArr[i]->c_str());
+        }
+
+        LOG("font families: %lu\n", families.size());
+        style->setFontFamilies(families);
+
+        return style;
+    }
+    TextStyle* skia_TextStyle_setBaselineShift(TextStyle* style, float shift){
+        style->setBaselineShift(shift);
+
+        return style;
+    }
+    TextStyle* skia_TextStyle_setHeight(TextStyle* style, float height){
+        style->setHeight(height);
+        return style;
+    }
+    TextStyle* skia_TextStyle_setHeightOverride(TextStyle* style, int heightOverride){
+        style->setHeightOverride(heightOverride);
+        return style;
+    }
+    TextStyle* skia_TextStyle_setHalfLeading(TextStyle* style, int halfLeading){
+        style->setHalfLeading(halfLeading);
+        return style;
+    }
+    TextStyle* skia_TextStyle_setLetterSpacing(TextStyle* style, float letterSpacing){
+        style->setLetterSpacing(letterSpacing);
+        return style;
+    }
+    TextStyle* skia_TextStyle_setWordSpacing(TextStyle* style, float wordSpacing){
+        style->setWordSpacing(wordSpacing);
+        return style;
+    }
+    TextStyle* skia_TextStyle_setTypeface(TextStyle* style, SkTypeface* typeface){
+        style->setTypeface(sk_ref_sp(typeface));
+        return style;
+    }
+    TextStyle* skia_TextStyle_setLocale(TextStyle* style, SkString* locale){
+        style->setLocale(*locale);
+        return style;
+    }
+    TextStyle* skia_TextStyle_setTextBaseline(TextStyle* style, int baseline){
+        TextBaseline tb;
+        if (baseline == 1){
+            tb = skia::textlayout::TextBaseline::kIdeographic;
+        }else{
+            tb = skia::textlayout::TextBaseline::kAlphabetic;
+        }
+        style->setTextBaseline(tb);
+        return style;
+    }
+    TextStyle* skia_TextStyle_setPlaceholder(TextStyle* style){
+        style->setPlaceholder();
+        return style;
+    }
+
+    ParagraphStyle* skia_ParagraphStyle_make(){
+        return new ParagraphStyle();
+    }
+
+    ParagraphStyle* skia_ParagraphStyle_setStrutStyle(ParagraphStyle* paragraphStyle, StrutStyle* strutStyle){
+        paragraphStyle->setStrutStyle(*strutStyle);
+        return paragraphStyle;
+    }
+
+    ParagraphStyle* skia_ParagraphStyle_setTextStyle(ParagraphStyle* paragraphStyle, TextStyle* textStyle){
+        paragraphStyle->setTextStyle(*textStyle);
+        return paragraphStyle;
+    }
+
+    ParagraphStyle* skia_ParagraphStyle_setTextDirection(ParagraphStyle* paragraphStyle, int direction){
+
+        TextDirection d;
+        switch (direction){
+        case 0: d = TextDirection::kRtl;break;
+        case 1: d = TextDirection::kLtr;break;
+        }
+        paragraphStyle->setTextDirection(d);
+        return paragraphStyle;
+    }
+
+    ParagraphStyle* skia_ParagraphStyle_setTextAlign(ParagraphStyle* paragraphStyle, int align){
+        TextAlign a;
+
+        switch(align){
+        case 0:
+            a = TextAlign::kLeft; break;
+        case 1:
+            a = TextAlign::kRight; break;
+        case 2:
+            a = TextAlign::kCenter; break;
+        case 3:
+            a = TextAlign::kJustify; break;
+        case 4:
+            a = TextAlign::kStart; break;
+        case 5:
+            a = TextAlign::kEnd; break;
+        }
+
+        paragraphStyle->setTextAlign(a);
+        return paragraphStyle;
+    }
+
+    ParagraphStyle* skia_ParagraphStyle_setMaxLines(ParagraphStyle* paragraphStyle, int maxLines){
+        paragraphStyle->setMaxLines(maxLines);
+        return paragraphStyle;
+    }
+
+    ParagraphStyle* skia_ParagraphStyle_setEllipsis(ParagraphStyle* paragraphStyle, SkString* ellipsis){
+        paragraphStyle->setEllipsis(*ellipsis);
+        return paragraphStyle;
+    }
+
+    ParagraphStyle* skia_ParagraphStyle_setHeight(ParagraphStyle* paragraphStyle, float height){
+        paragraphStyle->setHeight(height);
+        return paragraphStyle;
+    }
+
+    ParagraphStyle* skia_ParagraphStyle_setTextHeightBehavior(ParagraphStyle* paragraphStyle, int v){
+        TextHeightBehavior thb;
+        switch (v){
+
+        case 0:
+            v = kAll; break;
+        case 1:
+            v = kDisableFirstAscent; break;
+        case 2:
+            v = kDisableLastDescent; break;
+        case 0x1 | 0x2:
+            v = kDisableAll; break;
+        }
+        paragraphStyle->setTextHeightBehavior(thb);
+        return paragraphStyle;
+    }
+
+    ParagraphStyle* skia_ParagraphStyle_setReplaceTabCharacters(ParagraphStyle* paragraphStyle, int value){
+        paragraphStyle->setReplaceTabCharacters(value);
+        return paragraphStyle;
+    }
+
+
+    SkString* skia_skstring_make_utf8(char *s, int len){
+        return new SkString(s, len);
+    }
+    void skia_skstring_delete(SkString* s){
+        delete s;
+    }
+
+    // ;; SkScalar getMaxWidth() { return fWidth; }
+    float skia_Paragraph_getMaxWidth(Paragraph* para){
+        return para->getMaxWidth();
+    }
+    // ;; SkScalar getHeight() { return fHeight; }
+    float skia_Paragraph_getHeight(Paragraph* para){
+        return para->getHeight();
+    }
+    // ;; SkScalar getMinIntrinsicWidth() { return fMinIntrinsicWidth; }
+    float skia_Paragraph_getMinIntrinsicWidth(Paragraph* para){
+        return para->getMinIntrinsicWidth();
+    }
+    // ;; SkScalar getMaxIntrinsicWidth() { return fMaxIntrinsicWidth; }
+    float skia_Paragraph_getMaxIntrinsicWidth(Paragraph* para){
+        return para->getMaxIntrinsicWidth();
+    }
+    // ;; SkScalar getAlphabeticBaseline() { return fAlphabeticBaseline; }
+    float skia_Paragraph_getAlphabeticBaseline(Paragraph* para){
+        return para->getAlphabeticBaseline();
+    }
+    // ;; SkScalar getIdeographicBaseline() { return fIdeographicBaseline; }
+    float skia_Paragraph_getIdeographicBaseline(Paragraph* para){
+        return para->getIdeographicBaseline();
+    }
+    // ;; SkScalar getLongestLine() { return fLongestLine; }
+    float skia_Paragraph_getLongestLine(Paragraph* para){
+        return para->getLongestLine();
+    }
+    // ;; bool didExceedMaxLines() { return fExceededMaxLines; }
+    int skia_Paragraph_didExceedMaxLines(Paragraph* para){
+        return para->didExceedMaxLines();
+    }
+    // ;; virtual void layout(SkScalar width) = 0;
+    void skia_Paragraph_layout(Paragraph* para, float width){
+        return para->layout(width);
+    }
+    // ;; virtual void paint(SkCanvas* canvas, SkScalar x, SkScalar y) = 0;
+    void skia_Paragraph_paint(Paragraph* para, SkiaResource* resource, float x, float y){
+        SkCanvas* canvas = resource->surface->getCanvas();
+        return para->paint(canvas, x, y);
+    }
+    // ;; virtual void paint(ParagraphPainter* painter, SkScalar x, SkScalar y) = 0;
+
+    // ;; // Returns a vector of bounding boxes that enclose all text between
+    // ;; // start and end glyph indexes, including start and excluding end
+    // ;; virtual std::vector<TextBox> getRectsForRange(unsigned start,
+    // ;;                                               unsigned end,
+    // ;;                                               RectHeightStyle rectHeightStyle,
+    // ;;                                               RectWidthStyle rectWidthStyle) = 0;
+//    skia_Paragraph_getRectsForRange(Paragraph* para);
+    // ;; virtual std::vector<TextBox> getRectsForPlaceholders() = 0;
+//    skia_Paragraph_getRectsForPlaceHolders(Paragraph* para);
+    // ;; // Returns the index of the glyph that corresponds to the provided coordinate,
+    // ;; // with the top left corner as the origin, and +y direction as down
+    // ;; virtual PositionWithAffinity getGlyphPositionAtCoordinate(SkScalar dx, SkScalar dy) = 0;
+//    skia_Paragraph_getGlyphPositionAtCoordinate(Paragraph* para);
+    // ;; // Finds the first and last glyphs that define a word containing
+    // ;; // the glyph at index offset
+    // ;; virtual SkRange<size_t> getWordBoundary(unsigned offset) = 0;
+//    skia_Paragraph_getWordBoundary(Paragraph* para);
+    // ;; virtual void getLineMetrics(std::vector<LineMetrics>&) = 0;
+//    skia_Paragraph_getLineMetrics(Paragraph* para);
+
+    void skia_FontCollection_findTypefaces(SkString* familyName, SkFontStyle* fontStyle){
+
+        auto fc = sk_make_sp<FontCollection>();
+        fc->setDefaultFontManager(SkFontMgr::RefDefault());
+        fc->enableFontFallback();
+        std::vector<SkString> families = {SkString("monospace")};
+
+        std::vector<sk_sp<SkTypeface>> tfs = fc->findTypefaces(families,SkFontStyle::Normal());
+
+        for ( int i =0; i < tfs.size(); i ++){
+            SkString s;
+            tfs[i]->getFamilyName(&s);
+            LOG("font: %s\n", s.c_str());
+        }
     }
 
 #if defined(__APPLE__)
