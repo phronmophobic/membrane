@@ -270,6 +270,12 @@
 (def GLFW_MOD_SUPER 0x0008)
 (def GLFW_MOD_CAPS_LOCK 0x0010)
 (def GLFW_MOD_NUM_LOCK 0x0020)
+(def GLFW_CONTEXT_VERSION_MAJOR (int 0x00022002))
+(def GLFW_CONTEXT_VERSION_MINOR (int 0x00022003))
+(def GLFW_OPENGL_PROFILE (int 0x00022008))
+(def GLFW_OPENGL_CORE_PROFILE (int 0x00032001))
+(def GLFW_OPENGL_FORWARD_COMPAT  (int 0x00022006))
+(def GL_TRUE (int 1))
 
 
 ;; (defc demo_main freetype Integer/TYPE [argc argv])
@@ -1965,6 +1971,16 @@
                   (.setContextClassLoader (Thread/currentThread) main-class-loader)
                   (fix-press-and-hold!)
                   ;; (glfw-call void glfwWindowHint GLFW_COCOA_RETINA_FRAMEBUFFER (int 0))
+
+                  ;;
+                  (do
+                    (glfw-call void glfwWindowHint GLFW_CONTEXT_VERSION_MAJOR (int 3))
+                    (glfw-call void glfwWindowHint GLFW_CONTEXT_VERSION_MINOR (int 2))
+                    ;; 3.2+ only
+                    (glfw-call void glfwWindowHint GLFW_OPENGL_PROFILE GLFW_OPENGL_CORE_PROFILE)
+                    ;; Required on Mac
+                    (glfw-call void glfwWindowHint GLFW_OPENGL_FORWARD_COMPAT GL_TRUE))
+
                   (glfw-call void glfwWindowHint GLFW_VISIBLE (int 0))
 
                   true)))
