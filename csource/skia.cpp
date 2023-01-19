@@ -167,31 +167,6 @@ extern "C" {
     void skia_clear(SkiaResource* resource){
         SkCanvas* canvas = resource->surface->getCanvas();
         canvas->clear(SK_ColorWHITE);
-        // canvas->save();
-
-        // canvas->save();
-        // canvas->clipRect(SkRect::MakeWH(100, 100));
-        // canvas->clear(SK_ColorRED);
-        // canvas->scale(.5, .5);
-        // canvas->clipRect(SkRect::MakeWH(100, 100));
-        // canvas->clear(SK_ColorBLUE);
-        // canvas->restore();
-
-        // SkPaint paint;
-        // paint.setColor(SK_ColorBLACK);
-
-        // auto text = SkTextBlob::MakeFromString("Hello, Skia!", SkFont(nullptr, 18));
-        // canvas->drawTextBlob(text.get(), 100, 150, paint);
-        
-        // canvas->save();
-        // canvas->translate(100,150);
-        // SkFont font(nullptr, 18);
-        // skia_render_text(resource,&font , "hello there", 0, 0);
-        // canvas->restore();
-
-
-        // canvas->restore();
-
     }
 
     void skia_flush(SkiaResource* resource){
