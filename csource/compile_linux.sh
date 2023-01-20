@@ -19,7 +19,6 @@ c++ \
     ./libs/skia/out/Release-${arch}/libskia.a \
     ./libs/skia/out/Release-${arch}/libskparagraph.a \
     ./libs/skia/out/Release-${arch}/libsvg.a \
-    ./libs/skia/out/Release-${arch}/libskunicode.a \
     ./libs/skia/out/Release-${arch}/libsksg.a \
     ./libs/skia/out/Release-${arch}/libparticles.a \
     -Wl,--no-whole-archive \
