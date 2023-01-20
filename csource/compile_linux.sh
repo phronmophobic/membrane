@@ -16,14 +16,12 @@ c++ \
     -I ./libs/skia/include/private \
     -L ./libs/skia/out/Release-${arch} \
     -Wl,--whole-archive \
-    ./libs/skia/out/Release-${arch}/libskcms.a \
     ./libs/skia/out/Release-${arch}/libskia.a \
-    ./libs/skia/out/Release-${arch}/libskottie.a \
     ./libs/skia/out/Release-${arch}/libskparagraph.a \
-    ./libs/skia/out/Release-${arch}/libskresources.a \
-    ./libs/skia/out/Release-${arch}/libsksg.a \
-    ./libs/skia/out/Release-${arch}/libskshaper.a \
+    ./libs/skia/out/Release-${arch}/libsvg.a \
     ./libs/skia/out/Release-${arch}/libskunicode.a \
+    ./libs/skia/out/Release-${arch}/libsksg.a \
+    ./libs/skia/out/Release-${arch}/libparticles.a \
     -Wl,--no-whole-archive \
     -shared \
     -std=c++17 \
