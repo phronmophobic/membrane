@@ -16,7 +16,7 @@ c++ \
     -I ./libs/skia/include/private \
     -L ./libs/skia/out/Release-${arch} \
     -Wl,--whole-archive \
-    ./libs/skia/out/Release-${arch}/libskia.a \
+    ./libs/skia/out/Release-${arch}/*.a \
     -Wl,--no-whole-archive \
     -shared \
     -std=c++17 \
