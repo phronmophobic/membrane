@@ -540,6 +540,43 @@
     )
   )
 
+(extend-type javax.swing.JComponent
+  IDraw
+  (draw [this]
+    (.paint this *g*))
+
+  ui/IOrigin
+  (-origin [_]
+    [0 0])
+
+  IBounds
+  (-bounds [this]
+    (let [dim (.getPreferredSize this)]
+      [(.width dim) (.height dim)])))
+
+(comment
+  ;; Example usage of the above
+  (import 'javax.swing.JLabel
+          'javax.swing.JSlider
+          'javax.swing.JComponent)
+
+  (defn set-preferred-size [jcomp]
+    (let [dim  (.getPreferredSize jcomp)]
+      (.setBounds jcomp 0 0 (.width dim) (.height dim))))
+  
+  (defn my-draw []
+    (ui/vertical-layout
+     (doto (JLabel. "<html>Text color: <font color='red'>red</font></html>")
+       set-preferred-size)
+     (doto (javax.swing.JToggleButton. "asdfakkk" true)
+       set-preferred-size)
+
+     (ui/label "membrane!!")))
+
+  (run #(my-draw))
+
+  ,)
+
 (defn index-for-position-line [^FontRenderContext frc font ^String text px]
   (let [max-index (max 0 (dec (.length  text)))
         chs (char-array (inc max-index))
