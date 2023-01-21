@@ -506,7 +506,11 @@
                  ;; else
                  style))
              (skia-TextStyle-make)
-             s))
+             (if (or (:text-style/foreground s)
+                     (:text-style/color s))
+               s
+               ;; default color is black
+               (assoc s :text-style/color [0 0 0]))))
 
 (defn- make-paragraph*
   ([text]
