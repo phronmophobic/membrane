@@ -476,6 +476,21 @@
   (skia_Paragraph_getLineMetrics paragraph))
 
 
+(defc skia_count_font_families membraneskialib Integer/TYPE [])
+(defc skia_get_family_name membraneskialib void [family-name len index])
+(defn available-font-families []
+  (let [num (skia_count_font_families)
+        buf (ffi-buf)
+        buf-size (.size buf)]
+    (into []
+          (map (fn [index]
+                 (skia_get_family_name buf buf-size
+                                       index)
+                 (.getString ^Memory buf 0 "utf-8")))
+          (range num))))
+
+
+
 (defn- ->TextStyle [s]
   (reduce-kv (fn [style k v]
                (case k

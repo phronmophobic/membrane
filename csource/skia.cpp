@@ -1075,20 +1075,14 @@ extern "C" {
     // ;; virtual void getLineMetrics(std::vector<LineMetrics>&) = 0;
 //    skia_Paragraph_getLineMetrics(Paragraph* para);
 
-    void skia_FontCollection_findTypefaces(SkString* familyName, SkFontStyle* fontStyle){
+    int skia_count_font_families(){
+        return SkFontMgr::RefDefault()->countFamilies();
+    }
 
-        auto fc = sk_make_sp<FontCollection>();
-        fc->setDefaultFontManager(SkFontMgr::RefDefault());
-        fc->enableFontFallback();
-        std::vector<SkString> families = {SkString("monospace")};
-
-        std::vector<sk_sp<SkTypeface>> tfs = fc->findTypefaces(families,SkFontStyle::Normal());
-
-        for ( int i =0; i < tfs.size(); i ++){
-            SkString s;
-            tfs[i]->getFamilyName(&s);
-            LOG("font: %s\n", s.c_str());
-        }
+    void skia_get_family_name(char* familyName, size_t len, int index){
+        SkString s = SkString();
+        SkFontMgr::RefDefault()->getFamilyName(index, &s);
+        strncpy(familyName, s.c_str(), len);
     }
 
 #if defined(__APPLE__)
