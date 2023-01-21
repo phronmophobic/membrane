@@ -523,10 +523,13 @@
          pb (reduce (fn [pb chunk]
                       (if (string? chunk)
                         (skia-ParagraphBuilder-addText pb chunk)
-                        (doto pb
-                          (skia-ParagraphBuilder-pushStyle (->TextStyle (:style chunk)))
-                          (skia-ParagraphBuilder-addText (:text chunk))
-                          (skia-ParagraphBuilder-pop))))
+                        (if-let [style (:style chunk)]
+                          (doto pb
+                            (skia-ParagraphBuilder-pushStyle (->TextStyle style))
+                            (skia-ParagraphBuilder-addText (:text chunk))
+                            (skia-ParagraphBuilder-pop))
+                          (doto pb
+                            (skia-ParagraphBuilder-addText (:text chunk))))))
                     pb
                     text)
          paragraph (doto (skia-ParagraphBuilder-build pb)
