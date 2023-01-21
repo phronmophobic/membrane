@@ -875,7 +875,11 @@
         num (if integer?
               (int num)
               (double num))]
-   (dispatch! :set $num num)))
+   (dispatch! :set $num
+              (clojure.core/max
+               min
+               (clojure.core/min num
+                                 max)))))
 
 (defui number-slider [{:keys [num max-width min max integer? mdown?]
                        :or {max-width 100}}]
