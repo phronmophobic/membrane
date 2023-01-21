@@ -536,7 +536,7 @@
                      (skia-Paragraph-layout width))]
      paragraph)))
 
-(def make-paragraph (memoize make-paragraph*))
+(def ^:private make-paragraph (memoize make-paragraph*))
 
 (defrecord Paragraph [paragraph width]
   ui/IOrigin
