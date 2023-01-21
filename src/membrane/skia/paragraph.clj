@@ -497,8 +497,9 @@
                  :text-style/height-override style
                  :text-style/letter-spacing style
                  :text-style/locale style
-                 :text-style/placeholder? (when v
-                                            (skia-TextStyle-setPlaceholder style))
+                 :text-style/placeholder? (if v
+                                            (skia-TextStyle-setPlaceholder style)
+                                            style)
                  :text-style/text-baseline style
                  :text-style/typeface style
                  :text-style/word-spacing style
