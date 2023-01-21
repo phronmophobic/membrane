@@ -87,15 +87,15 @@
                        (catch java.lang.UnsatisfiedLinkError e
                          nil)))
 
-(def ^:private ffi-buf*
+(def ffi-buf*
   (ThreadLocal/withInitial
    (reify
      Supplier
      (get [_]
        (Memory. 4096)))))
-(defmacro ^:private ffi-buf []
+(defmacro ffi-buf []
   `^Memory (.get  ^ThreadLocal ffi-buf*))
-(defmacro ^:private ffi-buf-size []
+(defmacro ffi-buf-size []
   `(.size (ffi-buf)))
 
 

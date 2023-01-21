@@ -1,6 +1,7 @@
 (ns membrane.skia.paragraph
   (:require [membrane.skia :as skia
              :refer [defc
+                     ffi-buf
                      membraneskialib]]
             [membrane.ui :as ui])
   (:import com.sun.jna.Pointer
@@ -10,8 +11,6 @@
 
 (def ^:private void Void/TYPE)
 ;; reuse skia buffer
-(def ^:private skia-buf @#'skia/skia-buf)
-
 
 (def
   ^:private
@@ -55,25 +54,30 @@
                    (or width -1))
         slant (get skia/font-slants slant
                    (or slant -1))]
+    (assert (or (= -1 weight)
+                (>= weight 0)))
+    (assert (or (= -1 width)
+                (#{1 2 3 4 5 6 7 8 9} width)))
+    (assert (or (= -1 slant)
+                (#{1 2 3} slant)))
     (skia_FontStyle_make (int weight)
                          (int width)
                          (int slant))))
 (defn- ->FontStyle [{:font-style/keys [weight width slant]}]
   (skia-FontStyle-make weight width slant))
 
-(defn- ->FontFamilies [font-families]
-  (let [^Pointer buf skia-buf]
-    (loop [offset 0
-           n 0
-           font-families (seq font-families)]
-      (if font-families
-        (let [family (first font-families)]
-          (.setPointer buf offset (->SkString family))
-          (recur (+ offset Native/POINTER_SIZE)
-                 (inc n)
-                 (next font-families)))
-        ;; else
-        [n buf]))))
+(defn- ->FontFamilies [buf font-families]
+  (loop [offset 0
+         n 0
+         font-families (seq font-families)]
+    (if font-families
+      (let [family (first font-families)]
+        (.setPointer ^Memory buf offset (->SkString family))
+        (recur (+ offset Native/POINTER_SIZE)
+               (inc n)
+               (next font-families)))
+      ;; else
+      n)))
 
 
 
@@ -243,7 +247,8 @@
 (defc skia_TextStyle_setFontFamilies membraneskialib Pointer [style families num-families])
 (defn- skia-TextStyle-setFontFamilies [style families]
   (assert (pointer? style))
-  (let [[num-families sk-families] (->FontFamilies families) ]
+  (let [sk-families (ffi-buf)
+        num-families (->FontFamilies sk-families families) ]
     (skia_TextStyle_setFontFamilies style
                                     sk-families
                                     num-families)))
