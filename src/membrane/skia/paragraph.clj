@@ -494,9 +494,7 @@
 (defn- ->TextStyle [s]
   (reduce-kv (fn [style k v]
                (case k
-                 :text-style/shadows style
-                 :text-style/background-color style
-                 :text-style/baseline-shift style
+                 :text-style/baseline-shift (skia-TextStyle-setBaselineShift style v)
                  :text-style/color (skia-TextStyle-setColor style v)
                  :text-style/decoration (skia-TextStyle-setDecoration style v)
                  :text-style/decoration-style (skia-TextStyle-setDecorationStyle style v)
@@ -506,18 +504,22 @@
                  :text-style/font-families (skia-TextStyle-setFontFamilies style v)
                  :text-style/font-size (skia-TextStyle-setFontSize style v)
                  :text-style/font-style (skia-TextStyle-setFontStyle style v)
-                 :text-style/foreground style
-                 :text-style/half-leading style
-                 :text-style/height style
-                 :text-style/height-override style
-                 :text-style/letter-spacing style
-                 :text-style/locale style
+
+                 :text-style/half-leading (skia-TextStyle-setHalfLeading style v)
+                 :text-style/height (skia-TextStyle-setHeight style v)
+                 :text-style/height-override (skia-TextStyle-setHeightOverride style v)
+                 :text-style/letter-spacing (skia-TextStyle-setLetterSpacing style v)
+                 :text-style/locale (skia-TextStyle-setLocale style v)
                  :text-style/placeholder? (if v
                                             (skia-TextStyle-setPlaceholder style)
                                             style)
-                 :text-style/text-baseline style
+                 :text-style/text-baseline (skia-TextStyle-setTextBaseline style v)
+                 :text-style/word-spacing (skia-TextStyle-setWordSpacing style v)
+
                  :text-style/typeface style
-                 :text-style/word-spacing style
+                 :text-style/foreground style
+                 :text-style/shadows style
+                 :text-style/background-color style
 
                  ;; else
                  style))
