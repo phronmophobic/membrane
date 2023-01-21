@@ -216,7 +216,7 @@
 (defn- skia-TextStyle-setDecorationThicknessMultiplier [style n]
   (assert (pointer? style))
   ;; skia can hard crash on values near zero
-  (assert (>= n 0.05) (str n))
+  (assert (>= n 0.1) (str n))
   (skia_TextStyle_setDecorationThicknessMultiplier style (float n)))
 
 ;; TextStyle* skia_TextStyle_setFontStyle(TextStyle* style, SkFontStyle* fontStyle)
