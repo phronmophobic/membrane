@@ -558,6 +558,14 @@
     (let [paragraph (make-paragraph paragraph width)]
         (skia-Paragraph-paint paragraph skia/*skia-resource* 0 0))))
 
+(defn paragraph
+  ([paragraph]
+   (->Paragraph paragraph nil))
+  ([paragraph width]
+   (assert (or (nil? width)
+               (>= width 0)))
+   (->Paragraph paragraph width)))
+
 
  
 
