@@ -215,6 +215,8 @@
 (defc skia_TextStyle_setDecorationThicknessMultiplier membraneskialib Pointer [style n])
 (defn- skia-TextStyle-setDecorationThicknessMultiplier [style n]
   (assert (pointer? style))
+  ;; skia can hard crash on values near zero
+  (assert (>= n 0.05) (str n))
   (skia_TextStyle_setDecorationThicknessMultiplier style (float n)))
 
 ;; TextStyle* skia_TextStyle_setFontStyle(TextStyle* style, SkFontStyle* fontStyle)
@@ -241,6 +243,7 @@
 (defc skia_TextStyle_setFontSize membraneskialib Pointer [style font-size])
 (defn- skia-TextStyle-setFontSize [style font-size]
   (assert (pointer? style))
+  (assert (>= font-size 0))
   (skia_TextStyle_setFontSize style (float font-size)))
 
 ;; TextStyle* skia_TextStyle_setFontFamilies(TextStyle* style, std::vector<SkString> families)
@@ -257,6 +260,7 @@
 (defc skia_TextStyle_setBaselineShift membraneskialib Pointer [style shift])
 (defn- skia-TextStyle-setBaselineShift [style shift]
   (assert (pointer? style))
+  (assert (>= shift 0))
   (skia_TextStyle_setBaselineShift style (float shift)))
 
 ;; TextStyle* skia_TextStyle_setHeight(TextStyle* style, float height)
