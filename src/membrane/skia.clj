@@ -42,7 +42,8 @@
            com.sun.jna.ptr.FloatByReference
            com.sun.jna.ptr.IntByReference
            com.sun.jna.IntegerType
-           java.awt.image.BufferedImage)
+           java.awt.image.BufferedImage
+           java.util.function.Supplier)
   (:import java.nio.ByteBuffer
            com.phronemophobic.membrane.Skia)
   (:gen-class))
@@ -86,8 +87,17 @@
                        (catch java.lang.UnsatisfiedLinkError e
                          nil)))
 
-(def ^:private skia-buf (Memory. 4096))
-(def ^:private skia-buf-size (.size ^Memory skia-buf))
+(def ^:private ffi-buf*
+  (ThreadLocal/withInitial
+   (reify
+     Supplier
+     (get [_]
+       (Memory. 4096)))))
+(defmacro ^:private ffi-buf []
+  `^Memory (.get  ^ThreadLocal ffi-buf*))
+(defmacro ^:private ffi-buf-size []
+  `(.size (ffi-buf)))
+
 
 (def ^:dynamic *paint* {})
 
@@ -420,8 +430,9 @@
 (defc skia_font_family_name membraneskialib Void/TYPE [font family-name len])
 (defn skia-font-family-name [font-ptr]
   (assert (instance? Pointer font-ptr))
-  (skia_font_family_name font-ptr skia-buf skia-buf-size)
-  (.getString ^Memory skia-buf 0 "utf-8"))
+  (let [buf (ffi-buf)]
+    (skia_font_family_name font-ptr buf (.size ^Memory buf))
+    (.getString ^Memory buf 0 "utf-8")))
 
 (defn font-exists? [font]
   (let [font-ptr (get-font font)]
@@ -450,14 +461,15 @@
 
 (defn- label-draw [{:keys [text font] :as label}]
   (let [lines (clojure.string/split-lines text)
-        font-ptr (get-font font)]
+        font-ptr (get-font font)
+        buf (ffi-buf)]
     (save-canvas
      (doseq [line lines
              :let [line-bytes (.getBytes ^String line "utf-8")
-                   size (min skia-buf-size (alength ^bytes line-bytes))]]
-       (.write ^Memory skia-buf 0 line-bytes 0 (int size))
+                   size (min (.size buf) (alength ^bytes line-bytes))]]
+       (.write ^Memory buf 0 line-bytes 0 (int size))
        (Skia/skia_next_line *skia-resource* font-ptr)
-       (Skia/skia_render_line *skia-resource* font-ptr skia-buf size (float 0) (float 0))))))
+       (Skia/skia_render_line *skia-resource* font-ptr buf size (float 0) (float 0))))))
 
 
 (defrecord LabelRaw [text font]
@@ -743,9 +755,10 @@
 
 (defc skia_advance_x membraneskialib Float/TYPE [font-ptr text text-length])
 (defn skia-advance-x [font text]
-  (let [line-bytes (.getBytes ^String text "utf-8")]
-    (.write ^Memory skia-buf 0 line-bytes 0 (alength ^bytes line-bytes))
-    (skia_advance_x (get-font font) skia-buf (alength line-bytes))))
+  (let [line-bytes (.getBytes ^String text "utf-8")
+        buf (ffi-buf)]
+    (.write ^Memory buf 0 line-bytes 0 (alength ^bytes line-bytes))
+    (skia_advance_x (get-font font) buf (alength line-bytes))))
 (defn font-advance-x [font text]
   (skia-advance-x font text))
 
@@ -753,7 +766,8 @@
                             [selection-start selection-end] :selection
                             :as text-selection}]
   (let [font-ptr (get-font font)
-        lines (clojure.string/split-lines text)]
+        lines (clojure.string/split-lines text)
+        buf (ffi-buf)]
 
     (save-canvas
      (loop [lines (seq lines)
@@ -764,8 +778,8 @@
                line-bytes (.getBytes ^String line "utf-8")
                line-count (count line)]
            (when (< selection-start line-count)
-             (.write ^Memory skia-buf 0 line-bytes 0 (alength ^bytes line-bytes))
-             (Skia/skia_render_selection *skia-resource* font-ptr skia-buf (alength line-bytes) (int (max 0 selection-start)) (int (min selection-end
+             (.write ^Memory buf 0 line-bytes 0 (alength ^bytes line-bytes))
+             (Skia/skia_render_selection *skia-resource* font-ptr buf (alength line-bytes) (int (max 0 selection-start)) (int (min selection-end
                                                                                                                                         line-count))))
            (Skia/skia_next_line *skia-resource* font-ptr)
            (recur (next lines) (- selection-start line-count 1) (- selection-end line-count 1))))))))
@@ -789,7 +803,8 @@
   (let [cursor (min (count text)
                     cursor)
         font-ptr (get-font font)
-        lines (clojure.string/split-lines (str text " "))]
+        lines (clojure.string/split-lines (str text " "))
+        buf (ffi-buf)]
     (save-canvas
      (loop [lines (seq lines)
             cursor cursor]
@@ -798,9 +813,9 @@
          (let [line (first lines)
                line-bytes (.getBytes ^String line "utf-8")
                line-count (count line)]
-           (.write ^Memory skia-buf 0 line-bytes 0 (alength ^bytes line-bytes))
+           (.write ^Memory buf 0 line-bytes 0 (alength ^bytes line-bytes))
            (when (< cursor (inc line-count))
-             (Skia/skia_render_cursor *skia-resource* font-ptr skia-buf (alength line-bytes) (int (max 0 cursor))))
+             (Skia/skia_render_cursor *skia-resource* font-ptr buf (alength line-bytes) (int (max 0 cursor))))
            (Skia/skia_next_line *skia-resource* font-ptr)
 
            (recur (next lines) (- cursor line-count 1))))))))
@@ -822,17 +837,18 @@
 (extend-type membrane.ui.Path
   IDraw
   (draw [this]
-    (let [points (:points this)]
+    (let [points (:points this)
+          buf (ffi-buf)]
       (loop [i 0
              points (seq points)]
         (when points
           (let [pt (first points)]
-            (.setFloat ^Memory skia-buf i (first pt))
-            (.setFloat ^Memory skia-buf (+ i 4) (second pt))
+            (.setFloat ^Memory buf i (first pt))
+            (.setFloat ^Memory buf (+ i 4) (second pt))
             (recur (+ i 8)
                    (next points)))))
       (push-paint
-       (Skia/skia_draw_path *skia-resource* skia-buf (* 2 (count points)))))))
+       (Skia/skia_draw_path *skia-resource* buf (* 2 (count points)))))))
 
 (defc skia_draw_rounded_rect membraneskialib Void/TYPE [skia-resource w h radius])
 (extend-type membrane.ui.RoundedRectangle
