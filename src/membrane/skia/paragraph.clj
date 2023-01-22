@@ -7,10 +7,14 @@
   (:import com.sun.jna.Pointer
            com.sun.jna.Memory
            com.sun.jna.Native
-           com.phronemophobic.membrane.Skia))
+           com.sun.jna.ptr.IntByReference
+           com.phronemophobic.membrane.Skia
+           java.lang.ref.Cleaner))
 
 (def ^:private void Void/TYPE)
 ;; reuse skia buffer
+
+(def cleaner (delay (Cleaner/create)))
 
 (def
   ^:private
@@ -30,12 +34,45 @@
 (defn- pointer? [p]
   (instance? Pointer p))
 
+(defc skia_SkRefCntBase_ref membraneskialib void [o])
+;; `ref` is already taken
+(defn- inc-ref [o]
+  (skia_SkRefCntBase_ref o))
+(defc skia_SkRefCntBase_unref membraneskialib void [o])
+(defn- unref [o]
+  (skia_SkRefCntBase_unref o))
+
+(defmacro add-cleaner [type p]
+  (if false ;; ('#{SkString} type)
+    p
+    (let [delete-sym (symbol (str "skia_" type "_delete"))]
+      `(let [p# ~p
+             ptr# (Pointer/nativeValue p#)]
+         (.register @cleaner p#
+                    (fn []
+                      (prn ~(str "cleaning " (name type)))
+                      (flush)
+                      (~delete-sym (Pointer. ptr#))))
+         p#))))
+
+(defn- ref-count [p name]
+  (let [ptr (Pointer/nativeValue p)]
+    (.register @cleaner p
+               (fn []
+                 (prn "cleaning." name ptr)
+                 (flush)
+                 (skia_SkRefCntBase_unref (Pointer. ptr))))
+    p))
+
+(defc skia_SkString_delete membraneskialib void [sk-string])
 ;; SkString* skia_make_skstring_utf8(char *s, int len)
-(defc skia_skstring_make_utf8 membraneskialib Pointer [buf len])
+(defc skia_SkString_make_utf8 membraneskialib Pointer [buf len])
 (defn- ->SkString [^String s]
   (let [buf (.getBytes s "utf8")
         len (alength buf)]
-   (skia_skstring_make_utf8 buf len)))
+    (add-cleaner
+     SkString
+     (skia_SkString_make_utf8 buf len))))
 
 ;; SkColor skia_SkColor4f_make(float red, float green, float blue, float alpha)
 (defc skia_SkColor4f_make membraneskialib Pointer [red green blue alpha])
@@ -46,6 +83,7 @@
    (float b)
    (float a)))
 
+(defc skia_FontStyle_delete membraneskialib void [style])
 (defc skia_FontStyle_make membraneskialib Pointer [make width slant])
 (defn- skia-FontStyle-make [weight width slant]
   (let [weight (get skia/font-weights weight
@@ -60,80 +98,88 @@
                 (#{1 2 3 4 5 6 7 8 9} width)))
     (assert (or (= -1 slant)
                 (#{1 2 3} slant)))
-    (skia_FontStyle_make (int weight)
-                         (int width)
-                         (int slant))))
+    (add-cleaner
+     FontStyle
+     (skia_FontStyle_make (int weight)
+                          (int width)
+                          (int slant)))))
+
 (defn- ->FontStyle [{:font-style/keys [weight width slant]}]
   (skia-FontStyle-make weight width slant))
 
-(defn- ->FontFamilies [buf font-families]
+(defn- fill-buf-with-ptrs [buf ptrs]
   (loop [offset 0
-         n 0
-         font-families (seq font-families)]
-    (if font-families
-      (let [family (first font-families)]
-        (.setPointer ^Memory buf offset (->SkString family))
+         ptrs (seq ptrs)]
+    (if ptrs
+      (let [ptr (first ptrs)]
+        (.setPointer ^Memory buf offset ptr)
         (recur (+ offset Native/POINTER_SIZE)
-               (inc n)
-               (next font-families)))
-      ;; else
-      n)))
+               (next ptrs)))))
+  nil)
 
 
 
-;; ParagraphBuilder* skia_ParagraphBuilder_make(ParagraphStyle* paragraphStyle)
+(defc skia_ParagraphBuilder_delete membraneskialib void [pb])
 (defc skia_ParagraphBuilder_make membraneskialib Pointer [paragraph-style])
 (defn- skia-ParagraphBuilder-make [paragraph-style]
   (assert (pointer? paragraph-style))
-  (skia_ParagraphBuilder_make paragraph-style))
+  
+  (add-cleaner
+   ParagraphBuilder
+   (skia_ParagraphBuilder_make paragraph-style)))
 
-;; ParagraphBuilder* skia_ParagraphBuilder_pushStyle(ParagraphBuilder *pb, TextStyle* style)
-(defc skia_ParagraphBuilder_pushStyle membraneskialib Pointer [builder style])
+(defc skia_ParagraphBuilder_pushStyle membraneskialib void [builder style])
 (defn- skia-ParagraphBuilder-pushStyle [builder style]
   (assert (pointer? builder))
   (assert (pointer? style))
-  (skia_ParagraphBuilder_pushStyle builder style))
+  (skia_ParagraphBuilder_pushStyle builder style)
+  builder)
 
-;; ParagraphBuilder* skia_ParagraphBuilder_pop(ParagraphBuilder *pb)
-(defc skia_ParagraphBuilder_pop membraneskialib Pointer [builder])
+(defc skia_ParagraphBuilder_pop membraneskialib void [builder])
 (defn- skia-ParagraphBuilder-pop [builder]
   (assert (pointer? builder))
-  (skia_ParagraphBuilder_pop builder))
+  (skia_ParagraphBuilder_pop builder)
+  builder)
 
-;; ParagraphBuilder* skia_ParagraphBuilder_addText(ParagraphBuilder *pb, char* text, int len)
-(defc skia_ParagraphBuilder_addText membraneskialib Pointer [builder text len])
+(defc skia_ParagraphBuilder_addText membraneskialib void [builder text len])
 (defn- skia-ParagraphBuilder-addText [builder ^String s]
   (assert (pointer? builder))
   (let [buf (.getBytes s "utf8")
         len (alength buf)]
-    (skia_ParagraphBuilder_addText builder buf len)))
+    (skia_ParagraphBuilder_addText builder buf len)
+    builder))
 
-;; ParagraphBuilder* skia_ParagraphBuilder_addPlaceholder(ParagraphBuilder *pb, PlaceholderStyle* placeholderStyle)
-(defc skia_ParagraphBuilder_addPlaceholder membraneskialib Pointer [builder style])
+(defc skia_ParagraphBuilder_addPlaceholder membraneskialib void [builder style])
 (defn- skia-ParagraphBuilder-addPlaceholder [builder style]
   (assert (pointer? builder))
   (assert (pointer? style))
-  (skia_ParagraphBuilder_addPlaceholder builder style))
+  (skia_ParagraphBuilder_addPlaceholder builder style)
+  builder)
 
-;; Paragraph* skia_ParagraphBuilder_build(ParagraphBuilder *pb)
+
+(defc skia_Paragraph_delete membraneskialib void [p])
 (defc skia_ParagraphBuilder_build membraneskialib Pointer [builder])
 (defn- skia-ParagraphBuilder-build [builder]
   (assert (pointer? builder))
-  (skia_ParagraphBuilder_build builder))
+  (add-cleaner
+   Paragraph
+   (skia_ParagraphBuilder_build builder)))
 
-;; ParagraphBuilder* skia_ParagraphBuilder_reset(ParagraphBuilder *pb)
-(defc skia_ParagraphBuilder_reset membraneskialib Pointer [builder])
+(defc skia_ParagraphBuilder_reset membraneskialib void [builder])
 (defn- skia-ParagraphBuilder-reset [builder]
   (assert (pointer? builder))
-  (skia_ParagraphBuilder_reset builder))
+  (skia_ParagraphBuilder_reset builder)
+  builder)
 
-;; TextStyle* skia_TextStyle_make()
+
+(defc skia_TextStyle_delete membraneskialib void [style])
 (defc skia_TextStyle_make membraneskialib Pointer)
 (defn- skia-TextStyle-make []
-  (skia_TextStyle_make))
+  (add-cleaner
+   TextStyle
+   (skia_TextStyle_make)))
 
-;; TextStyle* skia_TextStyle_setColor(TextStyle* style, uint32_t color )
-(defc skia_TextStyle_setColor membraneskialib Pointer [style color])
+(defc skia_TextStyle_setColor membraneskialib void [style color])
 (defn- skia-TextStyle-setColor [style [r g b a]]
   (let [color (skia_SkColor4f_make (float r)
                                    (float g)
@@ -142,51 +188,52 @@
                                     (if a
                                       a
                                       1)))]
-    (skia_TextStyle_setColor style color)))
+    (skia_TextStyle_setColor style color)
+    style))
 
-;; TextStyle* skia_TextStyle_setForeground(TextStyle* style, SkPaint* foregroundColor)
-(defc skia_TextStyle_setForeground membraneskialib Pointer [style foreground])
+(defc skia_TextStyle_setForeground membraneskialib void [style foreground])
 (defn- skia-TextStyle-setForeground [style foreground]
   (assert (pointer? style))
   (assert (pointer? foreground))
-  (skia_TextStyle_setForeground style foreground))
+  (skia_TextStyle_setForeground style foreground)
+  style)
 
-;; TextStyle* skia_TextStyle_clearForegroundColor(TextStyle* style)
-(defc skia_TextStyle_clearForegroundColor membraneskialib Pointer [style])
+
+(defc skia_TextStyle_clearForegroundColor membraneskialib void [style])
 (defn- skia-TextStyle-clearForegroundColor [style]
   (assert (pointer? style))
-  (skia_TextStyle_clearForegroundColor style))
+  (skia_TextStyle_clearForegroundColor style)
+  style)
 
-;; TextStyle* skia_TextStyle_setBackgroundColor(TextStyle* style, SkPaint* backgroundColor)
-(defc skia_TextStyle_setBackgroundColor membraneskialib Pointer [style background])
+(defc skia_TextStyle_setBackgroundColor membraneskialib void [style background])
 (defn- skia-TextStyle-setBackgroundColor [style background]
   (assert (pointer? style))
-  (skia_TextStyle_setBackgroundColor style background))
+  (skia_TextStyle_setBackgroundColor style background)
+  style)
 
-;; TextStyle* skia_TextStyle_clearBackgroundColor(TextStyle* style)
-(defc skia_TextStyle_clearBackgroundColor membraneskialib Pointer [style])
+(defc skia_TextStyle_clearBackgroundColor membraneskialib void [style])
 (defn- skia-TextStyle-clearBackgroundColor [style]
   (assert (pointer? style))
-  (skia_TextStyle_clearBackgroundColor style))
+  (skia_TextStyle_clearBackgroundColor style)
+  style)
 
-;; TextStyle* skia_TextStyle_setDecoration(TextStyle* style, int decoration)
-(defc skia_TextStyle_setDecoration membraneskialib Pointer [style decoration])
+(defc skia_TextStyle_setDecoration membraneskialib void [style decoration])
 (defn- skia-TextStyle-setDecoration [style decoration]
   (assert (pointer? style))
-  (skia_TextStyle_setDecoration style (text-decoration->int decoration)))
+  (skia_TextStyle_setDecoration style (text-decoration->int decoration))
+  style)
 
-;; TextStyle* skia_TextStyle_setDecorationMode(TextStyle* style, int mode)
-(defc skia_TextStyle_setDecorationMode membraneskialib Pointer [style mode])
+(defc skia_TextStyle_setDecorationMode membraneskialib void [style mode])
 (defn- skia-TextStyle-setDecorationMode [style mode]
   (assert (pointer? style))
   (skia_TextStyle_setDecorationMode
    style
    (case mode
      :text-decoration-mode/gaps 0
-     :text-decoration-mode/through 1)))
+     :text-decoration-mode/through 1))
+  style)
 
-;; TextStyle* skia_TextStyle_setDecorationStyle(TextStyle* style, int tdStyle)
-(defc skia_TextStyle_setDecorationStyle membraneskialib Pointer [style td-style])
+(defc skia_TextStyle_setDecorationStyle membraneskialib void [style td-style])
 (defn- skia-TextStyle-setDecorationStyle [style td-style]
   (assert (pointer? style))
   (skia_TextStyle_setDecorationStyle
@@ -196,10 +243,10 @@
      :text-decoration-style/double 1
      :text-decoration-style/dotted 2
      :text-decoration-style/dashed 3
-     :text-decoration-style/wavy 4)))
+     :text-decoration-style/wavy 4))
+  style)
 
-;; TextStyle* skia_TextStyle_setDecorationColor(TextStyle* style, uint32_t color)
-(defc skia_TextStyle_setDecorationColor membraneskialib Pointer [style color])
+(defc skia_TextStyle_setDecorationColor membraneskialib void [style color])
 (defn- skia-TextStyle-setDecorationColor [style [r g b a]]
   (assert (pointer? style))
   (let [color (skia_SkColor4f_make (float r)
@@ -209,235 +256,242 @@
                                     (if a
                                       a
                                       1)))]
-   (skia_TextStyle_setDecorationColor style color)))
+   (skia_TextStyle_setDecorationColor style color))
+  style)
 
-;; TextStyle* skia_TextStyle_setDecorationThicknessMultiplier(TextStyle* style, float m)
-(defc skia_TextStyle_setDecorationThicknessMultiplier membraneskialib Pointer [style n])
+(defc skia_TextStyle_setDecorationThicknessMultiplier membraneskialib void [style n])
 (defn- skia-TextStyle-setDecorationThicknessMultiplier [style n]
   (assert (pointer? style))
   ;; skia can hard crash on values near zero
   (assert (>= n 0.1) (str n))
-  (skia_TextStyle_setDecorationThicknessMultiplier style (float n)))
+  (skia_TextStyle_setDecorationThicknessMultiplier style (float n))
+  style)
 
-;; TextStyle* skia_TextStyle_setFontStyle(TextStyle* style, SkFontStyle* fontStyle)
-(defc skia_TextStyle_setFontStyle membraneskialib Pointer [style font-style])
+(defc skia_TextStyle_setFontStyle membraneskialib void [style font-style])
 (defn- skia-TextStyle-setFontStyle [style font-style]
   (assert (pointer? style))
   (skia_TextStyle_setFontStyle style
-                               (->FontStyle font-style)))
+                               (->FontStyle font-style))
+  style)
 
-;; TextStyle* skia_TextStyle_addShadow(TextStyle* style, TextShadow* shadow)
-(defc skia_TextStyle_addShadow membraneskialib Pointer [style shadow])
+(defc skia_TextStyle_addShadow membraneskialib void [style shadow])
 (defn- skia-TextStyle-addShadow [style shadow]
   (assert (pointer? style))
   (assert (pointer? shadow))
-  (skia_TextStyle_addShadow style shadow))
+  (skia_TextStyle_addShadow style shadow)
+  style)
 
-;; TextStyle* skia_TextStyle_resetShadows(TextStyle* style)
-(defc skia_TextStyle_resetShadows membraneskialib Pointer [style])
+(defc skia_TextStyle_resetShadows membraneskialib void [style])
 (defn- skia-TextStyle-resetShadows [style]
   (assert (pointer? style))
-  (skia_TextStyle_resetShadows style))
+  (skia_TextStyle_resetShadows style)
+  style)
 
-;; TextStyle* skia_TextStyle_setFontSize(TextStyle* style, float fontSize)
-(defc skia_TextStyle_setFontSize membraneskialib Pointer [style font-size])
+(defc skia_TextStyle_setFontSize membraneskialib void [style font-size])
 (defn- skia-TextStyle-setFontSize [style font-size]
   (assert (pointer? style))
   (assert (>= font-size 0))
-  (skia_TextStyle_setFontSize style (float font-size)))
+  (skia_TextStyle_setFontSize style (float font-size))
+  style)
 
-;; TextStyle* skia_TextStyle_setFontFamilies(TextStyle* style, std::vector<SkString> families)
-(defc skia_TextStyle_setFontFamilies membraneskialib Pointer [style families num-families])
+(defc skia_TextStyle_setFontFamilies membraneskialib void [style families num-families])
 (defn- skia-TextStyle-setFontFamilies [style families]
   (assert (pointer? style))
   (let [sk-families (ffi-buf)
-        num-families (->FontFamilies sk-families families) ]
+        sk-strings (into []
+                         (map ->SkString)
+                         families)]
+    (fill-buf-with-ptrs sk-families sk-strings)
     (skia_TextStyle_setFontFamilies style
                                     sk-families
-                                    num-families)))
+                                    (count sk-strings))
+    ;; don't garbage collect me please
+    (identity sk-strings))
+  style)
 
-;; TextStyle* skia_TextStyle_setBaselineShift(TextStyle* style, float shift)
-(defc skia_TextStyle_setBaselineShift membraneskialib Pointer [style shift])
+(defc skia_TextStyle_setBaselineShift membraneskialib void [style shift])
 (defn- skia-TextStyle-setBaselineShift [style shift]
   (assert (pointer? style))
   (assert (>= shift 0))
-  (skia_TextStyle_setBaselineShift style (float shift)))
+  (skia_TextStyle_setBaselineShift style (float shift))
+  style)
 
-;; TextStyle* skia_TextStyle_setHeight(TextStyle* style, float height)
-(defc skia_TextStyle_setHeight membraneskialib Pointer [style height])
+(defc skia_TextStyle_setHeight membraneskialib void [style height])
 (defn- skia-TextStyle-setHeight [style height]
   (assert (pointer? style))
-  (skia_TextStyle_setHeight style (float height)))
+  (skia_TextStyle_setHeight style (float height))
+  style)
 
-;; TextStyle* skia_TextStyle_setHeightOverride(TextStyle* style, int heightOverride)
-(defc skia_TextStyle_setHeightOverride membraneskialib Pointer [style height-override])
+(defc skia_TextStyle_setHeightOverride membraneskialib void [style height-override])
 (defn- skia-TextStyle-setHeightOverride [style height-override]
   (assert (pointer? style))
-  (skia_TextStyle_setHeightOverride style (int height-override)))
+  (skia_TextStyle_setHeightOverride style (if height-override
+                                            (int 1)
+                                            (int 0)))
+  style)
 
-;; TextStyle* skia_TextStyle_setHalfLeading(TextStyle* style, int halfLeading)
-(defc skia_TextStyle_setHalfLeading membraneskialib Pointer [style half-leading])
+(defc skia_TextStyle_setHalfLeading membraneskialib void [style half-leading])
 (defn- skia-TextStyle-setHalfLeading [style half-leading]
   (assert (pointer? style))
-  (skia_TextStyle_setHalfLeading style (int half-leading)))
+  (skia_TextStyle_setHalfLeading style (int half-leading))
+  style)
 
-;; TextStyle* skia_TextStyle_setLetterSpacing(TextStyle* style, float letterSpacing)
-(defc skia_TextStyle_setLetterSpacing membraneskialib Pointer [style letter-spacing])
+(defc skia_TextStyle_setLetterSpacing membraneskialib void [style letter-spacing])
 (defn- skia-TextStyle-setLetterSpacing [style letter-spacing]
   (assert (pointer? style))
-  (skia_TextStyle_setLetterSpacing style (float letter-spacing)))
+  (skia_TextStyle_setLetterSpacing style (float letter-spacing))
+  style)
 
-;; TextStyle* skia_TextStyle_setWordSpacing(TextStyle* style, float wordSpacing)
-(defc skia_TextStyle_setWordSpacing membraneskialib Pointer [style word-spacing])
+(defc skia_TextStyle_setWordSpacing membraneskialib void [style word-spacing])
 (defn- skia-TextStyle-setWordSpacing [style word-spacing]
   (assert (pointer? style))
-  (skia_TextStyle_setWordSpacing style (float word-spacing)))
+  (skia_TextStyle_setWordSpacing style (float word-spacing))
+  style)
 
-;; TextStyle* skia_TextStyle_setTypeface(TextStyle* style, SkTypeface* typeface)
-(defc skia_TextStyle_setTypeface membraneskialib Pointer [style face])
+(defc skia_TextStyle_setTypeface membraneskialib void [style face])
 (defn- skia-TextStyle-setTypeface [style face]
   (assert (pointer? style))
   (assert (pointer? face))
-  (skia_TextStyle_setTypeface style face))
+  (skia_TextStyle_setTypeface style face)
+  style)
 
-;; TextStyle* skia_TextStyle_setLocale(TextStyle* style, SkString* locale)
-(defc skia_TextStyle_setLocale membraneskialib Pointer [style locale])
+(defc skia_TextStyle_setLocale membraneskialib void [style locale])
 (defn- skia-TextStyle-setLocale [style locale]
-  (skia_TextStyle_setLocale style (->SkString locale)))
+  (skia_TextStyle_setLocale style (->SkString locale))
+  style)
 
-;; TextStyle* skia_TextStyle_setTextBaseline(TextStyle* style, int baseline)
-(defc skia_TextStyle_setTextBaseline membraneskialib Pointer [style baseline])
+(defc skia_TextStyle_setTextBaseline membraneskialib void [style baseline])
 (defn- skia-TextStyle-setTextBaseline [style baseline]
   (assert (pointer? style))
-  (skia_TextStyle_setTextBaseline style (int baseline)))
+  (skia_TextStyle_setTextBaseline style (int baseline))
+  style)
 
-;; TextStyle* skia_TextStyle_setPlaceholder(TextStyle* style)
-(defc skia_TextStyle_setPlaceholder membraneskialib Pointer [style])
+(defc skia_TextStyle_setPlaceholder membraneskialib void [style])
 (defn- skia-TextStyle-setPlaceholder [style]
   (assert (pointer? style))
-  (skia_TextStyle_setPlaceholder style))
+  (skia_TextStyle_setPlaceholder style)
+  style)
 
-;; ParagraphStyle* skia_ParagraphStyle_make()
+(defc skia_ParagraphStyle_delete membraneskialib void [ps])
 (defc skia_ParagraphStyle_make membraneskialib Pointer)
 (defn- skia-ParagraphStyle-make []
-  (skia_ParagraphStyle_make))
+  (add-cleaner
+   ParagraphStyle
+   (skia_ParagraphStyle_make)))
 
-;; ParagraphStyle* skia_ParagraphStyle_setStrutStyle(ParagraphStyle* paragraphStyle, StrutStyle* strutStyle)
-(defc skia_ParagraphStyle_setStrutStyle membraneskialib Pointer [style strut-style])
+(defc skia_ParagraphStyle_turnHintingOff membraneskialib void [style])
+(defn- skia-ParagraphStyle-turnHintingOff [style]
+  (skia_ParagraphStyle_turnHintingOff style)
+  style)
+
+(defc skia_ParagraphStyle_setStrutStyle membraneskialib void [style strut-style])
 (defn- skia-ParagraphStyle-setStrutStyle [style strut-style]
   (assert (pointer? style))
   (assert (pointer? strut-style))
-  (skia_ParagraphStyle_setStrutStyle style strut-style))
+  (skia_ParagraphStyle_setStrutStyle style strut-style)
+  style)
 
-;; ParagraphStyle* skia_ParagraphStyle_setTextStyle(ParagraphStyle* paragraphStyle, TextStyle* textStyle)
-(defc skia_ParagraphStyle_setTextStyle membraneskialib Pointer [style text-style])
+(defc skia_ParagraphStyle_setTextStyle membraneskialib void [style text-style])
 (defn- skia-ParagraphStyle-setTextStyle [style text-style]
   (assert (pointer? style))
   (assert (pointer? text-style))
-  (skia_ParagraphStyle_setTextStyle style text-style))
+  (skia_ParagraphStyle_setTextStyle style text-style)
+  style)
 
-;; ParagraphStyle* skia_ParagraphStyle_setTextDirection(ParagraphStyle* paragraphStyle, int direction)
-(defc skia_ParagraphStyle_setTextDirection membraneskialib Pointer [style direction])
+(defc skia_ParagraphStyle_setTextDirection membraneskialib void [style direction])
 (defn- skia-ParagraphStyle-setTextDirection [style direction]
   (assert (pointer? style))
-  (skia_ParagraphStyle_setTextDirection style (int direction)))
+  (skia_ParagraphStyle_setTextDirection style (int direction))
+  style)
 
-;; ParagraphStyle* skia_ParagraphStyle_setTextAlign(ParagraphStyle* paragraphStyle, int align)
-(defc skia_ParagraphStyle_setTextAlign membraneskialib Pointer [style align])
+(defc skia_ParagraphStyle_setTextAlign membraneskialib void [style align])
 (defn- skia-ParagraphStyle-setTextAlign [style align]
   (assert (pointer? style))
-  (skia_ParagraphStyle_setTextAlign style (int align)))
+  (skia_ParagraphStyle_setTextAlign style (int align))
+  style)
 
-;; ParagraphStyle* skia_ParagraphStyle_setMaxLines(ParagraphStyle* paragraphStyle, int maxLines)
-(defc skia_ParagraphStyle_setMaxLines membraneskialib Pointer [style max-lines])
+(defc skia_ParagraphStyle_setMaxLines membraneskialib void [style max-lines])
 (defn- skia-ParagraphStyle-setMaxLines [style max-lines]
   (assert (pointer? style))
-  (skia_ParagraphStyle_setMaxLines style (int max-lines)))
+  (skia_ParagraphStyle_setMaxLines style (int max-lines))
+  style)
 
-;; ParagraphStyle* skia_ParagraphStyle_setEllipsis(ParagraphStyle* paragraphStyle, SkString* ellipsis)
-(defc skia_ParagraphStyle_setEllipsis membraneskialib Pointer [style ellipsis])
+(defc skia_ParagraphStyle_setEllipsis membraneskialib void [style ellipsis])
 (defn- skia-ParagraphStyle-setEllipsis [style ellipsis]
   (assert (pointer? style))
-  (skia_ParagraphStyle_setEllipsis style (->SkString ellipsis)))
+  (skia_ParagraphStyle_setEllipsis style (->SkString ellipsis))
+  style)
 
-;; ParagraphStyle* skia_ParagraphStyle_setHeight(ParagraphStyle* paragraphStyle, float height)
-(defc skia_ParagraphStyle_setHeight membraneskialib Pointer [style height])
+(defc skia_ParagraphStyle_setHeight membraneskialib void [style height])
 (defn- skia-ParagraphStyle-setHeight [style height]
   (assert (pointer? style))
-  (skia_ParagraphStyle_setHeight style (float height)))
+  (skia_ParagraphStyle_setHeight style (float height))
+  style)
 
-;; ParagraphStyle* skia_ParagraphStyle_setTextHeightBehavior(ParagraphStyle* paragraphStyle, int v)
-(defc skia_ParagraphStyle_setTextHeightBehavior membraneskialib Pointer [style text-height-behavior])
+(defc skia_ParagraphStyle_setTextHeightBehavior membraneskialib void [style text-height-behavior])
 (defn- skia-ParagraphStyle-setTextHeightBehavior [style text-height-behavior]
   (assert (pointer? style))
-  (skia_ParagraphStyle_setTextHeightBehavior style (int text-height-behavior)))
+  (skia_ParagraphStyle_setTextHeightBehavior style (int text-height-behavior))
+  style)
 
-;; ParagraphStyle* skia_ParagraphStyle_setReplaceTabCharacters(ParagraphStyle* paragraphStyle, int value)
-(defc skia_ParagraphStyle_setReplaceTabCharacters membraneskialib Pointer [style value])
+(defc skia_ParagraphStyle_setReplaceTabCharacters membraneskialib void [style value])
 (defn- skia-ParagraphStyle-setReplaceTabCharacters [style value]
   (assert (pointer? style))
-  (skia_ParagraphStyle_setReplaceTabCharacters style (int value)))
+  (skia_ParagraphStyle_setReplaceTabCharacters style (int value))
+  style)
 
-    ;; SkScalar getMaxWidth() { return fWidth; }
 (defc skia_Paragraph_getMaxWidth membraneskialib Float/TYPE [paragraph])
 (defn- skia-Paragraph-getMaxWidth [paragraph]
   (assert (pointer? paragraph))
   (skia_Paragraph_getMaxWidth paragraph))
 
-;; SkScalar getHeight() { return fHeight; }
 (defc skia_Paragraph_getHeight membraneskialib Float/TYPE [paragraph])
 (defn- skia-Paragraph-getHeight [paragraph]
   (assert (pointer? paragraph))
   (skia_Paragraph_getHeight paragraph))
 
-;; SkScalar getMinIntrinsicWidth() { return fMinIntrinsicWidth; }
 (defc skia_Paragraph_getMinIntrinsicWidth membraneskialib Float/TYPE [paragraph])
 (defn- skia-Paragraph-getMinIntrinsicWidth [paragraph]
   (assert (pointer? paragraph))
   (skia_Paragraph_getMinIntrinsicWidth paragraph))
 
-;; SkScalar getMaxIntrinsicWidth() { return fMaxIntrinsicWidth; }
 (defc skia_Paragraph_getMaxIntrinsicWidth membraneskialib Float/TYPE [paragraph])
 (defn- skia-Paragraph-getMaxIntrinsicWidth [paragraph]
   (assert (pointer? paragraph))
   (skia_Paragraph_getMaxIntrinsicWidth paragraph))
 
-;; SkScalar getAlphabeticBaseline() { return fAlphabeticBaseline; }
 (defc skia_Paragraph_getAlphabeticBaseline membraneskialib Float/TYPE [paragraph])
 (defn- skia-Paragraph-getAlphabeticBaseline [paragraph]
   (assert (pointer? paragraph))
   (skia_Paragraph_getAlphabeticBaseline paragraph))
 
-;; SkScalar getIdeographicBaseline() { return fIdeographicBaseline; }
 (defc skia_Paragraph_getIdeographicBaseline membraneskialib Float/TYPE [paragraph])
 (defn- skia-Paragraph-getIdeographicBaseline [paragraph]
   (assert (pointer? paragraph))
   (skia_Paragraph_getIdeographicBaseline paragraph))
 
-;; SkScalar getLongestLine() { return fLongestLine; }
 (defc skia_Paragraph_getLongestLine membraneskialib Float/TYPE [paragraph])
 (defn- skia-Paragraph-getLongestLine [paragraph]
   (assert (pointer? paragraph))
   (skia_Paragraph_getLongestLine paragraph))
 
-;; bool didExceedMaxLines() { return fExceededMaxLines; }
 (defc skia_Paragraph_didExceedMaxLines membraneskialib Integer/TYPE [paragraph])
 (defn- skia-Paragraph-didExceedMaxLines [paragraph]
   (assert (pointer? paragraph))
   (skia_Paragraph_didExceedMaxLines paragraph))
 
-;; virtual void layout(SkScalar width) = 0;
 (defc skia_Paragraph_layout membraneskialib void [paragraph width])
 (defn- skia-Paragraph-layout [paragraph width]
   (assert (pointer? paragraph))
-  (skia_Paragraph_layout paragraph (float width)))
+  (skia_Paragraph_layout paragraph (float width))
+  paragraph)
 
-;; virtual void paint(SkCanvas* canvas, SkScalar x, SkScalar y) = 0;
 (defc skia_Paragraph_paint membraneskialib void [paragraph resource x y])
 (defn- skia-Paragraph-paint [paragraph resource x y]
   (assert (pointer? paragraph))
   (assert (pointer? resource))
-  (skia_Paragraph_paint paragraph resource (float x) (float y)))
+  (skia_Paragraph_paint paragraph resource (float x) (float y))
+  paragraph)
 ;; virtual void paint(ParagraphPainter* painter, SkScalar x, SkScalar y) = 0;
 
 ;; // Returns a vector of bounding boxes that enclose all text between
