@@ -3,6 +3,7 @@
    [membrane.skia.paragraph :as para]
    [membrane.skia.paragraph.spec :as ps]
    [membrane.ui :as ui]
+   [clojure.edn :as edn]
    [clojure.spec.alpha :as s]
    [clojure.spec.gen.alpha :as gen]
    [membrane.component :refer [make-app defui defeffect]]
@@ -69,19 +70,25 @@
   (def window-info (skia/run app))
 
   (require 'dev
-           '[clojure.java.io :as io]
-           '[clojure.edn :as edn])
+           '[clojure.java.io :as io])
 
-  (defn last-paragraph []
-    (edn/read-string {:readers {'membrane.skia.paragraph.Paragraph
-                                (fn [m]
-                                  (para/map->Paragraph m))}}
-                     (slurp "paragraph.edn")
-                     ))
-
-  
 
   ,)
+
+
+
+(defn last-paragraph []
+  (edn/read-string {:readers {'membrane.skia.paragraph.Paragraph
+                              (fn [m]
+                                (para/map->Paragraph m))}}
+                   (slurp "paragraph.edn")
+                   ))
+
+(defn -main [& args]
+  (skia/run-sync (constantly
+                  (last-paragraph))))
+
+
 
 (defn run-random [& args]
   (while true
