@@ -12,8 +12,6 @@
            java.lang.ref.Cleaner))
 
 (def ^:private void Void/TYPE)
-;; reuse skia buffer
-
 (def cleaner (delay (Cleaner/create)))
 
 (def
