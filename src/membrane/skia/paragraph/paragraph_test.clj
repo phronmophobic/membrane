@@ -1,4 +1,4 @@
-(ns membrane.skia.paragraph.spec
+(ns membrane.skia.paragraph.paragraph-test
   (:require
    [membrane.skia.paragraph :as para]
    [membrane.skia.paragraph.spec :as ps]
