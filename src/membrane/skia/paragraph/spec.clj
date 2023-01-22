@@ -126,7 +126,9 @@
   (s/with-gen (s/coll-of string?)
     (fn []
       (s/gen (s/coll-of (set (para/available-font-families)))))))
-(s/def :text-style/font-size ::positive-float)
+(s/def :text-style/font-size
+  (s/and ::positive-float
+         #(>= % 1)))
 (s/def :text-style/font-style ::font-style)
 
 
