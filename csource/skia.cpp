@@ -1055,6 +1055,17 @@ extern "C" {
     // ;; // Returns the index of the glyph that corresponds to the provided coordinate,
     // ;; // with the top left corner as the origin, and +y direction as down
     // ;; virtual PositionWithAffinity getGlyphPositionAtCoordinate(SkScalar dx, SkScalar dy) = 0;
+    void skia_Paragraph_getGlyphPositionAtCoordinate(Paragraph* para, float dx, float dy, int* pos, int* affinity){
+        PositionWithAffinity pwa = para->getGlyphPositionAtCoordinate(dx, dy);
+
+        *pos = pwa.position;
+        if ( pwa.affinity == kUpstream ){
+            *affinity = 0;
+        }else {
+            *affinity = 1;
+        }
+    }
+
 //    skia_Paragraph_getGlyphPositionAtCoordinate(Paragraph* para);
     // ;; // Finds the first and last glyphs that define a word containing
     // ;; // the glyph at index offset

@@ -512,10 +512,18 @@
 ;; // Returns the index of the glyph that corresponds to the provided coordinate,
 ;; // with the top left corner as the origin, and +y direction as down
 ;; virtual PositionWithAffinity getGlyphPositionAtCoordinate(SkScalar dx, SkScalar dy) = 0;
-#_#_(defc skia_Paragraph_getGlyphPositionAtCoordinate membraneskialib Pointer* [paragraph dx dy])
+(defc skia_Paragraph_getGlyphPositionAtCoordinate membraneskialib void [paragraph dx dy *pos *affinity])
 (defn- skia-Paragraph-getGlyphPositionAtCoordinate [paragraph dx dy]
   (assert (pointer? paragraph))
-  (skia_Paragraph_getGlyphPositionAtCoordinate paragraph))
+  (let [*pos (IntByReference.)
+        *affinity (IntByReference.)]
+   (skia_Paragraph_getGlyphPositionAtCoordinate paragraph
+                                                (float dx)
+                                                (float dy)
+                                                *pos
+                                                *affinity)
+   [(.getValue *pos)
+    (.getValue *affinity)]))
 ;; // Finds the first and last glyphs that define a word containing
 ;; // the glyph at index offset
 ;; virtual SkRange<size_t> getWordBoundary(unsigned offset) = 0;
