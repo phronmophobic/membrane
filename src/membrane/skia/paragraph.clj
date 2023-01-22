@@ -50,8 +50,6 @@
              ptr# (Pointer/nativeValue p#)]
          (.register @cleaner p#
                     (fn []
-                      (prn ~(str "cleaning " (name type)))
-                      (flush)
                       (~delete-sym (Pointer. ptr#))))
          p#))))
 
@@ -59,8 +57,6 @@
   (let [ptr (Pointer/nativeValue p)]
     (.register @cleaner p
                (fn []
-                 (prn "cleaning." name ptr)
-                 (flush)
                  (skia_SkRefCntBase_unref (Pointer. ptr))))
     p))
 
