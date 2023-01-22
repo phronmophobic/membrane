@@ -46,14 +46,14 @@
     (let [delete-sym (symbol (str "skia_" type "_delete"))]
       `(let [p# ~p
              ptr# (Pointer/nativeValue p#)]
-         (.register @cleaner p#
+         (.register ^Cleaner @cleaner p#
                     (fn []
                       (~delete-sym (Pointer. ptr#))))
          p#))))
 
 (defn- ref-count [p name]
   (let [ptr (Pointer/nativeValue p)]
-    (.register @cleaner p
+    (.register ^Cleaner @cleaner p
                (fn []
                  (skia_SkRefCntBase_unref (Pointer. ptr))))
     p))
