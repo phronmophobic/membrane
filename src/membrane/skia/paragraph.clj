@@ -592,6 +592,24 @@
                ;; default color is black
                (assoc s :text-style/color [0 0 0]))))
 
+(defmulti add-text (fn [builder text]
+                     (class text)))
+
+(defmethod add-text String [builder s]
+  (skia-ParagraphBuilder-addText builder s))
+
+(defmethod add-text :default [builder xs]
+  (reduce add-text builder xs))
+
+(defmethod add-text clojure.lang.IPersistentMap [pb chunk]
+  (if-let [style (:style chunk)]
+      (doto pb
+        (skia-ParagraphBuilder-pushStyle (->TextStyle style))
+        (skia-ParagraphBuilder-addText (:text chunk))
+        (skia-ParagraphBuilder-pop))
+      (doto pb
+        (skia-ParagraphBuilder-addText (:text chunk)))))
+
 (defn- make-paragraph*
   ([text]
    (make-paragraph* text Float/POSITIVE_INFINITY))
@@ -603,19 +621,7 @@
                            (skia-ParagraphStyle-setTextStyle text-style))
          
          pb (skia-ParagraphBuilder-make paragraph-style)
-         
-         pb (reduce (fn [pb chunk]
-                      (if (string? chunk)
-                        (skia-ParagraphBuilder-addText pb chunk)
-                        (if-let [style (:style chunk)]
-                          (doto pb
-                            (skia-ParagraphBuilder-pushStyle (->TextStyle style))
-                            (skia-ParagraphBuilder-addText (:text chunk))
-                            (skia-ParagraphBuilder-pop))
-                          (doto pb
-                            (skia-ParagraphBuilder-addText (:text chunk))))))
-                    pb
-                    text)
+         pb (add-text pb text)
          paragraph (doto (skia-ParagraphBuilder-build pb)
                      (skia-Paragraph-layout width))]
      paragraph)))
