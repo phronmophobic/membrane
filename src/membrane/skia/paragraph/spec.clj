@@ -134,7 +134,7 @@
 
 (s/def :text-style/half-leading ::integer)
 (s/def :text-style/height ::float)
-(s/def :text-style/height-override ::integer)
+(s/def :text-style/height-override boolean?)
 (s/def :text-style/letter-spacing ::float)
 (s/def :text-style/locale string?)
 (s/def :text-style/placeholder? boolean?)
