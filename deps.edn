@@ -108,12 +108,10 @@
   :project {:extra-paths ["test"]
             :jvm-opts ["-XX:-OmitStackTraceInFastThrow"]
             :extra-deps
-            {com.phronemophobic.membrane/skialib-macosx-x86-64 {:mvn/version "RELEASE"
-                                                                ;;:local/root "csource/macos-aarch64"
-                                                                }
-             com.phronemophobic.membrane/skialib-macosx-aarch64 {:mvn/version "RELEASE"
+            {com.phronemophobic.membrane/skialib-macosx-aarch64 {;; :mvn/version "RELEASE"
                                                                  ;; :local/root "csource/macos-aarch64"
-                                                                 }
+                                                                 :mvn/version "0.11.0-beta"}
+
              io.github.cognitect-labs/test-runner
              {:git/tag "v0.5.1" :git/sha "dfb30dd"}
              org.clojure/test.check {:mvn/version "1.1.1"}
