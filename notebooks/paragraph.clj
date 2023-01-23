@@ -38,12 +38,12 @@
 ;; ```clojure
 ;; (require '[membrane.skia.paragraph :as para])
 ;; ```
-;; `para/paragraph` requires version `0.11.0-beta` or later.
+;; `para/paragraph` requires version `0.11.1-beta` or later.
 ;; ```clojure
-;; com.phronemophobic/membrane {:mvn/version "0.11.0-beta"}
-;; com.phronemophobic.membrane/skialib-linux-x86-64 {:mvn/version "0.11.0-beta"}
-;; com.phronemophobic.membrane/skialib-macosx-aarch64 {:mvn/version "0.11.0-beta"}
-;; com.phronemophobic.membrane/skialib-macosx-x86-64 {:mvn/version "0.11.0-beta"}
+;; com.phronemophobic/membrane {:mvn/version "0.11.1-beta"}
+;; com.phronemophobic.membrane/skialib-linux-x86-64 {:mvn/version "0.11.1-beta"}
+;; com.phronemophobic.membrane/skialib-macosx-aarch64 {:mvn/version "0.11.1-beta"}
+;; com.phronemophobic.membrane/skialib-macosx-x86-64 {:mvn/version "0.11.1-beta"}
 ;; ```
 ;; The main entry point is a single function, `para/paragraph`.
 ;; The most basic usage is calling `para/paragraph` with a string
