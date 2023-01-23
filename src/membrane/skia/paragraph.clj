@@ -645,12 +645,16 @@
 (defn paragraph
   "Returns a view that represents a paragraph of text.
 
-  Text can be:
+  `text` can be:
   - a string which is treated as unstyled text.
   - a map with a required `:text` key and optional `:style` key.
     `:text` must be a string.
     `:style` is a map. See the `:styled-text/style` spec in `membrane.skia.paragraph.spec`.
-  - a sequence of strings or maps."
+  - a sequence of strings or maps.
+
+  An optional `width` can be provided as a second argument. If `width` is provided, then text
+  will be wrapped using the provided width. `width` can also be `nil` to get the same
+  behavior as the 1-arity implementation of `paragraph`."
   ([text]
    (->Paragraph text nil))
   ([text width]
