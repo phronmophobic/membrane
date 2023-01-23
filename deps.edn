@@ -105,6 +105,10 @@
 
          :main-opts ["-m" "cognitect.test-runner"]
          :exec-fn cognitect.test-runner.api/test}
+  :clerk {:extra-paths ["notebooks"]
+          :extra-deps
+          {org.clojure/math.combinatorics {:mvn/version "0.1.6"}
+           io.github.nextjournal/clerk {:mvn/version "0.12.707"}}}
   :project {:extra-paths ["test"]
             :jvm-opts ["-XX:-OmitStackTraceInFastThrow"]
             :extra-deps
