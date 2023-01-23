@@ -643,15 +643,18 @@
         (skia-Paragraph-paint paragraph skia/*skia-resource* 0 0))))
 
 (defn paragraph
-  ([paragraph]
-   (->Paragraph paragraph nil))
-  ([paragraph width]
+  "Returns a view that represents a paragraph of text.
+
+  Text can be:
+  - a string which is treated as unstyled text.
+  - a map with a required `:text` key and optional `:style` key.
+    `:text` must be a string.
+    `:style` is a map. See the `:styled-text/style` spec in `membrane.skia.paragraph.spec`.
+  - a sequence of strings or maps."
+  ([text]
+   (->Paragraph text nil))
+  ([text width]
    (assert (or (nil? width)
                (>= width 0)))
-   (->Paragraph paragraph width)))
-
-
- 
-
-
+   (->Paragraph text width)))
 
