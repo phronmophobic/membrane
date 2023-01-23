@@ -31,6 +31,8 @@
            #(>= % 0)
            #(try
               (int %)
+              (catch ArithmeticException e
+                false)
               (catch IllegalArgumentException e
                 false)))))
 
@@ -39,6 +41,8 @@
     (s/and number?
            #(try
               (int %)
+              (catch ArithmeticException e
+                false)
               (catch IllegalArgumentException e
                 false)))))
 
