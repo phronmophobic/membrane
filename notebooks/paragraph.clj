@@ -33,7 +33,6 @@
 
 ;; ### Basic Usage
 
-;; The `membrane.skia.paragraph` models rendered text.
 ;; For our examples, we'll assume the following require:
 ;; ```clojure
 ;; (require '[membrane.skia.paragraph :as para])
@@ -300,7 +299,6 @@
   (clerk/show! "notebooks/paragraph.clj")
   (clerk/build! {:paths ["notebooks/paragraph.clj"]
                  :out-path "docs/styled-text"
-                 :browse true
                  :bundle true})
   
   ,)
