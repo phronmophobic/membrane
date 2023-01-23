@@ -18,9 +18,6 @@ c++ \
     -Wl,--whole-archive \
     ./libs/skia/out/Release-${arch}/libskia.a \
     ./libs/skia/out/Release-${arch}/libskparagraph.a \
-    ./libs/skia/out/Release-${arch}/libsvg.a \
-    ./libs/skia/out/Release-${arch}/libsksg.a \
-    ./libs/skia/out/Release-${arch}/libparticles.a \
     -Wl,--no-whole-archive \
     -shared \
     -std=c++17 \
@@ -28,6 +25,8 @@ c++ \
     -DSK_GL=1 \
     -lGL \
     -lfontconfig \
+    -lskunicode \
+    -lskshaper \
     skia.cpp
 
 
