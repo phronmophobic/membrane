@@ -37,7 +37,7 @@ For membrane to run on a platform, the only requirements are:
 
 [Tutorial](/docs/tutorial.md)  
 [Documentation Organized by Topic](https://phronmophobic.github.io/membrane/membrane-topics.html)  
-[Styled Text](https://phronmophobic.github.io/membrane/styled-text/index.html)__
+[Styled Text](https://phronmophobic.github.io/membrane/styled-text/index.html)  
 [Examples](https://github.com/phronmophobic/membrane/tree/master/src/membrane/example)  
 [Background and Theory](https://blog.phronemophobic.com/what-is-a-user-interface.html)  
 [Distributing your desktop app](/docs/distribution.md)  
@@ -255,7 +255,7 @@ That's it! For more in-depth info, check out the [tutorial](/docs/tutorial.md).
 
 [Tutorial](/docs/tutorial.md)  
 [Documentation Organized by Topic](https://phronmophobic.github.io/membrane/membrane-topics.html)  
-[Styled Text](https://phronmophobic.github.io/membrane/styled-text/index.html)__
+[Styled Text](https://phronmophobic.github.io/membrane/styled-text/index.html)  
 [Examples](https://github.com/phronmophobic/membrane/tree/master/src/membrane/example)  
 [Background and Theory](https://blog.phronemophobic.com/what-is-a-user-interface.html)  
 [Distributing your desktop app](/docs/distribution.md)  
