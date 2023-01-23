@@ -90,14 +90,24 @@
 
 
 
+(defn write-edn [w obj]
+  (binding [*print-length* nil
+            *print-level* nil
+            *print-dup* false
+            *print-meta* false
+            *print-readably* true
+
+            ;; namespaced maps not part of edn spec
+            *print-namespace-maps* false
+
+            *out* w]
+    (pr obj)))
+
 (defn run-random [& args]
   (while true
     (let [paragraph (gen/generate test-paragraph-view-gen)]
       (with-open [w ((requiring-resolve 'clojure.java.io/writer) "paragraph.edn")]
-        ((requiring-resolve 'dev/write-edn) w paragraph))
+        (write-edn w paragraph))
       (skia/save-image "paragraph.png"
                        paragraph
-                       [450 450])
-      )
-    )
-  )
+                       [450 450]))))
