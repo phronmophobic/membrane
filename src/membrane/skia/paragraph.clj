@@ -395,18 +395,35 @@
 (defc skia_ParagraphStyle_setTextDirection membraneskialib void [style direction])
 (defn- skia-ParagraphStyle-setTextDirection [style direction]
   (assert (pointer? style))
-  (skia_ParagraphStyle_setTextDirection style (int direction))
+  (skia_ParagraphStyle_setTextDirection style
+                                        (case direction
+                                          :text-direction/right-to-left (int 0)
+                                          :text-direction/left-to-right (int 1)
+                                          ;; else
+                                          (throw (ex-info "Invalid text direction"
+                                                          {:text-direction direction}))))
   style)
 
+(def ^:private
+  text-align-ints
+  {:text-align/left (int 0)
+   :text-align/right (int 1)
+   :text-align/center (int 2)
+   :text-align/justify (int 3)
+   :text-align/start (int 4)
+   :text-align/end (int 5)})
 (defc skia_ParagraphStyle_setTextAlign membraneskialib void [style align])
 (defn- skia-ParagraphStyle-setTextAlign [style align]
   (assert (pointer? style))
-  (skia_ParagraphStyle_setTextAlign style (int align))
+  (let [align-int (get text-align-ints align)]
+    (assert align-int)
+    (skia_ParagraphStyle_setTextAlign style align-int))
   style)
 
 (defc skia_ParagraphStyle_setMaxLines membraneskialib void [style max-lines])
 (defn- skia-ParagraphStyle-setMaxLines [style max-lines]
   (assert (pointer? style))
+  (assert #(>= max-lines 0))
   (skia_ParagraphStyle_setMaxLines style (int max-lines))
   style)
 
@@ -419,19 +436,31 @@
 (defc skia_ParagraphStyle_setHeight membraneskialib void [style height])
 (defn- skia-ParagraphStyle-setHeight [style height]
   (assert (pointer? style))
+  (assert #(>= height 0))
   (skia_ParagraphStyle_setHeight style (float height))
   style)
 
+(def ^:private
+  text-height-behavior-ints
+  {:text-height-behavior/all (int 0)
+   :text-height-behavior/disable-first-ascent (int 1)
+   :text-height-behavior/disable-last-ascent (int 2)
+   :text-height-behavior/disable-all (int 3)})
 (defc skia_ParagraphStyle_setTextHeightBehavior membraneskialib void [style text-height-behavior])
 (defn- skia-ParagraphStyle-setTextHeightBehavior [style text-height-behavior]
   (assert (pointer? style))
-  (skia_ParagraphStyle_setTextHeightBehavior style (int text-height-behavior))
+  (let [text-height-behavior-int (get text-height-behavior-ints text-height-behavior)]
+    (assert text-height-behavior-int)
+    (skia_ParagraphStyle_setTextHeightBehavior style text-height-behavior-int))
   style)
 
 (defc skia_ParagraphStyle_setReplaceTabCharacters membraneskialib void [style value])
 (defn- skia-ParagraphStyle-setReplaceTabCharacters [style value]
   (assert (pointer? style))
-  (skia_ParagraphStyle_setReplaceTabCharacters style (int value))
+  (skia_ParagraphStyle_setReplaceTabCharacters style
+                                               (if value
+                                                 (int 1)
+                                                 (int 0)))
   style)
 
 (defc skia_Paragraph_getMaxWidth membraneskialib Float/TYPE [paragraph])
@@ -586,6 +615,26 @@
                ;; default color is black
                (assoc s :text-style/color [0 0 0]))))
 
+(defn ->ParagraphStyle [ps]
+  (reduce-kv (fn [ps k v]
+               (case k
+                 :paragraph-style/hinting? (if v
+                                             ps
+                                             (skia-ParagraphStyle-turnHintingOff ps))
+                 :paragraph-style/text-style (skia-ParagraphStyle-setTextStyle ps (->TextStyle v))
+                 :paragraph-style/text-direction (skia-ParagraphStyle-setTextDirection ps v)
+                 :paragraph-style/text-align (skia-ParagraphStyle-setTextAlign ps v)
+                 :paragraph-style/max-lines (skia-ParagraphStyle-setMaxLines ps v)
+                 :paragraph-style/ellipsis (skia-ParagraphStyle-setEllipsis ps v)
+                 :paragraph-style/height (skia-ParagraphStyle-setHeight ps v)
+                 :paragraph-style/text-behavior (skia-ParagraphStyle-setTextHeightBehavior ps v)
+                 :paragraph-style/replace-tab-characters? (skia-ParagraphStyle-setReplaceTabCharacters ps v)
+
+                 ;; else
+                 ps))
+             (skia-ParagraphStyle-make)
+             ps))
+
 (defmulti add-text (fn [builder text]
                      (class text)))
 
@@ -604,16 +653,24 @@
       (doto pb
         (skia-ParagraphBuilder-addText (:text chunk)))))
 
+(defn- default-paragraph-style []
+  (let [text-style (doto (skia-TextStyle-make)
+                     (skia-TextStyle-setColor [0 0 0]))]
+    (doto (skia-ParagraphStyle-make)
+      (skia-ParagraphStyle-setTextStyle text-style))))
+
 (defn- make-paragraph*
   ([text]
    (make-paragraph* text Float/POSITIVE_INFINITY))
   ([text width]
+   (make-paragraph* text width nil))
+  ([text width paragraph-style]
+   (assert (or (nil? width)
+               (>= width 0)))
    (let [width (or width Float/POSITIVE_INFINITY)
-         text-style (doto (skia-TextStyle-make)
-                      (skia-TextStyle-setColor [0 0 0]))
-         paragraph-style (doto (skia-ParagraphStyle-make)
-                           (skia-ParagraphStyle-setTextStyle text-style))
-         
+         paragraph-style (if paragraph-style
+                           (->ParagraphStyle paragraph-style)
+                           (default-paragraph-style))
          pb (skia-ParagraphBuilder-make paragraph-style)
          pb (add-text pb text)
          paragraph (doto (skia-ParagraphBuilder-build pb)
@@ -622,14 +679,14 @@
 
 (def ^:private make-paragraph (memoize make-paragraph*))
 
-(defrecord Paragraph [paragraph width]
+(defrecord Paragraph [paragraph width paragraph-style]
   ui/IOrigin
   (-origin [this]
     [0 0])
 
   ui/IBounds
   (-bounds [this]
-    (let [para (make-paragraph paragraph width)
+    (let [para (make-paragraph paragraph width paragraph-style)
           width (if (or (nil? width)
                         (= ##Inf width))
                   (skia-Paragraph-getMaxIntrinsicWidth para)
@@ -639,7 +696,7 @@
 
   skia/IDraw
   (draw [this]
-    (let [paragraph (make-paragraph paragraph width)]
+    (let [paragraph (make-paragraph paragraph width paragraph-style)]
         (skia-Paragraph-paint paragraph skia/*skia-resource* 0 0))))
 
 (defn paragraph
@@ -656,9 +713,9 @@
   will be wrapped using the provided width. `width` can also be `nil` to get the same
   behavior as the 1-arity implementation of `paragraph`."
   ([text]
-   (->Paragraph text nil))
+   (->Paragraph text nil nil))
   ([text width]
-   (assert (or (nil? width)
-               (>= width 0)))
-   (->Paragraph text width)))
+   (->Paragraph text width nil))
+  ([text width paragraph-style]
+   (->Paragraph text width paragraph-style)))
 

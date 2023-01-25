@@ -178,6 +178,44 @@
          ;; :text-style/shadows
          ;; :text-style/background-color
          ]))
+
+
+;; not sure what strut style is
+;; (s/def :paragraph-style/strut-style)
+(s/def :paragraph-style/hinting? boolean?)
+(s/def :paragraph-style/text-style ::text-style)
+(s/def :paragraph-style/text-direction
+  #{:text-direction/right-to-left
+    :text-direction/left-to-right})
+(s/def :paragraph-style/text-align
+  #{:text-align/left
+    :text-align/right
+    :text-align/center
+    :text-align/justify
+    :text-align/start
+    :text-align/end})
+
+(s/def :paragraph-style/max-lines ::positive-int)
+(s/def :paragraph-style/ellipsis string?)
+(s/def :paragraph-style/height ::positive-float)
+(s/def :paragraph-style/text-height-behavior
+  #{:text-height-behavior/all
+    :text-height-behavior/disable-first-ascent
+    :text-height-behavior/disable-last-ascent
+    :text-height-behavior/disable-all})
+(s/def :paragraph-style/replace-tab-characters? boolean?)
+(s/def ::paragraph-style
+  (s/keys :opt [:paragraph-style/hinting?
+                :paragraph-style/text-style
+                :paragraph-style/text-direction
+                :paragraph-style/text-align
+                :paragraph-style/max-lines
+                :paragraph-style/ellipsis
+                :paragraph-style/height
+                :paragraph-style/text-height-behavior
+                :paragraph-style/replace-tab-characters?]))
+
+
 (s/def :styled-text/text
   (s/with-gen string?
     #(gen/string)))
