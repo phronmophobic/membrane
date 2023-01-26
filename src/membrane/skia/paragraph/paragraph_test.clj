@@ -10,18 +10,32 @@
    [membrane.skia :as skia]
    [membrane.basic-components :as basic]))
 
+(defn write-edn [w obj]
+  (binding [*print-length* nil
+            *print-level* nil
+            *print-dup* false
+            *print-meta* false
+            *print-readably* true
 
+            ;; namespaced maps not part of edn spec
+            *print-namespace-maps* false
+
+            *out* w]
+    (pr obj)))
 
 (def test-paragraph-view-gen
   (gen/such-that
    (fn [view]
+     #_(with-open [w ((requiring-resolve 'clojure.java.io/writer) "paragraph.edn")]
+       (write-edn w view))
      (let [[w h] (ui/bounds view)]
        (and (<= w 400)
             (<= h 400))))
-   (gen/fmap (fn [[paragraph width]]
-               (para/paragraph paragraph width)) 
+   (gen/fmap (fn [[paragraph width paragraph-style]]
+               (para/paragraph paragraph width paragraph-style))
              (s/gen (s/cat :paragraph ::ps/paragraph
-                           :width ::ps/paragraph-width)))
+                           :width ::ps/paragraph-width
+                           :paragraph-style (s/nilable ::ps/paragraph-style))))
    100))
 
 
@@ -90,18 +104,7 @@
 
 
 
-(defn write-edn [w obj]
-  (binding [*print-length* nil
-            *print-level* nil
-            *print-dup* false
-            *print-meta* false
-            *print-readably* true
 
-            ;; namespaced maps not part of edn spec
-            *print-namespace-maps* false
-
-            *out* w]
-    (pr obj)))
 
 (defn run-random [& args]
   (while true
