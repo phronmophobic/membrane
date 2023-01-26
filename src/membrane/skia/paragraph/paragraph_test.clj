@@ -69,9 +69,12 @@
     (ui/label (nth my-fonts font-index))
     (ui/translate
      100 100
-     (ui/scissor-view [0 0]
-                      [450 450]
-                      paragraph)
+     [(ui/filled-rectangle
+       [0 0 0 0.05]
+       450 450)
+      (ui/scissor-view [0 0]
+                       [450 450]
+                       paragraph)]
      #_(para/paragraph [{:text "The quick brown fox jumped over the lazy dog."
                          :style {:text-style/font-families [(nth my-fonts font-index)]
                                  ;; :text-style/color [0 0  0] 
