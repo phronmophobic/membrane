@@ -204,7 +204,8 @@
     :text-height-behavior/disable-last-ascent
     :text-height-behavior/disable-all})
 (s/def :paragraph-style/replace-tab-characters? boolean?)
-(s/def ::paragraph-style
+
+(s/def ::paragraph-style*
   (s/keys :opt [:paragraph-style/hinting?
                 :paragraph-style/text-style
                 :paragraph-style/text-direction
@@ -214,6 +215,18 @@
                 :paragraph-style/height
                 :paragraph-style/text-height-behavior
                 :paragraph-style/replace-tab-characters?]))
+(s/def ::paragraph-style
+  (s/with-gen ::paragraph-style*
+    (fn []
+      (gen/such-that
+       (fn [paragraph-style]
+         ;; try to filter known crashes and hangs
+         ;; 1. crash: text-align:justify + max lines + ellipsis
+         ;; 2. hang: text-align:justify + ellipsis
+         (not (and (= :text-align/justify
+                      (:paragraph-style/text-align paragraph-style))
+                   (:paragraph-style/ellipsis paragraph-style))))
+       (s/gen ::paragraph-style*)))))
 
 
 (s/def :styled-text/text
