@@ -1988,8 +1988,8 @@
                   (fix-press-and-hold!)
                   ;; (glfw-call void glfwWindowHint GLFW_COCOA_RETINA_FRAMEBUFFER (int 0))
 
-                  ;;
-                  (do
+                  ;; only call on macosx
+                  (when objlib
                     (glfw-call void glfwWindowHint GLFW_CONTEXT_VERSION_MAJOR (int 3))
                     (glfw-call void glfwWindowHint GLFW_CONTEXT_VERSION_MINOR (int 2))
                     ;; 3.2+ only
