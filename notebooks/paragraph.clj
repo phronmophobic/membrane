@@ -37,9 +37,9 @@
 ;; ```clojure
 ;; (require '[membrane.skia.paragraph :as para])
 ;; ```
-;; `para/paragraph` requires version `0.11.1-beta` or later.
+;; `para/paragraph` requires version `0.11.1.1-beta` or later.
 ;; ```clojure
-;; com.phronemophobic/membrane {:mvn/version "0.11.1-beta"}
+;; com.phronemophobic/membrane {:mvn/version "0.11.1.1-beta"}
 ;; com.phronemophobic.membrane/skialib-linux-x86-64 {:mvn/version "0.11.1-beta"}
 ;; com.phronemophobic.membrane/skialib-macosx-aarch64 {:mvn/version "0.11.1-beta"}
 ;; com.phronemophobic.membrane/skialib-macosx-x86-64 {:mvn/version "0.11.1-beta"}
