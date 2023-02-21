@@ -545,15 +545,15 @@
         (swap! *image-cache* assoc image-url image)
         image))))
 
-
-(extend-protocol ImageFactory
-  (Class/forName "[B")
-  (get-image-texture [bytes]
-    (if-let [image (get @*image-cache* bytes)]
-        image
-        (let [image (Skia/skia_load_image_from_memory bytes (alength ^bytes bytes))]
-          (swap! *image-cache* assoc bytes image)
-          image))))
+(extend (Class/forName "[B")
+  ImageFactory
+  {:get-image-texture
+   (fn [^bytes bytes]
+     (if-let [image (get @*image-cache* bytes)]
+       image
+       (let [image (Skia/skia_load_image_from_memory bytes (alength bytes))]
+         (swap! *image-cache* assoc bytes image)
+         image)))})
 
 (defn- image-draw [{:keys [image-path size opacity] :as image}]
   (when-let [image-texture (get-image-texture image-path)]
