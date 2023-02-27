@@ -820,6 +820,20 @@
                        (:drawable this))))))
 
 (defn padding
+  "Adds empty space around an element. The bounds of the returned element will include the padding.
+
+  ;; Add 5 pixels of empty space around all 4 sides of `elem`
+  (padding 5 elem)
+
+  ;; Add 3 pixels of padding to the left and right
+  ;; and 5 pixels to the top and bottom
+  (padding 3 5 elem)
+
+  ;; 1 px to the top
+  ;; 2 pixels to the right
+  ;; 3 pixels to the bottom
+  ;; 4 pixels to the left.
+  (padding 1 2 3 4 elem)"
   ([p elem]
    (Padding. p p p p elem))
   ([px py elem]
@@ -1038,15 +1052,43 @@
            (draw (bordered-draw this)))))
 
 (defn bordered
-  "Graphical elem that will draw drawable with a gray border."
-  [pad drawable]
-  (if (vector? pad)
-    (let [[px py] pad]
-      (Bordered.
-       (padding px py
-                drawable)))
-    (Bordered.
-     (padding pad drawable))))
+  "Graphical elem that will draw drawable with a gray border. Also allows a specified padding.
+
+  ;; Add a border without padding
+  (bordered elem)
+
+  ;; Add border with 5 px padding around elem
+  (bordered 5 elem)
+
+  ;; Add border
+  ;; Add 3 pixels of padding to the left and right
+  ;; and 5 pixels to the top and bottom
+  (bordered [3 5] elem)
+
+  ;; Add border
+  ;; 1 px to the top
+  ;; 2 pixels to the right
+  ;; 3 pixels to the bottom
+  ;; 4 pixels to the left.
+  (bordered [1 2 3 4] elem)"
+  ([elem]
+   (Bordered. elem))
+  ([pad elem]
+   (if (number? pad)
+     (Bordered.
+      (padding pad elem))
+     ;; assume seq
+     (case (count pad)
+       2 (Bordered.
+          (padding (nth pad 0)
+                   (nth pad 1)
+                   elem))
+       4 (Bordered.
+          (padding (nth pad 0)
+                   (nth pad 1)
+                   (nth pad 2)
+                   (nth pad 3)
+                   elem))))))
 
 (defn fill-bordered-draw [this]
   (let [{:keys [color drawable]} this
