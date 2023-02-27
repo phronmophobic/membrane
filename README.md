@@ -57,6 +57,12 @@ Membrane does not build on top of any existing ui toolkits like Swing, JavaFX, H
 Views are values. Components and event handlers are pure functions.
 
 For more info covering the design of membrane:  
+
+### Talks
+[![Simpler User Interfaces with Membrane](https://img.youtube.com/vi/Mjn92fODdaA/0.jpg)](https://www.youtube.com/watch?v=Mjn92fODdaA)  
+
+### Posts
+
 [What is a User Interface?](https://blog.phronemophobic.com/what-is-a-user-interface.html)  
 [Implementing a Functional UI Model](https://blog.phronemophobic.com/ui-model.html)  
 [Reusable UI Components](https://blog.phronemophobic.com/reusable-ui-components.html)
