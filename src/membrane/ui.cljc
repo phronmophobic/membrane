@@ -939,24 +939,66 @@
 
 
 (defrecord Scale [scalars drawables]
-    IOrigin
-    (-origin [_]
-        [0 0])
-    IBounds
-    (-bounds [this]
-        (let [[w h] (bounds drawables)
-              [sx sy] scalars]
-          [(* w sx)
-           (* h sy)]))
+  IOrigin
+  (-origin [_]
+    [0 0])
+  IBounds
+  (-bounds [this]
+    (let [[w h] (bounds drawables)
+          [sx sy] scalars]
+      [(* w sx)
+       (* h sy)]))
 
-    IMakeNode
-    (make-node [this childs]
-      (Scale. scalars childs))
+  IMouseEvent
+  (-mouse-event [this mpos button mouse-down? mods]
+    (mouse-event drawables [(/ (nth mpos 0)
+                               (nth scalars 0))
+                            (/ (nth mpos 1)
+                               (nth scalars 1))]
+                 button mouse-down? mods))
 
-    IChildren
-    (-children [this]
-        drawables)
-    )
+  IScroll
+  (-scroll [this input-offset mpos]
+    (scroll drawables
+            input-offset
+            [(/ (nth mpos 0)
+                (nth scalars 0))
+             (/ (nth mpos 1)
+                (nth scalars 1))]))
+
+  IDrop
+  (-drop [this paths mpos]
+    (drop drawables
+          paths
+          [(/ (nth mpos 0)
+              (nth scalars 0))
+           (/ (nth mpos 1)
+              (nth scalars 1))]))
+
+  IMouseMove
+  (-mouse-move [this mpos]
+    (mouse-move drawables
+                [(/ (nth mpos 0)
+                    (nth scalars 0))
+                 (/ (nth mpos 1)
+                    (nth scalars 1))]))
+
+  IMouseMoveGlobal
+  (-mouse-move-global [this mpos]
+    (-default-mouse-move-global this
+                                [(/ (nth mpos 0)
+                                    (nth scalars 0))
+                                 (/ (nth mpos 1)
+                                    (nth scalars 1))]))
+
+  IMakeNode
+  (make-node [this childs]
+    (Scale. scalars childs))
+
+  IChildren
+  (-children [this]
+    drawables))
+
 (defn scale
   "Draw drawables using scalars which is a vector of [scale-x scale-y]"
   [sx sy & drawables]
