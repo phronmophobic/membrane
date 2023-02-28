@@ -27,7 +27,7 @@ clang++ \
     -framework CoreServices \
     -framework Foundation \
     -framework Metal \
-    -mmacosx-version-min=10.13 \
+    -mmacosx-version-min=10.14 \
     "$skia_root"/out/Release-${arch}/*.a \
     -DSK_GL=1 \
     -arch ${arch} \
