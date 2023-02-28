@@ -43,7 +43,8 @@
            com.sun.jna.ptr.IntByReference
            com.sun.jna.IntegerType
            java.awt.image.BufferedImage
-           java.util.function.Supplier)
+           java.util.function.Supplier
+           java.lang.ref.Cleaner)
   (:import java.nio.ByteBuffer
            com.phronemophobic.membrane.Skia)
   (:gen-class))
@@ -59,6 +60,7 @@
                  1e6))
      ret#))
 
+(def ^:private cleaner (delay (Cleaner/create)))
 (def ^:private void Void/TYPE)
 (def ^:private main-class-loader @clojure.lang.Compiler/LOADER)
 
@@ -898,6 +900,122 @@
                      x (* (:radius this) (Math/cos rad))
                      y (* (:radius this) (Math/sin rad))]]
          (vertex x y))))))
+
+(defmacro ^:private add-cleaner [type p]
+  (let [delete-sym (symbol (str "skia_" type "_delete"))]
+      `(let [p# ~p
+             ptr# (Pointer/nativeValue p#)]
+         (.register ^Cleaner @cleaner p#
+                    (fn []
+                      (prn "deleting " ~(str type))
+                      (~delete-sym (Pointer. ptr#))))
+         p#)))
+
+(defc skia_SkStream_delete membraneskialib Void/TYPE [stream])
+(defn- skia-SkStream-delete [stream]
+  (assert (instance? Pointer stream))
+  (skia_SkStream_delete stream))
+
+(defc skia_SkStream_make_from_bytes membraneskialib Pointer [bs len])
+(defn- skia-SkStream-make-from-bytes [^bytes bs]
+  (assert (bytes? bs))
+  (add-cleaner
+   SkStream
+   (skia_SkStream_make_from_bytes bs (int (alength bs)))))
+
+(defc skia_SkStream_make_from_path membraneskialib Pointer [fname])
+(defn- skia-SkStream-make-from-path [fname]
+  (assert (string? fname))
+  (add-cleaner
+   SkStream
+   (skia_SkStream_make_from_path fname)))
+
+(defc skia_SkSVGDOM_delete membraneskialib Void/TYPE [svg])
+(defn- skia-SkSVGDOM-delete [svg]
+  (assert (instance? Pointer svg))
+  (skia_SkSVGDOM_delete svg))
+
+(defc skia_SkSVGDOM_make membraneskialib Pointer [stream])
+(defn- skia-SkSVGDOM-make [stream]
+  (assert (instance? Pointer stream))
+  (add-cleaner
+   SkSVGDOM
+   (skia_SkSVGDOM_make stream)))
+
+(defc skia_SkSVGDOM_render membraneskialib Pointer [svg resource])
+(defn- skia-SkSVGDOM-render [svg resource]
+  (assert (instance? Pointer svg))
+  (assert (instance? Pointer resource))
+  (skia_SkSVGDOM_render svg resource))
+
+(defc skia_SkSVGDOM_instrinsic_size membraneskialib Pointer [svg width* height*])
+(defn- skia-SkSVGDOM-instrinsic-size [svg]
+  (assert (instance? Pointer svg))
+  (let [width (FloatByReference.)
+        height (FloatByReference.)]
+    (skia_SkSVGDOM_instrinsic_size svg width height)
+    [(.getValue width)
+     (.getValue height)]))
+
+(defprotocol SVGFactory
+  "gets or creates an opengl image texture given some various types"
+  :extend-via-metadata true
+  (get-svg-dom [x]))
+
+(extend-protocol SVGFactory
+  String
+  (get-svg-dom [svg-str]
+    (let [bs (.getBytes svg-str "utf-8")
+          stream (skia-SkStream-make-from-bytes bs)
+          svg* (skia-SkSVGDOM-make stream)]
+      svg*))
+
+  java.io.File
+  (get-svg-dom [fname]
+    (let [stream (skia-SkStream-make-from-path (.getAbsolutePath fname))
+          svg* (skia-SkSVGDOM-make stream)]
+      svg*)))
+
+(extend (Class/forName "[B")
+  SVGFactory
+  {:get-svg-dom
+   (fn [^bytes bs]
+     (let [stream (skia-SkStream-make-from-bytes bs)
+           svg* (skia-SkSVGDOM-make stream)]
+       svg*))})
+
+(defn- load-svg [svg]
+  (if-let [svg* (get @*image-cache* svg)]
+    svg*
+    (let [svg* (get-svg-dom svg)]
+      (swap! *image-cache* assoc svg svg*)
+      svg*)))
+
+(defrecord SVG [svg]
+  IOrigin
+  (-origin [this]
+    [0 0])
+
+  IBounds
+  (-bounds [this]
+    (skia-SkSVGDOM-instrinsic-size (load-svg svg)))
+
+  IDraw
+  (draw [this]
+    (skia-SkSVGDOM-render (load-svg svg) *skia-resource*)))
+
+(defn svg
+  "Displays an svg element.
+
+  `svg` can be a string representation, a java.io.File, or a utf8-encoded byte array."
+  [svg]
+  (SVG. svg))
+
+(comment
+  (run
+    (constantly
+     (svg (.getBytes (slurp "/Users/adrian/Downloads/Clojure-Logo.wine.svg") "utf-8"))))
+  ,)
 
 (def ^:dynamic *origin* [0 0 0])
 (def ^:dynamic *view* nil )
