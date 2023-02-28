@@ -31,9 +31,7 @@ run(['cp',
 
 # cp libmembraneskia-${arch}.${shared_suffix} ${platform}-${resource_suffix}/resources/${resource_prefix}-${resource_suffix}/libmembraneskia.${shared_suffix}
 
-with open('../project.clj') as f:
-    s = f.read()
-    version = re.search(r'"([^"]*)"', s)[1]
+version="0.12-beta"
 
 print('using version: "{version}"'.format(version=version))
 
