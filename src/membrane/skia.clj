@@ -59,33 +59,37 @@
                  1e6))
      ret#))
 
-(def void Void/TYPE)
-(def main-class-loader @clojure.lang.Compiler/LOADER)
+(def ^:private void Void/TYPE)
+(def ^:private main-class-loader @clojure.lang.Compiler/LOADER)
 
-(def opengl (try
-              (com.sun.jna.NativeLibrary/getInstance "opengl")
-              (catch java.lang.UnsatisfiedLinkError e
-                (try
-                  (com.sun.jna.NativeLibrary/getInstance "GL")
-                  (catch java.lang.UnsatisfiedLinkError e
-                    (try
-                      (com.sun.jna.NativeLibrary/getInstance "OpenGL")
-                      (catch java.lang.UnsatisfiedLinkError e
-                        nil)))))))
-(def objlib (try
-              (com.sun.jna.NativeLibrary/getInstance "CoreFoundation")
-              (catch java.lang.UnsatisfiedLinkError e
-                nil)))
+(def ^:private
+  opengl (try
+           (com.sun.jna.NativeLibrary/getInstance "opengl")
+           (catch java.lang.UnsatisfiedLinkError e
+             (try
+               (com.sun.jna.NativeLibrary/getInstance "GL")
+               (catch java.lang.UnsatisfiedLinkError e
+                 (try
+                   (com.sun.jna.NativeLibrary/getInstance "OpenGL")
+                   (catch java.lang.UnsatisfiedLinkError e
+                     nil)))))))
+(def ^:private
+  objlib (try
+           (com.sun.jna.NativeLibrary/getInstance "CoreFoundation")
+           (catch java.lang.UnsatisfiedLinkError e
+             nil)))
 
 ;; These libraries is absolutely necessary to show windows, but it's crashing the documentation generator
-(def glfw (try
-            (com.sun.jna.NativeLibrary/getInstance "glfw")
-            (catch java.lang.UnsatisfiedLinkError e
-              nil)))
-(def membraneskialib (try
-                       (com.sun.jna.NativeLibrary/getInstance "membraneskia")
-                       (catch java.lang.UnsatisfiedLinkError e
-                         nil)))
+(def ^:private
+  glfw (try
+         (com.sun.jna.NativeLibrary/getInstance "glfw")
+         (catch java.lang.UnsatisfiedLinkError e
+           nil)))
+(def ^:private
+  membraneskialib (try
+                    (com.sun.jna.NativeLibrary/getInstance "membraneskia")
+                    (catch java.lang.UnsatisfiedLinkError e
+                      nil)))
 
 (def ffi-buf*
   (ThreadLocal/withInitial
