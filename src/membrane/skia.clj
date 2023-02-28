@@ -907,7 +907,6 @@
              ptr# (Pointer/nativeValue p#)]
          (.register ^Cleaner @cleaner p#
                     (fn []
-                      (prn "deleting " ~(str type))
                       (~delete-sym (Pointer. ptr#))))
          p#)))
 
