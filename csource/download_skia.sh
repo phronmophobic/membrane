@@ -13,7 +13,7 @@ mkdir -p libs
 pushd libs
 
 
-RELEASE="4d519a8ba97ab32c3f310f2417e122b8ea354345-4"
+RELEASE="f5fefe5245098be43cb608eace5e14d67cdc09e6-1"
 URL="https://github.com/phronmophobic/skia-build/releases/download/${RELEASE}/Skia-${RELEASE}-${platform}-Release-${arch}.zip"
 
 curl -L -o skia.zip "${URL}"
