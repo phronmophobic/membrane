@@ -1,8 +1,7 @@
 (ns membrane.skia.paragraph
   (:require [membrane.skia :as skia
              :refer [defc
-                     ffi-buf
-                     membraneskialib]]
+                     ffi-buf]]
             [membrane.ui :as ui])
   (:import com.sun.jna.Pointer
            com.sun.jna.Memory
@@ -28,6 +27,8 @@
      (bit-or n (text-decoration-ints k)))
    (int 0)
    dec))
+
+(def membraneskialib @#'skia/membraneskialib)
 
 (defn- pointer? [p]
   (instance? Pointer p))
