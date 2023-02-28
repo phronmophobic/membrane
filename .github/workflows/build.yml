@@ -1,3 +1,4 @@
+name: Build and deploy skialib
 on:
   workflow_dispatch:
   # push:
