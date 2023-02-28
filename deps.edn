@@ -108,7 +108,11 @@
   :clerk {:extra-paths ["notebooks"]
           :extra-deps
           {org.clojure/math.combinatorics {:mvn/version "0.1.6"}
-           io.github.nextjournal/clerk {:mvn/version "0.12.707"}}}
+           io.github.nextjournal/clerk {;; :mvn/version "0.12.707"
+                                        :git/url "https://github.com/nextjournal/clerk"
+                                        :git/sha "92cfcc59898c1aff24eef1b59ae07af8af0adac5"
+                                        ;;:local/root "../clerk"
+                                        }}}
   :project {:extra-paths ["test"]
             :jvm-opts ["-XX:-OmitStackTraceInFastThrow"]
             :extra-deps
