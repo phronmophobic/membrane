@@ -20,15 +20,15 @@
 #include "modules/skparagraph/include/TypefaceFontProvider.h"
 #include <SkEncodedImageFormat.h>
 #include <SkColorSpace.h>
+#include "modules/svg/include/SkSVGDOM.h"
+#include "modules/svg/include/SkSVGSVG.h"
+#include "modules/svg/include/SkSVGRenderContext.h"
+#include <SkRRect.h>
 #include <iostream>
 #include <fstream>
 
 #include "src/gpu/gl/GrGLDefines.h"
 #include "gl/GrGLInterface.h"
-
-#include "src/core/SkFontPriv.h"
-#include "src/core/SkStrikeSpec.h"
-#include "src/utils/SkUTF.h"
 
 #if defined(__APPLE__)
 #import <CoreFoundation/CoreFoundation.h>
@@ -1082,6 +1082,36 @@ extern "C" {
         SkString s = SkString();
         SkFontMgr::RefDefault()->getFamilyName(index, &s);
         strncpy(familyName, s.c_str(), len);
+    }
+
+    SkStream* skia_SkStream_make_from_bytes(char* s, int len){
+        return new SkMemoryStream(s, len, true);
+    }
+
+    SkStream* skia_SkStream_make_from_path(char* s){
+        return new SkFILEStream(s);
+    }
+
+    void skia_SkStream_delete(SkStream* stream){
+        delete stream;
+    }
+
+    SkSVGDOM* skia_SkSVGDOM_make(SkStream* stream){
+        return SkSVGDOM::MakeFromStream(*stream).release();
+    }
+
+    void skia_SkSVGDOM_delete(SkSVGDOM* svg){
+        svg->unref();
+    }
+
+    void skia_SkSVGDOM_render(SkSVGDOM* svg, SkiaResource* resource){
+        svg->render(resource->surface->getCanvas());
+    }
+
+    void skia_SkSVGDOM_instrinsic_size(SkSVGDOM* svg, float *width, float *height){
+        SkSize size = svg->getRoot()->intrinsicSize(SkSVGLengthContext(SkSize::Make(0, 0)));
+        *width = size.width();
+        *height = size.height();
     }
 
 #if defined(__APPLE__)

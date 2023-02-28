@@ -9,8 +9,6 @@
 #include "include/gpu/GrBackendSurface.h"
 #include "include/core/SkCanvas.h"
 #include "include/core/SkFont.h"
-#include "include/utils/SkRandom.h"
-/* #include "src/gpu/gl/GrGLUtil.h" */
 #include "src/gpu/gl/GrGLDefines.h"
 #include "SkTextBlob.h"
 
