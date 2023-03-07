@@ -1261,7 +1261,15 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
 (defn default-handler [atm]
   (fn dispatch!
     ([effects]
-     (run! #(apply dispatch! %) effects))
+     ;; The default handler overloads dispatching a
+     ;; batch of effects with dispatching a
+     ;; single effect. I don't really like this,
+     ;; but doing it for now to maintain backwards
+     ;; compatibility. Future updates may want to
+     ;; revisit this decision.
+     (if (keyword? effects)
+       (dispatch!* atm dispatch! effects)
+       (run! #(apply dispatch! %) effects)))
     ([effect-type & args]
      (apply dispatch!* atm dispatch! effect-type args))))
 
