@@ -84,7 +84,7 @@
 ;; These libraries is absolutely necessary to show windows, but it's crashing the documentation generator
 (def ^:private
   glfw (try
-         (com.sun.jna.NativeLibrary/getInstance "glfw")
+         (com.sun.jna.NativeLibrary/getInstance "glfw.3")
          (catch java.lang.UnsatisfiedLinkError e
            nil)))
 (def ^:private
