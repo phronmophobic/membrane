@@ -56,7 +56,7 @@ jobs:
           CLOJARS_PASSWORD: ${{ secrets.CLOJARS_PASSWORD }}
 
   linux:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     environment: Actions
     strategy:
       matrix:
