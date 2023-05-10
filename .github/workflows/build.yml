@@ -74,7 +74,7 @@ jobs:
       - run: ./csource/check_release.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./csource/prepare_linux.sh
+      - run: sudo ./csource/prepare_linux.sh
       - run: ./csource/download_skia.sh
       - run: ./csource/compile_linux.sh
       - uses: actions/upload-artifact@v2
