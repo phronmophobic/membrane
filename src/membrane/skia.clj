@@ -506,10 +506,96 @@
                                (:font this))))))
 
 
+(def kAlpha_8_SkColorType
+  "pixel with alpha in 8-bit byte"
+  (int 1))
+(def kRGB_565_SkColorType
+  "pixel with 5 bits red, 6 bits green, 5 bits blue, in 16-bit word"
+  (int 2))(def kARGB_4444_SkColorType
+  "pixel with 4 bits for alpha, red, green, blue; in 16-bit word"
+  (int 3))(def kRGBA_8888_SkColorType
+  "pixel with 8 bits for red, green, blue, alpha; in 32-bit word"
+  (int 4))(def kRGB_888x_SkColorType
+  "pixel with 8 bits each for red, green, blue; in 32-bit word"
+  (int 5))(def kBGRA_8888_SkColorType
+  "pixel with 8 bits for blue, green, red, alpha; in 32-bit word"
+  (int 6))(def kRGBA_1010102_SkColorTyp
+  "10 bits for red, green, blue; 2 bits for alpha; in 32-bit word"
+  (int 7)  )
+(def kBGRA_1010102_SkColorType
+  "10 bits for blue, green, red; 2 bits for alpha; in 32-bit word"
+  (int 8))
+(def kRGB_101010x_SkColorType
+  "pixel with 10 bits each for red, green, blue; in 32-bit word"
+  (int 9))
+(def kBGR_101010x_SkColorType
+  "pixel with 10 bits each for blue, green, red; in 32-bit word"
+  (int 10))
+(def kBGR_101010x_XR_SkColorType
+  "pixel with 10 bits each for blue, green, red; in 32-bit word, extended range"
+  (int 11))
+(def kGray_8_SkColorType
+  "pixel with grayscale level in 8-bit byte"
+  (int 12))
+(def kRGBA_F16Norm_SkColorType
+  "pixel with half floats in [0,1] for red, green, blue, alpha;"
+  (int 13))
+(def kRGBA_F16_SkColorType
+  "pixel with half floats for red, green, blue, alpha;"
+  (int 14))
+(def kRGBA_F32_SkColorType
+  "pixel using C float for red, green, blue, alpha; in 128-bit word"
+  (int 15))
+(def kR8G8_unorm_SkColorType
+  "pixel with a uint8_t for red and green"
+  (int 16))
+(def kA16_float_SkColorType
+  "pixel with a half float for alpha"
+  (int 17))
+(def kR16G16_float_SkColorType
+  "pixel with a half float for red and green"
+  (int 18))
+(def kA16_unorm_SkColorType
+  "pixel with a little endian uint16_t for alpha"
+  (int 19))
+(def kR16G16_unorm_SkColorType
+  "pixel with a little endian uint16_t for red and green"
+  (int 20))
+(def kR16G16B16A16_unorm_SkColorType
+  "pixel with a little endian uint16_t for red, green, blue"
+  (int 21))
+(def kSRGBA_8888_SkColorType (int 22))
+(def kR8_unorm_SkColorType (int 23))
 
+(def kOpaque_SkAlphaType
+  "pixel is opaque"
+  (int 1))
+(def kPremul_SkAlphaType
+  "pixel components are premultiplied by alpha"
+  (int 2))
+(def kUnpremul_SkAlphaType
+  "pixel components are independent of alpha "
+  (int 3))
 
+(defc skia_draw_pixmap membraneskialib void [resource color-type alpha-type buffer width height row-bytes])
 
+(defrecord Pixmap [id buf width height color-type alpha-type row-bytes]
+  ui/IOrigin
+    (-origin [_]
+        [0 0])
 
+    IDraw
+    (draw [this]
+      (skia_draw_pixmap *skia-resource* color-type alpha-type buf width height row-bytes))
+
+    ui/IBounds
+  (-bounds [_]
+    [width height]))
+
+(defn ^:private pixmap
+  "Element for drawing raw pixel data. pixmap is a fairly low level level primitive."
+  [id buf width height color-type alpha-type row-bytes]
+  (->Pixmap id buf (int width) (int height) (int color-type) (int alpha-type) (int row-bytes)))
 
 (defprotocol ImageFactory
   "gets or creates an opengl image texture given some various types"

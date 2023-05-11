@@ -296,6 +296,16 @@ extern "C" {
         resource->surface->writePixels(pixmap, 0, 0);
     }
 
+    void skia_draw_pixmap(SkiaResource* resource, SkColorType colorType, SkAlphaType alphaType,   void* buffer, int width, int height, int rowBytes){
+
+        SkImageInfo info = SkImageInfo::Make(width, height, colorType, alphaType);
+
+        sk_sp<SkSurface> sourceSurface =
+            SkSurface::MakeRasterDirect(info, buffer, rowBytes);
+
+        sourceSurface->draw(resource->surface->getCanvas(), 0, 0, &resource->getPaint());
+    }
+
     void skia_bgra8888_draw(SkiaResource* resource, const void* buffer, int width, int height, int rowBytes){
 
         SkImageInfo info = SkImageInfo::Make(width, height, kBGRA_8888_SkColorType, kUnpremul_SkAlphaType);
