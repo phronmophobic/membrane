@@ -76,10 +76,10 @@
   (has-mouse-move-global [this]))
 
 (defprotocol IBubble 
-  "Allows an element add, remove, modify effects emitted from its children."
+  "Allows an element add, remove, modify intents emitted from its children."
   :extend-via-metadata true
-  (-bubble [_ effects]
-    "Called when an effect is being emitted by a child element. The parent element can either return the same effects or allow them to continue to bubble."))
+  (-bubble [_ intents]
+    "Called when an intent is being emitted by a child element. The parent element can either return the same intents or allow them to continue to bubble."))
 
 (defprotocol IMakeNode
   :extend-via-metadata true
@@ -155,7 +155,7 @@
   (-drop [elem paths local-pos]
     nil)
   IBubble
-  (-bubble [elem effects]
+  (-bubble [elem intents]
     nil))
 
 
@@ -396,7 +396,7 @@
 
 
 (defn mouse-move
-  "Returns the effects of a mouse move event on elem. Will only call -mouse-move on mouse events within an elements bounds."
+  "Returns the intents of a mouse move event on elem. Will only call -mouse-move on mouse events within an elements bounds."
   ([elem pos]
    (when-let [local-pos (within-bounds? elem pos)]
      (-mouse-move elem local-pos))))
@@ -417,7 +417,7 @@
 ;;                                    (ui/spacer 20 20)))
 ;;                     [0 0])
 (defn mouse-move-global
-  "Returns the effects of a mouse move event on elem. Will -mouse-move-global for all elements and their children."
+  "Returns the intents of a mouse move event on elem. Will -mouse-move-global for all elements and their children."
   ([elem global-pos]
    (-mouse-move-global elem global-pos)))
 
@@ -426,12 +426,12 @@
     (-mouse-event elem local-pos button mouse-down? mods)))
 
 (defn mouse-down
-  "Returns the effects of a mouse down event on elem. Will only call -mouse-event or -mouse-down if the position is in the element's bounds."
+  "Returns the intents of a mouse down event on elem. Will only call -mouse-event or -mouse-down if the position is in the element's bounds."
   [elem [mx my :as pos]]
   (mouse-event elem pos 0 true 0))
 
 (defn mouse-up
-  "Returns the effects of a mouse up event on elem. Will only call -mouse-event or -mouse-down if the position is in the element's bounds."
+  "Returns the intents of a mouse up event on elem. Will only call -mouse-event or -mouse-down if the position is in the element's bounds."
   [elem [mx my :as pos]]
   (mouse-event elem pos 0 false 0))
 
@@ -461,23 +461,23 @@
 
 (def
   ^{:arglists '([elem key]),
-    :doc "Returns the effects of a key press event on elem."}
+    :doc "Returns the intents of a key press event on elem."}
   key-press (make-event-handler "IKeyPress" IKeyPress -key-press))
 (def
   ^{:arglists '([elem key scancode action mods]),
-    :doc "Returns the effects of a key event on elem."}
+    :doc "Returns the intents of a key event on elem."}
   key-event (make-event-handler "IKeyEvent" IKeyEvent -key-event))
 (def
   ^{:arglists '([elem]),
-    :doc "Returns the effects of a clipboard cut event on elem."}
+    :doc "Returns the intents of a clipboard cut event on elem."}
   clipboard-cut (make-event-handler "IClipboardCut" IClipboardCut -clipboard-cut))
 (def
   ^{:arglists '([elem]),
-    :doc "Returns the effects of a clipboard copy event on elem."}
+    :doc "Returns the intents of a clipboard copy event on elem."}
   clipboard-copy (make-event-handler "IClipboardCopy" IClipboardCopy -clipboard-copy))
 (def
   ^{:arglists '([elem s]),
-    :doc "Returns the effects of a clipboard paste event on elem."}
+    :doc "Returns the intents of a clipboard paste event on elem."}
   clipboard-paste (make-event-handler "IClipboardPaste" IClipboardPaste -clipboard-paste))
 
 (defrecord Label [text font]
@@ -1337,7 +1337,7 @@
 (defn on-click
   "Wrap an element with a mouse down event handler, on-click. 
 
-  on-click must accept 0 arguments and should return a sequence of effects."
+  on-click must accept 0 arguments and should return a sequence of intents."
   [on-click & drawables]
   (OnClick. on-click drawables))
 
@@ -1391,7 +1391,7 @@
 (defn on-mouse-down
   "Wraps drawables and adds an event handler for mouse-down events.
 
-  on-mouse-down should take 1 argument [mx my] of the mouse position in local coordinates and return a sequence of effects."
+  on-mouse-down should take 1 argument [mx my] of the mouse position in local coordinates and return a sequence of intents."
   [on-mouse-down & drawables]
   (OnMouseDown. on-mouse-down drawables))
 
@@ -1443,7 +1443,7 @@
 (defn on-mouse-up
   "Wraps drawables and adds an event handler for mouse-up events.
 
-  on-mouse-up should take 1 argument [mx my] of the mouse position in local coordinates and return a sequence of effects."
+  on-mouse-up should take 1 argument [mx my] of the mouse position in local coordinates and return a sequence of intents."
   [on-mouse-up & drawables]
   (OnMouseUp. on-mouse-up drawables))
 
@@ -1487,7 +1487,7 @@
 (defn on-mouse-move
   "Wraps drawables and adds an event handler for mouse-move events.
 
-  on-mouse-move down should take 1 argument [mx my] of the mouse position in local coordinates and return a sequence of effects."
+  on-mouse-move down should take 1 argument [mx my] of the mouse position in local coordinates and return a sequence of intents."
   [on-mouse-move & drawables]
   (OnMouseMove. on-mouse-move drawables))
 
@@ -1535,7 +1535,7 @@
 (defn on-mouse-move-global
   "Wraps drawables and adds an event handler for mouse-move-global events.
 
-  on-mouse-move-global down should take 1 argument [mx my] of the mouse position in global coordinates and return a sequence of effects."
+  on-mouse-move-global down should take 1 argument [mx my] of the mouse position in global coordinates and return a sequence of intents."
   [on-mouse-move-global & drawables]
   (OnMouseMoveGlobal. on-mouse-move-global drawables))
 
@@ -1579,7 +1579,7 @@
 (defn on-mouse-event
   "Wraps drawables and adds an event handler for mouse events.
 
-  on-mouse-event should take 4 arguments [pos button mouse-down? mods] and return a sequence of effects."
+  on-mouse-event should take 4 arguments [pos button mouse-down? mods] and return a sequence of intents."
   [on-mouse-event & drawables]
   (OnMouseEvent. on-mouse-event drawables))
 
@@ -1624,7 +1624,7 @@
 (defn on-drop
   "Wraps drawables and adds an event handler for drop events.
 
-  on-drop should take 2 arguments [paths pos] and return a sequence of effects."
+  on-drop should take 2 arguments [paths pos] and return a sequence of intents."
   [on-drop & drawables]
   (OnDrop. on-drop drawables))
 
@@ -1672,7 +1672,7 @@
 (defn on-key-press
   "Wraps drawables and adds an event handler for key-press events.
 
-  on-key-press should take 1 argument key and return a sequence of effects."
+  on-key-press should take 1 argument key and return a sequence of intents."
   [on-key-press & drawables]
   (OnKeyPress. on-key-press drawables))
 
@@ -1720,7 +1720,7 @@
 (defn on-key-event
   "Wraps drawables and adds a handler for key events.
 
-  on-key-event should take 4 arguments key, scancode, action, mods and return a sequence of effects."
+  on-key-event should take 4 arguments key, scancode, action, mods and return a sequence of intents."
   [on-key-event & drawables]
   (OnKeyEvent. on-key-event drawables))
 
@@ -1751,8 +1751,8 @@
       drawables)
 
    IBubble
-   (-bubble [this effects]
-       (on-bubble effects)))
+   (-bubble [this intents]
+       (on-bubble intents)))
 
 (swap! default-draw-impls
        assoc OnBubble
@@ -1764,7 +1764,7 @@
 (defn on-bubble
   "Wraps drawables and adds a handler for bubbling
 
-  on-bubble should take seq of effects"
+  on-bubble should take seq of intents"
   [on-bubble & drawables]
   (OnBubble. on-bubble drawables))
 
@@ -1809,7 +1809,7 @@
 (defn on-clipboard-paste
   "Wraps drawables and adds a handler for clipboard paste events.
 
-  on-clipboard-paste should take 1 arguments s and return a sequence of effects."
+  on-clipboard-paste should take 1 arguments s and return a sequence of intents."
   [on-clipboard-paste & drawables]
   (OnClipboardPaste. on-clipboard-paste drawables))
 
@@ -1853,7 +1853,7 @@
 (defn on-clipboard-copy
   "Wraps drawables and adds a handler for clipboard copy events.
 
-  on-clipboard-copy should take 0 arguments and return a sequence of effects."
+  on-clipboard-copy should take 0 arguments and return a sequence of intents."
   [on-clipboard-copy & drawables]
   (OnClipboardCopy. on-clipboard-copy drawables))
 
@@ -1899,7 +1899,7 @@
 (defn on-clipboard-cut
   "Wraps drawables and adds a handler for clipboard cut events.
 
-  on-clipboard-copy should take 0 arguments and return a sequence of effects."
+  on-clipboard-copy should take 0 arguments and return a sequence of intents."
   [on-clipboard-cut & drawables]
   (OnClipboardCut. on-clipboard-cut drawables))
 
@@ -2030,7 +2030,7 @@
 (defn on-scroll
   "Wraps drawables and adds an event handler for scroll events.
 
-  on-scroll should take 1 argument [offset-x offset-y] of the scroll offset and return a sequence of effects."
+  on-scroll should take 1 argument [offset-x offset-y] of the scroll offset and return a sequence of intents."
   [on-scroll & drawables]
   (OnScroll. on-scroll drawables))
 
@@ -2244,7 +2244,7 @@
 
   example:
 
-  Wraps a button with a mouse-down handler that only returns an effect when the x coordinate is even.
+  Wraps a button with a mouse-down handler that only returns an intent when the x coordinate is even.
   (on :mouse-down (fn [handler [mx my]]
                      (when (even? mx)
                        (handler [mx my])))
