@@ -24,3 +24,7 @@ package.json
 .cpcache
 /tmp/
 .clerk
+*.gif
+*.mov
+*.png
+docs/
