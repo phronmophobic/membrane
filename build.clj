@@ -3,7 +3,7 @@
             [clojure.string :as str]))
 
 (def lib 'com.phronemophobic/membrane)
-(def version "0.13.0-beta-SNAPSHOT")
+(def version "0.13.0-beta")
 (def class-dir "target/classes")
 (def basis (b/create-basis {:project "deps.edn"}))
 (def jar-file (format "target/%s-%s.jar" (name lib) version))
