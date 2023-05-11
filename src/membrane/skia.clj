@@ -2133,7 +2133,8 @@
    (dispatch-sync!
        (fn []
          (try
-           (run-helper window-chan)
+           (run-helper window-chan
+                       (:membrane.skia/on-main options))
            (catch Exception e
              (println e)))))))
 
@@ -2185,7 +2186,7 @@
 
    {::repaint glfw-post-empty-event}))
 
-(defn- run-helper [window-chan]
+(defn- run-helper [window-chan on-main]
   (with-local-vars [windows #{}]
     (letfn [(init []
               (if (not= 1 (glfw-call Integer/TYPE glfwInit))
@@ -2240,6 +2241,9 @@
             (add-windows!)
 
             (close-windows!)
+
+            (when on-main
+              (on-main))
 
             (run! repaint!
                   (var-get windows))
