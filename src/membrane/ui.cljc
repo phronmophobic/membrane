@@ -38,6 +38,9 @@
 (defprotocol IMouseEvent
   :extend-via-metadata true
   (-mouse-event [elem pos button mouse-down? mods]))
+(defprotocol IMouseEnterGlobal
+  :extend-via-metadata true
+  (-mouse-enter-global [elem enter?]))
 (defprotocol IDrop
   :extend-via-metadata true
   (-drop [elem paths pos]))
@@ -137,6 +140,9 @@
   IMouseMoveGlobal
   (-mouse-move-global [this info]
     nil)
+  IMouseEnterGlobal
+  (-mouse-enter-global [this info]
+    nil)
   IHasKeyEvent
   (has-key-event [this]
     false)
@@ -203,11 +209,13 @@
   IMouseMoveGlobal
   (-mouse-move-global [this offset]
     (-default-mouse-move-global this offset))
-
+  IMouseEnterGlobal
+  (-mouse-enter-global [this enter?]
+    (let [intents (mapcat #(-mouse-enter-global % enter?) (children this))]
+      (-bubble this intents)))
   IBubble
   (-bubble [this intents]
     intents)
-
   IMouseEvent
   (-mouse-event [elem local-pos button mouse-down? mods]
     (let [intents
@@ -434,6 +442,13 @@
   "Returns the intents of a mouse up event on elem. Will only call -mouse-event or -mouse-down if the position is in the element's bounds."
   [elem [mx my :as pos]]
   (mouse-event elem pos 0 false 0))
+
+(defn mouse-enter-global
+  "Returns the intents of an event representing when the mouse enters or leaves the window.
+
+  Note: This event is new and is not implemented for all backends."
+  [elem enter?]
+  (-mouse-enter-global elem enter?))
 
 (defn drop [elem paths pos]
   (when-let [local-pos (within-bounds? elem pos)]
@@ -1539,6 +1554,53 @@
   [on-mouse-move-global & drawables]
   (OnMouseMoveGlobal. on-mouse-move-global drawables))
 
+(defrecord OnMouseEnterGlobal [on-mouse-enter-global drawables]
+  IOrigin
+  (-origin [_]
+    [0 0])
+
+  IBounds
+  (-bounds [this]
+    (reduce
+     (fn [[max-width max-height] elem]
+       (let [[ox oy] (origin elem)
+             [w h] (bounds elem)]
+         [(max max-width (+ ox w))
+          (max max-height (+ oy h))]))
+     [0 0]
+     drawables))
+
+  IMakeNode
+  (make-node [this childs]
+    (OnMouseEnterGlobal. on-mouse-enter-global childs))
+
+  IChildren
+  (-children [this]
+    drawables)
+
+  IMouseEnterGlobal
+  (-mouse-enter-global [this enter?]
+    (when on-mouse-enter-global
+      (on-mouse-enter-global enter?))))
+
+(swap! default-draw-impls
+       assoc OnMouseEnterGlobal
+       (fn [draw]
+         (fn [this]
+           (doseq [drawable (:drawables this)]
+             (draw drawable)))))
+
+(defn on-mouse-enter-global
+  "Wraps drawables and adds an event handler for mouse-enter-global events.
+
+  on-mouse-enter-global down should take 1 argument `enter?`
+  that represents the mouse entering or leaving
+  the window.
+
+  Returns a sequence of intents."
+  [on-mouse-enter-global & drawables]
+  (OnMouseEnterGlobal. on-mouse-enter-global drawables))
+
 (defrecord OnMouseEvent [on-mouse-event drawables]
     IOrigin
     (-origin [_]
@@ -2217,6 +2279,10 @@
                  :mouse-move-global
                  (on-mouse-move-global handler
                                        body)
+
+                 :mouse-enter-global
+                 (on-mouse-enter-global handler
+                                        body)
 
                  :clipboard-copy
                  (on-clipboard-copy handler
