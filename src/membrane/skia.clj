@@ -1488,6 +1488,49 @@
   (cleanup! [_])
   (repaint! [_]))
 
+(def GLFW_GAMEPAD_BUTTON_A (int 0))
+(def GLFW_GAMEPAD_BUTTON_B (int 1))
+(def GLFW_GAMEPAD_BUTTON_X (int 2))
+(def GLFW_GAMEPAD_BUTTON_Y (int 3))
+(def GLFW_GAMEPAD_BUTTON_LEFT_BUMPER (int 4))
+(def GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER (int 5))
+(def GLFW_GAMEPAD_BUTTON_BACK (int 6))
+(def GLFW_GAMEPAD_BUTTON_START (int 7))
+(def GLFW_GAMEPAD_BUTTON_GUIDE (int 8))
+(def GLFW_GAMEPAD_BUTTON_LEFT_THUMB (int 9))
+(def GLFW_GAMEPAD_BUTTON_RIGHT_THUMB   (int 10))
+(def GLFW_GAMEPAD_BUTTON_DPAD_UP   (int 11))
+(def GLFW_GAMEPAD_BUTTON_DPAD_RIGHT   (int 12))
+(def GLFW_GAMEPAD_BUTTON_DPAD_DOWN   (int 13))
+(def GLFW_GAMEPAD_BUTTON_DPAD_LEFT   (int 14))
+(def GLFW_GAMEPAD_BUTTON_LAST (int GLFW_GAMEPAD_BUTTON_DPAD_LEFT))
+(def GLFW_GAMEPAD_BUTTON_CROSS (int GLFW_GAMEPAD_BUTTON_A))
+(def GLFW_GAMEPAD_BUTTON_CIRCLE (int GLFW_GAMEPAD_BUTTON_B))
+(def GLFW_GAMEPAD_BUTTON_SQUARE (int GLFW_GAMEPAD_BUTTON_X))
+(def GLFW_GAMEPAD_BUTTON_TRIANGLE (int GLFW_GAMEPAD_BUTTON_Y))
+
+(defc glfwJoystickPresent glfw Integer/TYPE [i])
+(defc glfwSetJoystickCallback glfw Void/TYPE [callback])
+(defc glfwJoystickIsGamepad glfw Integer/TYPE [jid])
+(defc glfwGetGamepadName glfw String [jid])
+(defc glfwGetGamepadState glfw Integer/TYPE [jid game-pad-state])
+
+(def GLFW_CONNECTED (int 0x00040001))
+(def GLFW_DISCONNECTED (int 0x00040002))
+
+(deftype Joystickcallback [window handler]
+  com.sun.jna.CallbackProxy
+  (getParameterTypes [_]
+    (into-array Class  [Integer/TYPE Integer/TYPE]))
+  (getReturnType [_]
+    void)
+  (callback ^void [_ args]
+    (handler window
+             ;; joystick id
+             (aget args 0)
+             ;; event. either GLFW_CONNECTED or GLFW_DISCONNECTED
+             (aget args 1))
+    nil))
 
 (defn- -reshape
   ([window window-handle width height]
