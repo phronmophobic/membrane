@@ -1,5 +1,9 @@
 Each of the examples can be run from the command line if membrane is a dependency.
 
+If membrane is checked out locally, then running with `clj` requires prepping first:
+
+$ clojure -T:build compile
+
 ## Todo
 `lein run -m membrane.example.todo`  
 `clojure -M:skialib -m membrane.example.todo`  
