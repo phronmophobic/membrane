@@ -155,6 +155,9 @@
   IMouseEvent
   (-mouse-event [elem local-pos button mouse-down? mods]
     nil)
+  IMouseMove
+  (-mouse-move [elem pos]
+    nil)
   IScroll
   (-scroll [elem offset local-pos])
   IDrop
