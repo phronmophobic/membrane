@@ -203,57 +203,59 @@
   IHasKeyEvent
   (has-key-event [this]
     (some has-key-event (children this)))
+
   IHasKeyPress
   (has-key-press [this]
     (some has-key-press (children this)))
+
   IHasMouseMoveGlobal
   (has-mouse-move-global [this]
     (some has-mouse-move-global (children this)))
+
   IMouseMoveGlobal
   (-mouse-move-global [this offset]
     (-default-mouse-move-global this offset))
+
   IMouseEnterGlobal
   (-mouse-enter-global [this enter?]
     (let [intents (mapcat #(-mouse-enter-global % enter?) (children this))]
       (-bubble this intents)))
+
   IBubble
   (-bubble [this intents]
     intents)
+
   IMouseEvent
-  (-mouse-event [elem local-pos button mouse-down? mods]
-    (let [intents
-          ;; use seq to make sure we don't stop for empty sequences
-          (some #(when-let [local-pos (within-bounds? % local-pos)]
-                   (seq (-mouse-event % local-pos button mouse-down? mods)))
-                (reverse (children elem)))]
-      (-bubble elem intents)))
+  (-mouse-event [elem mpos button mouse-down? mods]
+    (when-let [local-pos (within-bounds? elem mpos)]
+      (let [intents
+            (some #(seq (-mouse-event % local-pos button mouse-down? mods))
+                  (reverse (children elem)))]
+        (-bubble elem intents))))
 
   IMouseMove
-  (-mouse-move [elem local-pos]
-    (let [intents
-          ;; use seq to make sure we don't stop for empty sequences
-          (some #(when-let [local-pos (within-bounds? % local-pos)]
-                   (seq (-mouse-move % local-pos)))
-                (reverse (children elem)))]
-      (-bubble elem intents)))
+  (-mouse-move [elem mpos]
+    (when-let [local-pos (within-bounds? elem mpos)]
+      (let [intents
+            (some #(seq (-mouse-move % local-pos))
+                  (reverse (children elem)))]
+        (-bubble elem intents))))
 
   IScroll
-  (-scroll [elem offset local-pos]
-    (let [intents
-          ;; use seq to make sure we don't stop for empty sequences
-          (some #(when-let [local-pos (within-bounds? % local-pos)]
-                   (seq (-scroll % offset local-pos)))
-                (reverse (children elem)))]
-      (-bubble elem intents)))
+  (-scroll [elem offset mpos]
+    (when-let [local-pos (within-bounds? elem mpos)]
+      (let [intents
+            (some #(seq (-scroll % offset local-pos))
+                  (reverse (children elem)))]
+        (-bubble elem intents))))
 
   IDrop
-  (-drop [elem paths local-pos]
-    (let [intents
-          ;; use seq to make sure we don't stop for empty sequences
-          (some #(when-let [local-pos (within-bounds? % local-pos)]
-                   (seq (-drop % paths local-pos)))
-                (reverse (children elem)))]
-      (-bubble elem intents)))
+  (-drop [elem paths mpos]
+    (when-let [local-pos (within-bounds? elem mpos)]
+      (let [intents
+            (some #(seq (-drop % paths local-pos))
+                  (reverse (children elem)))]
+        (-bubble elem intents))))
 
   IKeyPress
   (-key-press [this info]
@@ -409,8 +411,7 @@
 (defn mouse-move
   "Returns the intents of a mouse move event on elem. Will only call -mouse-move on mouse events within an elements bounds."
   ([elem pos]
-   (when-let [local-pos (within-bounds? elem pos)]
-     (-mouse-move elem local-pos))))
+   (-mouse-move elem pos)))
 
 ;; TODO: make-mouse-move global work when the top level elem has an offset
 ;; (ui/mouse-move-global
@@ -433,8 +434,7 @@
    (-mouse-move-global elem global-pos)))
 
 (defn mouse-event [elem pos button mouse-down? mods]
-  (when-let [local-pos (within-bounds? elem pos)]
-    (-mouse-event elem local-pos button mouse-down? mods)))
+  (-mouse-event elem pos button mouse-down? mods))
 
 (defn mouse-down
   "Returns the intents of a mouse down event on elem. Will only call -mouse-event or -mouse-down if the position is in the element's bounds."
@@ -454,12 +454,10 @@
   (-mouse-enter-global elem enter?))
 
 (defn drop [elem paths pos]
-  (when-let [local-pos (within-bounds? elem pos)]
-    (-drop elem paths local-pos)))
+  (-drop elem paths pos))
 
 (defn scroll [elem offset pos]
-  (when-let [local-pos (within-bounds? elem pos)]
-    (-scroll elem offset local-pos)))
+  (-scroll elem offset pos))
 
 
 (defmacro make-event-handler [protocol-name protocol protocol-fn]
@@ -786,8 +784,9 @@
 
   IMouseEvent
   (-mouse-event [this [mx my :as pos] button mouse-down? mods]
-    (mouse-event drawable [(- mx left)
-                           (- my top)] button mouse-down? mods))
+    (when-let [[mx my] (within-bounds? this pos)]
+      (mouse-event drawable [(- mx left)
+                             (- my top)] button mouse-down? mods)))
 
   IScroll
   (-scroll [this input-offset [mx my :as pos]]
@@ -798,21 +797,22 @@
 
   IDrop
   (-drop [this paths [mx my :as pos]]
-      (drop drawable
-            paths
-            [(- mx left)
-             (- my top)]))
+    (drop drawable
+          paths
+          [(- mx left)
+           (- my top)]))
 
   IMouseMove
   (-mouse-move [this [mx my :as pos]]
+    (when-let [[mx my] (within-bounds? this pos)]
       (mouse-move drawable [(- mx left)
-                            (- my top)]))
+                            (- my top)])))
 
   IMouseMoveGlobal
   (-mouse-move-global [this mouse-offset]
-      (let [[mx my] mouse-offset]
-        (-default-mouse-move-global this [(- mx left)
-                                          (- my top)])))
+    (let [[mx my] mouse-offset]
+      (-default-mouse-move-global this [(- mx left)
+                                        (- my top)])))
 
   IMakeNode
   (make-node [this childs]
@@ -969,11 +969,12 @@
 
   IMouseEvent
   (-mouse-event [this mpos button mouse-down? mods]
-    (mouse-event drawables [(/ (nth mpos 0)
-                               (nth scalars 0))
-                            (/ (nth mpos 1)
-                               (nth scalars 1))]
-                 button mouse-down? mods))
+    (when-let [mpos (within-bounds? this mpos)]
+      (mouse-event drawables [(/ (nth mpos 0)
+                                 (nth scalars 0))
+                              (/ (nth mpos 1)
+                                 (nth scalars 1))]
+                   button mouse-down? mods)))
 
   IScroll
   (-scroll [this input-offset mpos]
@@ -995,11 +996,12 @@
 
   IMouseMove
   (-mouse-move [this mpos]
-    (mouse-move drawables
-                [(/ (nth mpos 0)
-                    (nth scalars 0))
-                 (/ (nth mpos 1)
-                    (nth scalars 1))]))
+    (when-let [mpos (within-bounds? this mpos)]
+      (mouse-move drawables
+                  [(/ (nth mpos 0)
+                      (nth scalars 0))
+                   (/ (nth mpos 1)
+                      (nth scalars 1))])))
 
   IMouseMoveGlobal
   (-mouse-move-global [this mpos]
@@ -1295,7 +1297,7 @@
 
   IMouseEvent
   (-mouse-event [this pos button mouse-down? mods]
-    (when (and mouse-down? on-click)
+    (when (and mouse-down? on-click (within-bounds? this pos))
       (on-click))))
 
 (swap! default-draw-impls
@@ -1342,7 +1344,7 @@
 
   IMouseEvent
   (-mouse-event [this pos button mouse-down? mods]
-    (when (and mouse-down? on-click)
+    (when (and mouse-down? on-click (within-bounds? this pos))
       (on-click))))
 
 (swap! default-draw-impls
@@ -1360,11 +1362,12 @@
   (OnClick. on-click drawables))
 
 
-
+;; Keeping for backwards compatibility
+;; in the offchance someone cares about this type.
 (defrecord OnMouseDown [on-mouse-down drawables]
-    IOrigin
-    (-origin [_]
-        [0 0])
+  IOrigin
+  (-origin [_]
+    [0 0])
 
   IBounds
   (-bounds [this]
@@ -1378,9 +1381,9 @@
      drawables))
 
 
-    IMakeNode
-    (make-node [this childs]
-      (OnMouseDown. on-mouse-down childs))
+  IMakeNode
+  (make-node [this childs]
+    (OnMouseDown. on-mouse-down childs))
 
 
   IChildren
@@ -1391,13 +1394,13 @@
   (-mouse-event [this pos button mouse-down? mods]
     (if mouse-down?
       (when on-mouse-down
-        (on-mouse-down pos))
-      (let [intents
-            ;; use seq to make sure we don't stop for empty sequences
-            (some #(when-let [local-pos (within-bounds? % pos)]
-                     (seq (-mouse-event % local-pos button mouse-down? mods)))
-                  (reverse (children this)))]
-        (-bubble this intents)))))
+        (when-let [local-pos (within-bounds? this pos)]
+          (on-mouse-down local-pos)))
+      (when-let [local-pos (within-bounds? this pos)]
+        (let [intents
+              (some #(seq (-mouse-event % local-pos button mouse-down? mods))
+                    (reverse (children this)))]
+          intents)))))
 
 (swap! default-draw-impls
        assoc OnMouseDown
@@ -1413,10 +1416,10 @@
   [on-mouse-down & drawables]
   (OnMouseDown. on-mouse-down drawables))
 
-(defrecord OnMouseUp [on-mouse-up drawables]
-    IOrigin
-    (-origin [_]
-        [0 0])
+(defrecord OnMouseDownRaw [on-mouse-down-raw drawables]
+  IOrigin
+  (-origin [_]
+    [0 0])
 
   IBounds
   (-bounds [this]
@@ -1430,9 +1433,9 @@
      drawables))
 
 
-    IMakeNode
-    (make-node [this childs]
-      (OnMouseUp. on-mouse-up childs))
+  IMakeNode
+  (make-node [this childs]
+    (OnMouseDownRaw. on-mouse-down-raw childs))
 
 
   IChildren
@@ -1442,14 +1445,66 @@
   IMouseEvent
   (-mouse-event [this pos button mouse-down? mods]
     (if mouse-down?
-      (let [intents
-            ;; use seq to make sure we don't stop for empty sequences
-            (some #(when-let [local-pos (within-bounds? % pos)]
-                     (seq (-mouse-event % local-pos button mouse-down? mods)))
-                  (reverse (children this)))]
-        (-bubble this intents))
+      (when on-mouse-down-raw
+        (on-mouse-down-raw pos))
+      (when-let [local-pos (within-bounds? this pos)]
+        (let [intents
+              (some #(seq (-mouse-event % local-pos button mouse-down? mods))
+                    (reverse (children this)))]
+          intents)))))
+
+(swap! default-draw-impls
+       assoc OnMouseDownRaw
+       (fn [draw]
+         (fn [this]
+           (doseq [drawable (:drawables this)]
+             (draw drawable)))))
+
+(defn on-mouse-down-raw
+  "Wraps drawables and adds an event handler for mouse-down events. 
+  Unlike `on-mouse-down`, does not ignore events outside the bounds of `drawables`.
+
+  on-mouse-down-raw should take 1 argument [mx my] of the mouse position in local coordinates and return a sequence of intents."
+  [on-mouse-down-raw & drawables]
+  (OnMouseDownRaw. on-mouse-down-raw drawables))
+
+;; Keeping for backwards compatibility
+;; in the offchance someone cares about this type.
+(defrecord OnMouseUp [on-mouse-up drawables]
+  IOrigin
+  (-origin [_]
+    [0 0])
+
+  IBounds
+  (-bounds [this]
+    (reduce
+     (fn [[max-width max-height] elem]
+       (let [[ox oy] (origin elem)
+             [w h] (bounds elem)]
+         [(max max-width (+ ox w))
+          (max max-height (+ oy h))]))
+     [0 0]
+     drawables))
+
+  IMakeNode
+  (make-node [this childs]
+    (OnMouseUp. on-mouse-up childs))
+
+  IChildren
+  (-children [this]
+    drawables)
+
+  IMouseEvent
+  (-mouse-event [this pos button mouse-down? mods]
+    (if mouse-down?
+      (when-let [local-pos (within-bounds? this pos)]
+        (let [intents
+              (some #(seq (-mouse-event % local-pos button mouse-down? mods))
+                    (reverse (children this)))]
+          intents))
       (when on-mouse-up
-        (on-mouse-up pos)))))
+        (when-let [local-pos (within-bounds? this pos)]
+          (on-mouse-up local-pos))))))
 
 (swap! default-draw-impls
        assoc OnMouseUp
@@ -1465,10 +1520,10 @@
   [on-mouse-up & drawables]
   (OnMouseUp. on-mouse-up drawables))
 
-(defrecord OnMouseMove [on-mouse-move drawables]
-    IOrigin
-    (-origin [_]
-        [0 0])
+(defrecord OnMouseUpRaw [on-mouse-up-raw drawables]
+  IOrigin
+  (-origin [_]
+    [0 0])
 
   IBounds
   (-bounds [this]
@@ -1481,10 +1536,59 @@
      [0 0]
      drawables))
 
-    IMakeNode
-    (make-node [this childs]
-      (OnMouseMove. on-mouse-move childs))
+  IMakeNode
+  (make-node [this childs]
+    (OnMouseUpRaw. on-mouse-up-raw childs))
 
+  IChildren
+  (-children [this]
+    drawables)
+
+  IMouseEvent
+  (-mouse-event [this pos button mouse-down? mods]
+    (if mouse-down?
+      (when-let [local-pos (within-bounds? this pos)]
+        (let [intents
+              (some #(seq (-mouse-event % local-pos button mouse-down? mods))
+                    (reverse (children this)))]
+          intents))
+      (when on-mouse-up-raw
+        (on-mouse-up-raw pos)))))
+
+(swap! default-draw-impls
+       assoc OnMouseUpRaw
+       (fn [draw]
+         (fn [this]
+           (doseq [drawable (:drawables this)]
+             (draw drawable)))))
+
+(defn on-mouse-up-raw
+  "Wraps drawables and adds an event handler for mouse-up events.
+  Unlike `on-mouse-up`, does not ignore events outside the bounds of `drawables`.
+
+  on-mouse-up should take 1 argument [mx my] of the mouse position in local coordinates and return a sequence of intents."
+  [on-mouse-up-raw & drawables]
+  (OnMouseUpRaw. on-mouse-up-raw drawables))
+
+(defrecord OnMouseMove [on-mouse-move drawables]
+  IOrigin
+  (-origin [_]
+    [0 0])
+
+  IBounds
+  (-bounds [this]
+    (reduce
+     (fn [[max-width max-height] elem]
+       (let [[ox oy] (origin elem)
+             [w h] (bounds elem)]
+         [(max max-width (+ ox w))
+          (max max-height (+ oy h))]))
+     [0 0]
+     drawables))
+
+  IMakeNode
+  (make-node [this childs]
+    (OnMouseMove. on-mouse-move childs))
 
   IChildren
   (-children [this]
@@ -1492,8 +1596,9 @@
 
   IMouseMove
   (-mouse-move [this [mx my :as pos]]
-      (when on-mouse-move
-        (on-mouse-move pos))))
+    (when on-mouse-move
+      (when-let [pos (within-bounds? this pos)]
+        (on-mouse-move pos)))))
 
 (swap! default-draw-impls
        assoc OnMouseMove
@@ -1509,10 +1614,10 @@
   [on-mouse-move & drawables]
   (OnMouseMove. on-mouse-move drawables))
 
-(defrecord OnMouseMoveGlobal [on-mouse-move-global drawables]
-    IOrigin
-    (-origin [_]
-        [0 0])
+(defrecord OnMouseMoveRaw [on-mouse-move-raw drawables]
+  IOrigin
+  (-origin [_]
+    [0 0])
 
   IBounds
   (-bounds [this]
@@ -1525,23 +1630,66 @@
      [0 0]
      drawables))
 
-    IMakeNode
-    (make-node [this childs]
-      (OnMouseMoveGlobal. on-mouse-move-global childs))
-
+  IMakeNode
+  (make-node [this childs]
+    (OnMouseMove. on-mouse-move childs))
 
   IChildren
   (-children [this]
-      drawables)
+    drawables)
+
+  IMouseMove
+  (-mouse-move [this [mx my :as pos]]
+    (when on-mouse-move-raw
+      (on-mouse-move-raw pos))))
+
+(swap! default-draw-impls
+       assoc OnMouseMoveRaw
+       (fn [draw]
+         (fn [this]
+           (doseq [drawable (:drawables this)]
+             (draw drawable)))))
+
+(defn on-mouse-move-raw
+  "Wraps drawables and adds an event handler for mouse-move events.
+  Unlike `on-mouse-move`, does not ignore events outside the bounds of `drawables`.
+
+  on-mouse-move down should take 1 argument [mx my] of the mouse position in local coordinates and return a sequence of intents."
+  [on-mouse-move-raw & drawables]
+  (OnMouseMoveRaw. on-mouse-move-raw drawables))
+
+(defrecord OnMouseMoveGlobal [on-mouse-move-global drawables]
+  IOrigin
+  (-origin [_]
+    [0 0])
+
+  IBounds
+  (-bounds [this]
+    (reduce
+     (fn [[max-width max-height] elem]
+       (let [[ox oy] (origin elem)
+             [w h] (bounds elem)]
+         [(max max-width (+ ox w))
+          (max max-height (+ oy h))]))
+     [0 0]
+     drawables))
+
+  IMakeNode
+  (make-node [this childs]
+    (OnMouseMoveGlobal. on-mouse-move-global childs))
+
+  IChildren
+  (-children [this]
+    drawables)
 
   IHasMouseMoveGlobal
   (has-mouse-move-global [this]
-      true)
+    true)
 
   IMouseMoveGlobal
   (-mouse-move-global [this pos]
-      (when on-mouse-move-global
-        (on-mouse-move-global pos))))
+    (when on-mouse-move-global
+      (on-mouse-move-global pos))))
 
 (swap! default-draw-impls
        assoc OnMouseMoveGlobal
@@ -1631,8 +1779,9 @@
 
     IMouseEvent
     (-mouse-event [this pos button mouse-down? mods]
-        (when on-mouse-event
-          (on-mouse-event pos button mouse-down? mods))))
+      (when on-mouse-event
+        (when-let [local-pos (within-bounds? this pos)]
+          (on-mouse-event local-pos button mouse-down? mods)))))
 
 (swap! default-draw-impls
        assoc OnMouseEvent
@@ -1676,8 +1825,9 @@
 
     IDrop
     (-drop [this paths pos]
-        (when on-drop
-          (on-drop paths pos))))
+      (when on-drop
+        (when-let [pos (within-bounds? this pos)]
+          (on-drop paths pos)))))
 
 (swap! default-draw-impls
        assoc OnDrop
@@ -2073,7 +2223,8 @@
   IScroll
   (-scroll [this [offset-x offset-y :as offset] mpos]
     (when on-scroll
-      (on-scroll offset mpos)))
+      (when-let [mpos (within-bounds? elem mpos)]
+        (on-scroll offset mpos))))
 
     IMakeNode
     (make-node [this childs]
@@ -2132,8 +2283,9 @@
 
   IMouseEvent
   (-mouse-event [this [mx my :as pos] button mouse-down? mods]
+    (when-let [[mx my] (within-bounds? this pos)]
       (mouse-event drawable [(- mx (nth offset 0))
-                             (- my (nth offset 1))] button mouse-down? mods))
+                             (- my (nth offset 1))] button mouse-down? mods)))
 
   IScroll
   (-scroll [this input-offset [mx my :as pos]]
@@ -2151,8 +2303,9 @@
 
   IMouseMove
   (-mouse-move [this [mx my :as pos]]
+    (when-let [[mx my] (within-bounds? this pos)]
       (mouse-move drawable [(- mx (nth offset 0))
-                            (- my (nth offset 1))]))
+                            (- my (nth offset 1))])))
 
   IMouseMoveGlobal
   (-mouse-move-global [this mouse-offset]
@@ -2231,6 +2384,208 @@
 (defmethod on-handler :membrane.ui/on-handler-default
   [event-type handler body]
   (EventHandler. event-type handler body))
+
+(defmacro ^:private cond-let
+  "Takes a binding-form and a set of test/expr pairs. Evaluates each test
+  one at a time. If a test returns logical true, cond-let evaluates and
+  returns expr with binding-form bound to the value of test and doesn't
+  evaluate any of the other tests or exprs. To provide a default value
+  either provide a literal that evaluates to logical true and is
+  binding-compatible with binding-form, or use :else as the test and don't
+  refer to any parts of binding-form in the expr. (cond-let binding-form)
+  returns nil."
+  [binding & clauses]
+  (when-let [[test expr & more] clauses]
+    (if (= test :else)
+      expr
+      `(if-let [~binding ~test]
+         ~expr
+         (cond-let ~binding ~@more)))))
+
+(defrecord OnEvent [handlers body]
+  IOrigin
+  (-origin [_]
+    [0 0])
+
+  IBounds
+  (-bounds [this]
+    (child-bounds body))
+
+  IMakeNode
+  (make-node [this childs]
+    (assert (= (count childs) 1))
+    (OnEvent. handlers (first childs)))
+
+  IChildren
+  (-children [this]
+    [body])
+
+  IMouseMove
+  (-mouse-move [this pos]
+    (cond-let handler
+
+      (:mouse-move-raw handlers)
+      (handler pos)
+
+      (:mouse-move handlers)
+      (when-let [pos (within-bounds? this pos)]
+        (handler pos))
+
+      :else
+      (when-let [local-pos (within-bounds? this pos)]
+        (let [intents
+              (some #(seq (-mouse-move % local-pos))
+                    (reverse (children this)))]
+          (-bubble this intents)))))
+
+  IMouseEvent
+  (-mouse-event [this pos button mouse-down? mods]
+    (assert
+     (not (and (contains? handlers :mouse-event)
+               (or (contains? handlers :mouse-down)
+                   (contains? handlers :mouse-up)))))
+    (if-let [on-mouse-event (:mouse-event handlers)]
+      (when-let [local-pos (within-bounds? this pos)]
+        (on-mouse-event local-pos button mouse-down? mods))
+      (if mouse-down?
+        (cond-let handler
+
+          (:mouse-down-raw handlers)
+          (handler pos)
+
+          (:mouse-down handlers)
+          (when-let [local-pos (within-bounds? this pos)]
+            (handler local-pos))
+
+          :else
+          (when-let [local-pos (within-bounds? this pos)]
+            (let [intents
+                  (some #(seq (-mouse-event % local-pos button mouse-down? mods))
+                        (reverse (children this)))]
+              intents)))
+
+        ;; mouse up
+        (cond-let handler
+          (:mouse-up-raw handlers)
+          (handler pos)
+
+          (:mouse-up handlers)
+          (when-let [local-pos (within-bounds? this pos)]
+            (handler local-pos))
+
+          :else
+          (when-let [local-pos (within-bounds? this pos)]
+            (let [intents
+                  (some #(seq (-mouse-event % local-pos button mouse-down? mods))
+                        (reverse (children this)))]
+              intents))))))
+
+  IDrop
+  (-drop [this paths pos]
+    (if-let [on-drop (:drop handlers)]
+      (when-let [pos (within-bounds? this pos)]
+        (on-drop paths pos))
+      (when-let [local-pos (within-bounds? this pos)]
+        (let [intents
+              (some #(seq (-drop % paths local-pos))
+                    (reverse (children this)))]
+          (-bubble this intents)))))
+
+  IScroll
+  (-scroll [elem offset mpos]
+    (if-let [on-scroll (:scroll handlers)]
+      (on-scroll offset mpos)
+      (when-let [local-pos (within-bounds? elem mpos)]
+        (let [intents
+              (some #(seq (-scroll % offset local-pos))
+                    (reverse (children elem)))]
+          (-bubble elem intents)))))
+
+  IHasKeyEvent
+  (has-key-event [this]
+    (boolean (or (:key-event handlers)
+                 (some has-key-event (children this)))))
+
+  IKeyEvent
+  (-key-event [this key scancode action mods]
+    (if-let [on-key-event (:key-event handlers)]
+      (on-key-event key scancode action mods)
+      (let [intents (mapcat #(-key-event % key scancode action mods) (children this))]
+        (-bubble this intents))))
+
+  IHasKeyPress
+  (has-key-press [this]
+    (boolean
+     (or (:key-press handlers)
+         (some has-key-press (children this)))))
+
+  IKeyPress
+  (-key-press [this key]
+    (if-let [on-key-press (:key-press handlers)]
+      (on-key-press key)
+      (let [intents (mapcat #(-key-press % key) (children this))]
+        (-bubble this intents))))
+
+  IHasMouseMoveGlobal
+  (has-mouse-move-global [this]
+    (boolean (or (:mouse-move-global handlers)
+                 (some has-mouse-move-global (children this)))))
+
+  IMouseMoveGlobal
+  (-mouse-move-global [this pos]
+    (if-let [on-mouse-move-global (:mouse-move-global handlers)]
+      (on-mouse-move-global pos)
+      (-default-mouse-move-global this pos)))
+
+  IMouseEnterGlobal
+  (-mouse-enter-global [this enter?]
+    (if-let [on-mouse-enter-global (:mouse-enter-global handlers)]
+      (on-mouse-enter-global enter?)
+      (let [intents (mapcat #(-mouse-enter-global % enter?) (children this))]
+        (-bubble this intents))))
+
+  IClipboardCopy
+  (-clipboard-copy [this]
+    (if-let [on-clipboard-copy (:clipboard-copy handlers)]
+      (on-clipboard-copy)
+      (let [intents (mapcat #(clipboard-copy %) (children this))]
+        (-bubble this intents))))
+
+  IClipboardCut
+  (-clipboard-cut [this]
+    (if-let [on-clipboard-cut (:clipboard-cut handlers)]
+      (on-clipboard-cut)
+      (let [intents (mapcat #(clipboard-cut %) (children this))]
+        (-bubble this intents))))
+
+  IClipboardPaste
+  (-clipboard-paste [this s]
+    (if-let [on-clipboard-paste (:clipboard-paste handlers)]
+      (on-clipboard-paste s)
+      (let [intents (mapcat #(clipboard-paste % s) (children this))]
+        (-bubble this intents))))
+
+  IBubble
+  (-bubble [this events]
+    (apply concat
+           (for [intent events
+                 :let [intent-type (first intent)]]
+             (if (-can-handle? this intent-type)
+               (-handle-event this intent-type (rest intent))
+               [intent]))))
+
+  IHandleEvent
+  (-can-handle? [this other-event-type]
+    (contains? handlers other-event-type))
+
+  (-handle-event [this event-type event-args]
+    (let [handler (get handlers event-type)]
+      (assert handler)
+      (apply handler event-args))))
+
+(defn multi-on
+  [handlers body]
+  (OnEvent. handlers body))
 
 (defn on
   "Wraps an elem with event handlers.
