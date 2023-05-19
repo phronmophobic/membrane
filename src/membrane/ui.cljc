@@ -2585,7 +2585,7 @@
       (assert handler)
       (apply handler event-args))))
 
-(defn multi-on
+(defn ^:private multi-on
   [handlers body]
   (OnEvent. handlers body))
 
