@@ -2223,7 +2223,7 @@
   IScroll
   (-scroll [this [offset-x offset-y :as offset] mpos]
     (when on-scroll
-      (when-let [mpos (within-bounds? elem mpos)]
+      (when-let [mpos (within-bounds? this mpos)]
         (on-scroll offset mpos))))
 
     IMakeNode
@@ -2567,12 +2567,14 @@
 
   IBubble
   (-bubble [this events]
-    (apply concat
-           (for [intent events
-                 :let [intent-type (first intent)]]
-             (if (-can-handle? this intent-type)
-               (-handle-event this intent-type (rest intent))
-               [intent]))))
+    (if-let [on-bubble (:bubble handlers)]
+      (on-bubble events)
+      (apply concat
+             (for [intent events
+                   :let [intent-type (first intent)]]
+               (if (-can-handle? this intent-type)
+                 (-handle-event this intent-type (rest intent))
+                 [intent])))))
 
   IHandleEvent
   (-can-handle? [this other-event-type]

@@ -1100,6 +1100,16 @@
                   (when (has-mouse-move-global-memo rendered#)
                     (membrane.ui/-mouse-move-global rendered# pos#))))
 
+               membrane.ui/IMouseMove
+               (~'-mouse-move [this# pos#]
+                (let [rendered# (~render-cached-fn-name this#)]
+                  (membrane.ui/-mouse-move rendered# pos#)))
+
+               membrane.ui/IMouseEvent
+               (~'-mouse-event [this# pos# button# mouse-down?# mods#]
+                (let [rendered# (~render-cached-fn-name this#)]
+                  (membrane.ui/-mouse-event rendered# pos# button# mouse-down?# mods#)))
+
                membrane.ui/IChildren
                (~'-children [this#]
                 [(~render-cached-fn-name this#)]))
@@ -1166,9 +1176,140 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
        (ui/copy-to-clipboard s)))
    )
 
+(defn ^:private wrap-start-scroll [$scroll-state mpos intents]
+  (if-let [start-scroll-intent (some (fn [intent]
+                                       (when (= ::start-scroll (first intent))
+                                         intent))
+                                     ;; assume last intent is deepest in
+                                     ;; element tree
+                                     (reverse intents))]
+    (let [scrollf (nth start-scroll-intent 1)]
+      (into [[:set $scroll-state {:scrollf scrollf
+                                  :mpos mpos}]]
+            (comp (mapcat (fn [intent]
+                            (if (= intent start-scroll-intent)
+                              (scrollf [0 0])
+                              [intent])))
+                  (remove (fn [intent]
+                            (= ::start-scroll (first intent)))))
+            intents))
+    intents))
 
+(defrecord TopEventHandler [handler body focus $focus scroll-state $scroll-state]
+  ui/IOrigin
+  (-origin [_]
+    [0 0])
 
+  ui/IBounds
+  (-bounds [this]
+    (ui/child-bounds body))
 
+  ui/IMakeNode
+  (make-node [this childs]
+    (assert (= (count childs) 1))
+    (TopEventHandler. handler (first childs) focus $focus scroll-state $scroll-state))
+
+  ui/IChildren
+  (-children [this]
+    [body])
+
+  ui/IMouseMove
+  (-mouse-move [this pos]
+    (if scroll-state
+      (let [[mx2 my2] (:mpos scroll-state)
+            [mx my] pos
+            scrollf (:scrollf scroll-state)
+            intents (scrollf [(- mx mx2)
+                              (- my my2)])]
+        (handler intents))
+      (let [intents (membrane.ui/mouse-move body pos)]
+        (when (seq intents)
+          (handler intents)))))
+
+  ui/IMouseEvent
+  (-mouse-event [this pos button mouse-down? mods]
+    (if (and scroll-state
+             (not mouse-down?))
+      (handler [[:set $scroll-state nil]])
+      (let [intents (membrane.ui/mouse-event body pos button mouse-down? mods)]
+        (if (seq intents)
+          (if mouse-down?
+            (let [intents (wrap-start-scroll $scroll-state pos intents)]
+              (handler intents))
+            (handler intents))
+          (when mouse-down?
+            (when focus
+              (handler [[:set $focus nil]]))
+            nil)))))
+
+  ui/IDrop
+  (-drop [this paths pos]
+    (let [intents (membrane.ui/drop body pos)]
+      (when (seq intents)
+        (handler intents))))
+
+  ui/IScroll
+  (-scroll [elem offset mpos]
+    (let [intents (membrane.ui/scroll body offset mpos)]
+      (when (seq intents)
+        (handler intents))))
+
+  ui/IKeyEvent
+  (-key-event [this key scancode action mods]
+    (let [intents (membrane.ui/key-event body key scancode action mods)]
+      (when (seq intents)
+        (handler intents))))
+
+  ui/IKeyPress
+  (-key-press [this key]
+    (let [intents (membrane.ui/key-press body key)]
+      (when (seq intents)
+        (handler intents))))
+
+  ui/IHasMouseMoveGlobal
+  (has-mouse-move-global [this]
+    true)
+
+  ui/IMouseMoveGlobal
+  (-mouse-move-global [this pos]
+    (let [intents (membrane.ui/mouse-move-global body pos)]
+      (when (seq intents)
+        (handler intents))))
+
+  ui/IMouseEnterGlobal
+  (-mouse-enter-global [this enter?]
+    (let [intents (membrane.ui/mouse-enter-global body enter?)]
+      (when (seq intents)
+        (handler intents))))
+
+  ui/IClipboardCopy
+  (-clipboard-copy [this]
+    (let [intents (membrane.ui/clipboard-copy body)]
+      (when (seq intents)
+        (handler intents))))
+
+  ui/IClipboardCut
+  (-clipboard-cut [this]
+    (let [intents (membrane.ui/clipboard-cut body)]
+      (when (seq intents)
+        (handler intents))))
+
+  ui/IClipboardPaste
+  (-clipboard-paste [this s]
+    (let [intents (membrane.ui/clipboard-paste body s)]
+      (when (seq intents)
+        (handler intents))))
+
+  ui/IBubble
+  (-bubble [this events]
+    (assert false))
+
+  ui/IHandleEvent
+  (-can-handle? [this other-event-type]
+    (assert false))
+
+  (-handle-event [this event-type event-args]
+    (assert false)))
 
 (defui top-level-ui [{:keys [state
                              body
@@ -1191,22 +1332,14 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
                          [kw (kw-fn state context)]))
                   val-key-fns)
 
-        main-view (@body arg)]
-    (membrane.ui/on-bubble
-     (fn [intents]
-       (when (seq intents)
-         (handler intents)))
-     (membrane.ui/on-mouse-event
-      (fn [pos button mouse-down? mods]
-        (let [intents (membrane.ui/mouse-event main-view pos button mouse-down? mods)]
-          (if (seq intents)
-            (handler intents)
-            (when mouse-down?
-              (let [focus (:focus context)]
-                (when focus
-                  (handler [[:set $focus nil]])))
-              nil))))
-      main-view))))
+        main-view (@body arg)
+        focus (:focus context)
+        top-extra (::top-extra state)
+        scroll-state (:scroll-state top-extra)]
+    (TopEventHandler. handler
+                      main-view
+                      focus $focus
+                      scroll-state $scroll-state)))
 
 
 
