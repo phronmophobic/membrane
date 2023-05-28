@@ -1532,6 +1532,28 @@
              (aget args 1))
     nil))
 
+(deftype WindowCloseCallback [window handler]
+  com.sun.jna.CallbackProxy
+  (getParameterTypes [_]
+    (into-array Class  [Pointer]))
+  (getReturnType [_]
+    void)
+  (callback ^void [_ args]
+    (try
+      (binding [*image-cache* (:image-cache window)
+                *font-cache* (:font-cache window)
+                *draw-cache* (:draw-cache window)]
+        (handler window (aget args 0)))
+      (catch Exception e
+        (println e)))
+    nil))
+
+(defn- make-window-close-callback [window handler]
+  (->WindowCloseCallback window handler))
+
+(defn -window-close-callback [window window-handle]
+  nil)
+
 (defn- -reshape
   ([window window-handle width height]
    (reshape! window width height)))
@@ -2033,7 +2055,9 @@
           scroll-callback (make-scroll-callback this (get handlers :scroll -scroll-callback))
           window-refresh-callback (make-window-refresh-callback this (get handlers :refresh -window-refresh-callback))
           cursor-pos-callback (make-cursor-pos-callback this (get handlers :cursor -cursor-pos-callback))
-          mouse-enter-callback (make-mouse-enter-callback this (get handlers :mouse-enter -mouse-enter-callback))]
+          window-close-callback (make-window-close-callback this (get handlers :window-close -window-close-callback))
+          ;; mouse-enter-callback (make-mouse-enter-callback this (get handlers :mouse-enter -mouse-enter-callback))
+          ]
 
       (let [m (Memory. 8)
             error (glfw-call Integer/TYPE glfwGetError m)]
@@ -2057,7 +2081,8 @@
       (glfw-call Pointer glfwSetFramebufferSizeCallback window reshape-callback)
       (glfw-call Pointer glfwSetScrollCallback window scroll-callback)
       (glfw-call Pointer glfwSetWindowRefreshCallback window window-refresh-callback)
-      (glfw-call Pointer glfwSetCursorEnterCallback window mouse-enter-callback)
+      (glfw-call Pointer glfwSetWindowCloseCallback window window-close-callback)
+      ;; (glfw-call Pointer glfwSetCursorEnterCallback window mouse-enter-callback)
 
       (glfw-call void glfwSetWindowPos window window-x window-y)
 
@@ -2076,7 +2101,10 @@
                     reshape-callback
                     scroll-callback
                     window-refresh-callback
-                    cursor-pos-callback]))))
+                    cursor-pos-callback
+                    window-close-callback
+                    ;; mouse-enter-callback
+                    ]))))
 
   (reshape! [_ width height]
     (glfw-call Void/TYPE glfwMakeContextCurrent window)
@@ -2182,6 +2210,7 @@
   :refresh args are [window window-handle]. default is -window-refresh-callback.
   :cursor args are [window window-handle x y]. default is -cursor-pos-callback.
   :mouse-enter args are [window window-handle entered]. default is -mouse-enter-callback.
+  :window-close args are [window window-handle]. default is -window-close-callback.
 
   For each handler, `window` is the GlfwSkiaWindow and window-handle is a jna pointer to the glfw pointer.
   
