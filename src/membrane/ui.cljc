@@ -409,7 +409,7 @@
 
 
 (defn mouse-move
-  "Returns the intents of a mouse move event on elem. Will only call -mouse-move on mouse events within an elements bounds."
+  "Returns the intents of a mouse move event on elem."
   ([elem pos]
    (-mouse-move elem pos)))
 
@@ -437,12 +437,12 @@
   (-mouse-event elem pos button mouse-down? mods))
 
 (defn mouse-down
-  "Returns the intents of a mouse down event on elem. Will only call -mouse-event or -mouse-down if the position is in the element's bounds."
+  "Returns the intents of a mouse down event on elem."
   [elem [mx my :as pos]]
   (mouse-event elem pos 0 true 0))
 
 (defn mouse-up
-  "Returns the intents of a mouse up event on elem. Will only call -mouse-event or -mouse-down if the position is in the element's bounds."
+  "Returns the intents of a mouse up event on elem."
   [elem [mx my :as pos]]
   (mouse-event elem pos 0 false 0))
 
