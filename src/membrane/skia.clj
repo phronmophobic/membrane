@@ -1604,6 +1604,33 @@
 (defn- make-mouse-enter-callback [window handler]
   (MouseEnterCallback. window handler))
 
+;; Not fully implemented yet.
+(defc glfwSetWindowFocusCallback glfw Pointer [window, window_focus_callback])
+(defn- -window-focus-callback [window window-handle focused]
+  (let [focused? (not (zero? focused))]
+    #_(ui/window-focus-global @(:ui window)
+                           entered?)
+
+    (repaint! window)))
+
+(deftype WindowFocusCallback [window handler]
+  com.sun.jna.CallbackProxy
+  (getParameterTypes [_]
+    (into-array Class  [Pointer Integer/TYPE]))
+  (getReturnType [_]
+    void)
+  (callback ^void [_ args]
+    (try
+      (binding [*image-cache* (:image-cache window)
+                *font-cache* (:font-cache window)
+                *draw-cache* (:draw-cache window)]
+        (handler window (aget args 0) (aget args 1)))
+      (catch Exception e
+        (println e)))
+    nil))
+
+
+
 (defn- -mouse-button-callback [window window-handle button action mods]
   (try
     (mouse-event @(:ui window) @(:mouse-position window) button (= 1 action) mods)
