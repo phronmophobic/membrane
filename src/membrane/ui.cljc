@@ -1,5 +1,6 @@
 (ns membrane.ui
-  #?(:cljs (:require-macros [membrane.ui :refer [make-event-handler]]))
+  #?(:cljs (:require-macros [membrane.ui :refer [make-event-handler
+                                                 cond-let]]))
   #?(:clj (:import javax.imageio.ImageIO))
   (:refer-clojure :exclude [drop]))
 
