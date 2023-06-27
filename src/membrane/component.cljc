@@ -1244,7 +1244,7 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
 
   ui/IDrop
   (-drop [this paths pos]
-    (let [intents (membrane.ui/drop body pos)]
+    (let [intents (membrane.ui/drop body paths pos)]
       (when (seq intents)
         (handler intents))))
 
