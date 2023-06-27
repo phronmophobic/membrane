@@ -529,18 +529,52 @@
     b
     (/ a b)))
 
+(def ^:private scroll-button-size 7)
+(def ^:private scroll-background-color [0.941 0.941 0.941])
+(def ^:private scroll-button-color [0.73 0.73 0.73])
+(def ^:private scroll-button-border-color [0.89 0.89 0.89])
+
+(defn vertical-scrollbar [total-height height offset-y]
+  [(filled-rectangle scroll-background-color
+                     scroll-button-size height)
+   (let [top (/ offset-y total-height)
+         bottom (/ (+ offset-y height)
+                   total-height)]
+
+     (translate 0 (* height top)
+                (with-color
+                  scroll-button-color
+                  (ui/rounded-rectangle scroll-button-size (* height (- bottom top)) (/ scroll-button-size 2)))))
+   (with-color scroll-button-border-color
+     (with-style :membrane.ui/style-stroke
+       (rectangle scroll-button-size height)))])
+
+
+(defn horizontal-scrollbar [total-width width offset-x]
+  [(filled-rectangle scroll-background-color
+                     width scroll-button-size)
+   (let [left (/ offset-x total-width)
+         right (/ (+ offset-x width)
+                  total-width)]
+     (translate (* width left) 0
+                (with-color
+                  scroll-button-color
+                  (ui/rounded-rectangle (* width (- right left)) scroll-button-size  (/ scroll-button-size 2)))))
+   (with-color scroll-button-border-color
+     (with-style :membrane.ui/style-stroke
+       (rectangle width scroll-button-size)))])
+
 (defui scrollview
   "Basic scrollview.
 
   scroll-bounds should be a two element vector of [width height] of the scrollview
   body should be an element.
 "
-  [{:keys [offset mdownx? mdowny? scroll-bounds body]
+  [{:keys [offset scroll-bounds body]
     :or {offset [0 0]}}]
   (let [offset-x (nth offset 0)
         offset-y (nth offset 1)
         [width height] scroll-bounds
-        scroll-button-size 7
         [total-width total-height] (bounds body)
 
 
@@ -580,24 +614,10 @@
                     (fn [[mx my]]
                       [[::component/start-scroll
                         (fn [[dx dy]]
-                          (prn dx dy)
                           (let [y (+ my dy)]
                             [[:set $offset-y (clampy (* (div0 (float y) height)
                                                         max-offset-y))]]))]])
-                    [(filled-rectangle [0.941 0.941 0.941]
-                                       scroll-button-size height)
-                     (let [top (/ offset-y total-height)
-                           bottom (/ (+ offset-y height)
-                                     total-height)]
-
-                       (translate 0 (* height top)
-                                  (with-color
-                                    [0.73 0.73 0.73]
-                                    (ui/rounded-rectangle scroll-button-size (* height (- bottom top)) (/ scroll-button-size 2)))))
-
-                     (with-color [0.89 0.89 0.89]
-                       (with-style :membrane.ui/style-stroke
-                         (rectangle scroll-button-size height)))])))
+                    (vertical-scrollbar total-height height offset-y))))
       (when (> total-width width)
         (translate 0 height
                    (ui/on
@@ -608,30 +628,18 @@
                           (let [x (+ mx dx)]
                             [[:set $offset-x (clampx (* (div0 (float x) width)
                                                         max-offset-x))]]))]])
-                    [(filled-rectangle [0.941 0.941 0.941]
-                                       width scroll-button-size)
-                     (let [left (/ offset-x total-width)
-                           right (/ (+ offset-x width)
-                                    total-width)]
-                       (translate (* width left) 0
-                                  (with-color
-                                    [0.73 0.73 0.73]
-                                    (ui/rounded-rectangle (* width (- right left)) scroll-button-size  (/ scroll-button-size 2)))
-                                  )
-                       )
-                     (with-color [0.89 0.89 0.89]
-                       (with-style :membrane.ui/style-stroke
-                         (rectangle width scroll-button-size )))])))])))
+                    (horizontal-scrollbar total-width width offset-x))))])))
 
 (defui test-scrollview [{:keys [state]}]
-  (scrollview {:scroll-bounds [200 200]
-               :body
-               (apply
-                vertical-layout
-                (for [i (range 100)]
-                  (label (str "The quick brown fox"
-                              " jumped over the lazy dog"
-                              ))))}))
+  (ui/translate 50 50
+   (scrollview {:scroll-bounds [200 200]
+                :body
+                (apply
+                 vertical-layout
+                 (for [i (range 100)]
+                   (label (str "The quick brown fox"
+                               " jumped over the lazy dog"
+                               ))))})))
 
 (comment
   (membrane.skia/run (membrane.component/make-app #'test-scrollview))
