@@ -647,7 +647,7 @@
     (if-let [image (get @*image-cache* image-url)]
       image
       (let [bytes (slurp-bytes image-url)
-            image (skia-load-image_from_memory bytes (alength ^bytes bytes))]
+            image (Skia/skia_load_image_from_memory bytes (alength ^bytes bytes))]
         (swap! *image-cache* assoc image-url image)
         image))))
 
@@ -657,7 +657,7 @@
    (fn [^bytes bytes]
      (if-let [image (get @*image-cache* bytes)]
        image
-       (let [image (skia-load-image_from_memory bytes (alength bytes))]
+       (let [image (Skia/skia_load_image_from_memory bytes (alength bytes))]
          (swap! *image-cache* assoc bytes image)
          image)))})
 
