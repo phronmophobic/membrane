@@ -300,6 +300,20 @@
 (defc skia_draw_image membraneskialib void [skia-resource image-texture])
 (defc skia_draw_image_rect membraneskialib void [skia-resource image-texture w h])
 
+(defc skia_SkRefCntBase_unref membraneskialib void [o])
+(defn- unref [o]
+  (skia_SkRefCntBase_unref o))
+
+(defn- ref-count [p]
+  (let [ptr (Pointer/nativeValue p)]
+    (.register ^Cleaner @cleaner p
+               (fn []
+                 (skia_SkRefCntBase_unref (Pointer. ptr))))
+    p))
+
+(defn skia-load-image [image-path]
+  (ref-count (Skia/skia_load_image image-path)))
+
 (defc skia_fork_pty membraneskialib Integer/TYPE [rows columns])
 (defn- fork-pty [rows columns]
   (let [rows (short rows)
@@ -608,7 +622,7 @@
     (if-let [image (get @*image-cache* image-path)]
       image
       (if (.exists (clojure.java.io/file image-path))
-        (let [image (Skia/skia_load_image image-path)]
+        (let [image (skia-load-image image-path)]
           (swap! *image-cache* assoc image-path image)
           image)
         (do
@@ -633,7 +647,7 @@
     (if-let [image (get @*image-cache* image-url)]
       image
       (let [bytes (slurp-bytes image-url)
-            image (Skia/skia_load_image_from_memory bytes (alength ^bytes bytes))]
+            image (skia-load-image_from_memory bytes (alength ^bytes bytes))]
         (swap! *image-cache* assoc image-url image)
         image))))
 
@@ -643,7 +657,7 @@
    (fn [^bytes bytes]
      (if-let [image (get @*image-cache* bytes)]
        image
-       (let [image (Skia/skia_load_image_from_memory bytes (alength bytes))]
+       (let [image (skia-load-image_from_memory bytes (alength bytes))]
          (swap! *image-cache* assoc bytes image)
          image)))})
 
