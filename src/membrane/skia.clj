@@ -308,11 +308,19 @@
   (let [ptr (Pointer/nativeValue p)]
     (.register ^Cleaner @cleaner p
                (fn []
+                 (prn "releasing " ptr)
                  (skia_SkRefCntBase_unref (Pointer. ptr))))
     p))
 
 (defn skia-load-image [image-path]
-  (ref-count (Skia/skia_load_image image-path)))
+  (let [p (Skia/skia_load_image image-path)]
+    (prn "counting " (Pointer/nativeValue p))
+    (ref-count p)))
+
+(defn skia-load-image-from-memory [bytes]
+  (let [p (Skia/skia_load_image_from_memory bytes (alength ^bytes bytes))]
+    (prn "counting mem " (Pointer/nativeValue p))
+    (ref-count p)))
 
 (defc skia_fork_pty membraneskialib Integer/TYPE [rows columns])
 (defn- fork-pty [rows columns]
@@ -647,7 +655,7 @@
     (if-let [image (get @*image-cache* image-url)]
       image
       (let [bytes (slurp-bytes image-url)
-            image (Skia/skia_load_image_from_memory bytes (alength ^bytes bytes))]
+            image (skia-load-image-from-memory bytes)]
         (swap! *image-cache* assoc image-url image)
         image))))
 
@@ -657,7 +665,7 @@
    (fn [^bytes bytes]
      (if-let [image (get @*image-cache* bytes)]
        image
-       (let [image (Skia/skia_load_image_from_memory bytes (alength bytes))]
+       (let [image (skia-load-image-from-memory bytes)]
          (swap! *image-cache* assoc bytes image)
          image)))})
 
