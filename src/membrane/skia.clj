@@ -308,18 +308,15 @@
   (let [ptr (Pointer/nativeValue p)]
     (.register ^Cleaner @cleaner p
                (fn []
-                 (prn "releasing " ptr)
                  (skia_SkRefCntBase_unref (Pointer. ptr))))
     p))
 
 (defn skia-load-image [image-path]
   (let [p (Skia/skia_load_image image-path)]
-    (prn "counting " (Pointer/nativeValue p))
     (ref-count p)))
 
 (defn skia-load-image-from-memory [bytes]
   (let [p (Skia/skia_load_image_from_memory bytes (alength ^bytes bytes))]
-    (prn "counting mem " (Pointer/nativeValue p))
     (ref-count p)))
 
 (defc skia_fork_pty membraneskialib Integer/TYPE [rows columns])
