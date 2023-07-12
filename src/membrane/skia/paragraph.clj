@@ -698,7 +698,12 @@
   skia/IDraw
   (draw [this]
     (let [paragraph (make-paragraph paragraph width paragraph-style)]
-        (skia-Paragraph-paint paragraph skia/*skia-resource* 0 0))))
+      (skia-Paragraph-paint paragraph skia/*skia-resource* 0 0))))
+
+(defn intrinsic-width [para]
+  (let [{:keys [paragraph width paragraph-style]} para
+        para (make-paragraph paragraph width paragraph-style)]
+    (skia-Paragraph-getMaxIntrinsicWidth para)))
 
 (defn paragraph
   "Returns a view that represents a paragraph of text.
