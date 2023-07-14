@@ -118,7 +118,7 @@
             :extra-deps
             {com.phronemophobic.membrane/skialib-macosx-aarch64 {;; :mvn/version "RELEASE"
                                                                  ;; :local/root "csource/macos-aarch64"
-                                                                 :mvn/version "0.13-beta"
+                                                                 :mvn/version "0.14-beta"
                                                                  }
 
              io.github.cognitect-labs/test-runner
