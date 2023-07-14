@@ -2,7 +2,7 @@
   (:refer-clojure :exclude [drop abs])
   (:require [membrane.ui :as ui]
             [membrane.component
-             :refer [defui]]))
+             :refer [defui defeffect]]))
 
 
 (defprotocol IDrop
@@ -102,6 +102,9 @@
 (defn ^:private abs [n]
   (Math/abs n))
 
+(defeffect ::drag-start [drop-object]
+  ;; do nothing
+  )
 
 (defn drag-start? [intent]
   (when (= ::drag-start (first intent))
