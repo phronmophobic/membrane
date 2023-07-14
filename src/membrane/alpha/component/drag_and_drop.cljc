@@ -14,20 +14,18 @@
   (-drop-move [elem pos obj]))
 
 (defn drop
-  "Returns the effects of a drop event on elem. Will only call -drop on mouse events within an elements bounds.
+  "Returns the effects of a drop event on elem.
 
   Requires that the a drag-and-drop component is wrapping the necessary elements in the stack."
   ([elem pos obj]
-   (when-let [local-pos (ui/within-bounds? elem pos)]
-     (-drop elem local-pos obj))))
+   (-drop elem pos obj)))
 
 (defn drop-move
-  "Returns the effects of a drop event on elem. Will only call -drop-move on mouse events within an elements bounds.
+  "Returns the effects of a drop event on elem.
 
   Requires that the a drag-and-drop component is wrapping the necessary elements in the stack."
   ([elem pos obj]
-   (when-let [local-pos (ui/within-bounds? elem pos)]
-     (-drop-move elem local-pos obj))))
+   (-drop-move elem pos obj)))
 
 (defrecord OnDrop [on-drop elem]
   ui/IOrigin
@@ -44,8 +42,9 @@
 
   IDrop
   (-drop [this pos obj]
-    (when on-drop
-      (on-drop pos obj))))
+    (when-let [local-pos (ui/within-bounds? elem pos)]
+      (when on-drop
+        (on-drop local-pos obj)))))
 
 (defn on-drop [handler body]
   (OnDrop. handler body))
@@ -66,8 +65,9 @@
 
   IDropMove
   (-drop-move [this pos obj]
-    (when on-drop-move
-      (on-drop-move pos obj))))
+    (when-let [local-pos (ui/within-bounds? elem pos)]
+      (when on-drop-move
+        (on-drop-move local-pos obj)))))
 
 (defn on-drop-move [handler body]
   (OnDropMove. handler body))
