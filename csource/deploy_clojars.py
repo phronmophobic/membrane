@@ -31,7 +31,7 @@ run(['cp',
 
 # cp libmembraneskia-${arch}.${shared_suffix} ${platform}-${resource_suffix}/resources/${resource_prefix}-${resource_suffix}/libmembraneskia.${shared_suffix}
 
-version="0.13-beta"
+version="0.14-beta-SNAPSHOT"
 
 print('using version: "{version}"'.format(version=version))
 
