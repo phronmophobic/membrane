@@ -2396,15 +2396,17 @@
                        (rectangle 20 400)))
                    (justify-column-content justification
                                            400
-                                           [(rectangle 10 20)
-                                            (rectangle 20 10)
-                                            (rectangle 15 30)
-                                            ]
+                                           (align-column
+                                            :right
+                                            [(rectangle 20 20)
+                                             (rectangle 20 10)
+                                             (rectangle 15 30)
+                                             ])
                                            )])))))
   )
 
 (comment
-  (skia/run #'justify-test)
+  (skia/run #'justify-column-test)
   ,)
 
 
