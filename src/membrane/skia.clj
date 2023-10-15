@@ -1493,9 +1493,10 @@
     [(.getValue pix-width)
      (.getValue pix-height)]))
 
-(defn- get-window-content-scale-size [window-handle]
+(defn get-window-content-scale-size [window-handle]
   (let [xscale (FloatByReference.)
         yscale (FloatByReference.)]
+    (assert (instance? Pointer window-handle))
     (glfw-call void glfwGetWindowContentScale window-handle xscale yscale)
     [(.getValue xscale)
      (.getValue yscale)]))
@@ -1573,7 +1574,7 @@
 (defn -window-close-callback [window window-handle]
   nil)
 
-(defn- -reshape
+(defn -reshape
   ([window window-handle width height]
    (reshape! window width height)))
 
