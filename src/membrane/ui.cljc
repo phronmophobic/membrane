@@ -2460,7 +2460,7 @@
 (defrecord ScissorView [offset bounds drawable]
     IOrigin
     (-origin [this]
-        [0 0])
+      offset)
     IMakeNode
     (make-node [this childs]
       (assert (= (count childs) 1))
