@@ -587,8 +587,13 @@
         clampy (partial clamp max-offset-y)
 
         scroll-elem (ui/scrollview
-                     scroll-bounds [(- (clampx offset-x))
-                                    (- (clampy offset-y))]
+                     scroll-bounds
+                     ;; allow offsets to be set to values outside of bounds.
+                     ;; this prevents rubber banding when resizing an element
+                     ;; in a scrollview near the edges of a scroll view.
+                     ;; will snap back to viewport when offset is updated.
+                     [(- offset-x) #_(- (clampx offset-x))
+                      (- offset-y) #_(- (clampy offset-y))]
                      body)]
     :body
     (ui/wrap-on
