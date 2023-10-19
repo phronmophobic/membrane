@@ -67,6 +67,10 @@ For more info covering the design of membrane:
 [Implementing a Functional UI Model](https://blog.phronemophobic.com/ui-model.html)  
 [Reusable UI Components](https://blog.phronemophobic.com/reusable-ui-components.html)
 
+### Videos
+
+[Interactive Programming with Clojure & Membrane](https://www.youtube.com/watch?v=ImBji-1bKkc) -  Peter Strömberg  
+
 ## Usage
 Leiningen dependency:
 
