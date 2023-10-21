@@ -656,6 +656,13 @@
        (draw elem))
      img)))
 
+(defn draw-to-graphics
+  "Draws an element using a Graphics2D, `g`."
+  [g elem]
+  (binding [*g* g
+            *image-cache* (atom {})]
+    (draw elem)))
+
 (defn save-to-image!
   "DEPRECATED: use `save-image` instead."
   [f elem]
