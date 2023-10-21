@@ -379,7 +379,7 @@ Functions defined by `defui` return records. They can be used similar to normal 
 
 ### Explicitly Providing References
 
-The way the `defui` macro produces references is that it keeps track of how bindings are derived from function arguments. For this to work, the reference path for each argument must be provided to each call to a `defui` component. The path key for a given property is just the keyword with a `$` prefix. For example, for a call to `(basic/textarea {:text "foo"})`, the reference key is `:$foo`. The `defui` macro will add this extra info for you, but it may be useful to provided it explicitly, `(basic/textarea {:text "foo" :$text foo-ref})`.
+The way the `defui` macro produces references is that it keeps track of how bindings are derived from function arguments. For this to work, the reference path for each argument must be provided to each call to a `defui` component. The path key for a given property is just the keyword with a `$` prefix. For example, for a call to `(basic/textarea {:text "foo"})`, the reference key is `:$text`. The `defui` macro will add this extra info for you, but it may be useful to provided it explicitly, `(basic/textarea {:text "foo" :$text foo-ref})`.
 
 ### Incidental State Identity
 
