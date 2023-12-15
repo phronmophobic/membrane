@@ -1472,7 +1472,7 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
   `:delete` deletes value at $path
   example: `[:delete $ref]`
 
-  return value: the state atom used by the ui."
+  `make-app` returns a view function."
   ([ui-var]
    (make-app ui-var {}))
   ([ui-var initial-state]
