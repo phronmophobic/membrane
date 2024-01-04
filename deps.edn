@@ -44,7 +44,8 @@
                                                                    }
                 com.phronemophobic.membrane/skialib-macosx-aarch64 {:mvn/version "RELEASE"
                                                                     ;; :local/root "csource/macos-aarch64"
-                                                                    }}}
+                                                                    }
+                com.phronemophobic.membrane/skialib-linux-x86-64 {:mvn/version "RELEASE"}}}
 
   :ios-uberjar
   {:replace-deps {com.github.seancorfield/depstar {:mvn/version "2.0.216"}}
