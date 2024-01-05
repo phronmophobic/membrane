@@ -72,6 +72,36 @@
 (defn on-drop-move [handler body]
   (OnDropMove. handler body))
 
+(defprotocol IDragMouseOffset
+  (-drag-mouse-offset [this mpos]))
+
+(extend-protocol IDragMouseOffset
+
+  #?(:clj Object
+       :cljs default)
+  (-drag-mouse-offset [this mpos]
+    mpos)
+
+  membrane.ui.Padding
+  (-drag-mouse-offset [this [mx my]]
+    [(- mx (:left this))
+     (- my (:top this))])
+
+  membrane.ui.Scale
+  (-drag-mouse-offset [this mpos]
+    (let [scalars (:scalars this)]
+      [(/ (nth mpos 0)
+          (nth scalars 0))
+       (/ (nth mpos 1)
+          (nth scalars 1))]))
+
+  membrane.ui.ScrollView
+  (-drag-mouse-offset [this [mx my]]
+    (let [offset (:offset this)]
+      [(- mx (nth offset 0))
+       (- my (nth offset 1))])))
+
+
 (extend-type #?(:clj Object
                 :cljs default)
 
@@ -80,7 +110,7 @@
     (let [intents
           ;; use seq to make sure we don't stop for empty sequences
           (some #(when-let [local-pos (ui/within-bounds? % local-pos)]
-                   (seq (-drop % local-pos obj)))
+                   (seq (-drop % (-drag-mouse-offset elem local-pos) obj)))
                 (reverse (ui/children elem)))]
       (ui/-bubble elem intents)))
 
@@ -89,10 +119,9 @@
     (let [intents
           ;; use seq to make sure we don't stop for empty sequences
           (some #(when-let [local-pos (ui/within-bounds? % local-pos)]
-                   (seq (-drop-move % local-pos obj)))
+                   (seq (-drop-move % (-drag-mouse-offset elem local-pos) obj)))
                 (reverse (ui/children elem)))]
       (ui/-bubble elem intents))))
-
 
 (comment
   (require '[membrane.skia :as skia])
