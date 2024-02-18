@@ -76,13 +76,13 @@ For more info covering the design of membrane:
 Leiningen dependency:
 
 ```clojure
-[com.phronemophobic/membrane "0.14.3-beta"]
+[com.phronemophobic/membrane "0.14.4-beta"]
 ```
 
 deps.edn dependency:
 
 ```clojure
-com.phronemophobic/membrane {:mvn/version "0.14.3-beta"}
+com.phronemophobic/membrane {:mvn/version "0.14.4-beta"}
 ```
 
 ## Built With Membrane
