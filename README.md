@@ -36,6 +36,7 @@ For membrane to run on a platform, the only requirements are:
 #### Links
 
 [Tutorial](/docs/tutorial.md)  
+[API Reference](https://phronmophobic.github.io/membrane/api/)
 [Documentation Organized by Topic](https://phronmophobic.github.io/membrane/membrane-topics.html)  
 [Styled Text](https://phronmophobic.github.io/membrane/styled-text/index.html)  
 [Examples](https://github.com/phronmophobic/membrane/tree/master/src/membrane/example)  
@@ -264,6 +265,7 @@ Screenshot:
 That's it! For more in-depth info, check out the [tutorial](/docs/tutorial.md).
 
 [Tutorial](/docs/tutorial.md)  
+[API Reference](https://phronmophobic.github.io/membrane/api/)
 [Documentation Organized by Topic](https://phronmophobic.github.io/membrane/membrane-topics.html)  
 [Styled Text](https://phronmophobic.github.io/membrane/styled-text/index.html)  
 [Examples](https://github.com/phronmophobic/membrane/tree/master/src/membrane/example)  
