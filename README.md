@@ -279,7 +279,7 @@ Questions? Comments? Connect with us on clojurians slack in [#membrane](https://
 
 # License
 
-Copyright 2021 Adrian Smith. Membrane is licensed under Apache License v2.0.
+Copyright 2024 Adrian Smith. Membrane is licensed under Apache License v2.0.
 
 
 
