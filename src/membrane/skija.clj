@@ -467,20 +467,49 @@
     (draw (->Cached (LabelRaw. (:text this)
                                (:font this))))))
 
+(defprotocol ImageFactory
+  :extend-via-metadata true
+  (get-image-texture [x]))
 
-(defn get-image [img-path]
-  (let [img
-        (if-let [img (get @*image-cache* img-path)]
-          img
-          (let [data (Data/makeFromFileName img-path)
-                img (Image/makeFromEncoded (.getBytes data))]
-            (swap! *image-cache* assoc img-path img)
-            img))]
-    img))
+(extend-type String
+  ImageFactory
+  (get-image-texture [img-path]
+    (if-let [img (get @*image-cache* img-path)]
+      img
+      (let [data (Data/makeFromFileName img-path)
+            img (Image/makeFromEncoded (.getBytes data))]
+        (swap! *image-cache* assoc img-path img)
+        img))))
 
+(defn- slurp-bytes
+  "Slurp the bytes from a slurpable thing"
+  [x]
+  (with-open [out (java.io.ByteArrayOutputStream.)]
+    (clojure.java.io/copy (clojure.java.io/input-stream x) out)
+    (.toByteArray out)))
+
+(extend-type java.net.URL
+  ImageFactory
+  (get-image-texture [image-url]
+    (if-let [image (get @*image-cache* image-url)]
+      image
+      (let [bytes (slurp-bytes image-url)
+            image (Image/makeFromEncoded bytes)]
+        (swap! *image-cache* assoc image-url image)
+        image))))
+
+(extend (Class/forName "[B")
+  ImageFactory
+  {:get-image-texture
+   (fn [^bytes bytes]
+     (if-let [image (get @*image-cache* bytes)]
+       image
+       (let [image (Image/makeFromEncoded bytes)]
+         (swap! *image-cache* assoc bytes image)
+         image)))})
 
 (defn- image-draw [{:keys [image-path size opacity] :as image}]
-  (when-let [img (get-image image-path)]
+  (when-let [img (get-image-texture image-path)]
     (let [[w h] size]
       (let [paint (map->paint *paint*) ]
         (when opacity
