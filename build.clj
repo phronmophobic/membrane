@@ -7,6 +7,7 @@
 (def class-dir "target/classes")
 (def basis (b/create-basis {:project "deps.edn"}))
 (def jar-file (format "target/%s-%s.jar" (name lib) version))
+(def src-pom "./pom-template.xml")
 
 (defn clean [_]
   (b/delete {:path "target"}))
@@ -20,6 +21,7 @@
 (defn jar [opts]
   (compile opts)
   (b/write-pom {:class-dir class-dir
+                :src-pom src-pom
                 :lib lib
                 :version version
                 :basis basis
