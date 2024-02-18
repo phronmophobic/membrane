@@ -176,7 +176,7 @@
 (ui/add-default-draw-impls! IDraw #'draw)
 
 
-(defn get-font
+(defn ^:private get-font
   ([ui-font]
    (get-font (:name ui-font) (:size ui-font)))
   ([font-name font-size]
@@ -192,13 +192,7 @@
              font))]
      font)))
 
-#_(defn draw [^Canvas canvas]
-  (let [paint (doto (Paint.) (.setColor @*rect-color))]
-    (.translate canvas 320 240)
-    (.rotate canvas (mod (/ (System/currentTimeMillis) 10) 360))
-    (.drawRect canvas (Rect/makeXYWH -50 -50 100 100) paint)))
-
-(defn display-scale [window]
+(defn ^:private display-scale [window]
   (let [x (make-array Float/TYPE 1)
         y (make-array Float/TYPE 1)]
     (GLFW/glfwGetWindowContentScale ^long window ^floats x ^floats y)
@@ -268,13 +262,13 @@
        (.restore ^Canvas *canvas*)
 
        )))
-(defn unsigned-bit-shift-left-int
+(defn ^:private unsigned-bit-shift-left-int
   {:inline (fn [x n] `(clojure.lang.Numbers/shiftLeftInt ~x ~n))}
   [x n]
   (clojure.lang.Numbers/shiftLeftInt x n))
 
 
-(defn map->paint [m]
+(defn ^:private map->paint [m]
   (let [paint (Paint.)]
     (when-let [stroke-width (::stroke-width m)]
       (.setStrokeWidth paint (float stroke-width)))
@@ -300,7 +294,7 @@
                                       (int (* 255 b)))))))
     paint))
 
-(defn index-for-position-line [skija-font text px]
+(defn ^:private index-for-position-line [skija-font text px]
   (let [
         glyphs (.getStringGlyphs ^Font skija-font text)
         glyph-widths (.getWidths ^Font skija-font glyphs)
@@ -361,7 +355,7 @@
        ;;(Skia/skia_render_line *skia-resource* font-ptr skia-buf (alength line-bytes) (float 0) (float 0))
        ))))
 
-(defn text-bounds [skija-font text]
+(defn ^:private text-bounds [skija-font text]
   (let [lines (clojure.string/split text #"\n" -1)
         ;; metrics (.getLineMetrics ^Font font text frc)
         ;; line-height (.getHeight metrics)
@@ -530,7 +524,7 @@
      (.translate ^Canvas *canvas* (float (:x this)) (float (:y this)))
      (draw (:drawable this)))))
 
-(defn text-selection-draw [ui-font text [selection-start selection-end] selection-color]
+(defn ^:private text-selection-draw [ui-font text [selection-start selection-end] selection-color]
   (let [
         skija-font (get-font ui-font)
         lines (clojure.string/split-lines text)
@@ -659,7 +653,7 @@
          (vertex x y))))))
 
 
-(defn scissor-draw [scissor-view]
+(defn ^:private scissor-draw [scissor-view]
   (save-canvas
    (let [[ox oy] (:offset scissor-view)
          [w h] (:bounds scissor-view)]
@@ -761,12 +755,12 @@
    2 :repeat
    0 :release})
 
-(defn run* [view-fn & [{:keys [window-title
-                               window-start-x
-                               window-start-y
-                               window-start-width
-                               window-start-height]
-                        :as options}]]
+(defn ^:private run* [view-fn & [{:keys [window-title
+                                         window-start-x
+                                         window-start-y
+                                         window-start-width
+                                         window-start-height]
+                                  :as options}]]
   (.set (GLFWErrorCallback/createPrint System/err))
   (GLFW/glfwInit)
   (GLFW/glfwWindowHint GLFW/GLFW_VISIBLE GLFW/GLFW_FALSE)
@@ -786,7 +780,7 @@
 
     (when (or window-start-x window-start-y)
       (assert (and window-start-x window-start-y)
-        "If window-start-x or window-start-y are provided, both must be provided.")
+              "If window-start-x or window-start-y are provided, both must be provided.")
       (GLFW/glfwSetWindowPos window (int window-start-x) (int window-start-y)))
 
     (GLFW/glfwMakeContextCurrent window)
@@ -998,9 +992,6 @@
   (.invoke dispatch_sync void (to-array [main-queue nil my-callback]))
   ,)
 
-(defn my-view []
-  (ui/filled-rectangle [1 0 0] 100 100))
-
 (defn run-sync
   "Open a window and call `view-fn` to draw. Returns when the window is closed.
 
@@ -1089,15 +1080,6 @@
     ;; (logical-font->font-family [toolkit logical-font]
     ;;   (logical-font->font-family logical-font))
     ))
-
-(def counter-state (atom 0))
-(defn counter-ui []
-  (ui/on
-   :mouse-down
-   (fn [_]
-     (prn "swapping some counter state")
-     (swap! counter-state inc))
-   (ui/label (str "count: " @counter-state))))
 
 ;; (require '[membrane.example.kitchen-sink :as ks])
 (defn -main [& args]
