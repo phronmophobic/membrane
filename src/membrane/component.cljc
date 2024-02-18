@@ -101,7 +101,7 @@
     (do-map-nth-transform vals structure idx next-fn)))
 
 
-(defn nthpath+
+(defn ^:private nthpath+
   "Similar to spec/nthpath, but preserves maps."
   [idx]
   (spec/if-path map?
@@ -274,7 +274,7 @@
      (assert false (str "expected symbol or seq got " form) )
      )))
 
-(defn calculate-path [deps k]
+(defn ^:private calculate-path [deps k]
   (let [path
         (loop [deps deps
                k k
@@ -306,7 +306,7 @@
 (defonce special-fns (atom {}))
 
 (def ^:dynamic *env* nil)
-(defn fully-qualified [sym]
+(defn ^:private fully-qualified [sym]
   (if (cljs-env-compiler)
     (if-let [result (cljs-resolve {:ns (get-in @(cljs-env-compiler) [:cljs.analyzer/namespaces (symbol (ns-name *ns*))])}  sym)]
       (:name result))
@@ -917,7 +917,7 @@
       new-form)))
 
 
-(defn doall* [s] (dorun (tree-seq seqable? seq s)) s)
+(defn ^:private doall* [s] (dorun (tree-seq seqable? seq s)) s)
 
 (def component-cache (cw/basic-cache-factory {::basis 1}))
 
