@@ -21,7 +21,26 @@ args=( "-jar" "target/membrane-$MEMBRANE_VERSION-standalone.jar"
        "-H:+ReportExceptionStackTraces"
        "--verbose"
        "--no-fallback"
+       "--initialize-at-build-time"
+       "--initialize-at-run-time=sun.awt.dnd.SunDropTargetContextPeer$EventDispatcher"
+       "--initialize-at-run-time=sun.awt.X11.MotifDnDConstants"
+       "--initialize-at-run-time=sun.awt.X11.WindowPropertyGetter"
+       "--initialize-at-run-time=sun.awt.X11.XDataTransferer"
+       "--initialize-at-run-time=sun.awt.X11.XDnDConstants"
+       "--initialize-at-run-time=sun.awt.X11.XSelection"
+       "--initialize-at-run-time=sun.awt.X11.XSystemTrayPeer"
+       "--initialize-at-run-time=sun.awt.X11.XToolkitThreadBlockedHandler"
+       "--initialize-at-run-time=sun.awt.X11.XWindow"
+       "--initialize-at-run-time=sun.awt.X11.XWM"
+       "--initialize-at-run-time=sun.awt.X11GraphicsConfig"
+       "--initialize-at-run-time=sun.awt.X11InputMethodBase"
        "-J-Xmx3g" "$@")
+# "--initialize-at-run-time=sun.awt.X11" causes sun.awt.X11.XToolkit to complain about initialization at run time.
+# "--initialize-at-run-time=sun.awt.dnd" causes a similar complaint.
+# I OFFICIALLY GOT STUCK: ##############################################
+# Error message requests that I add the option
+#      "--initialize-at-run-time=sun.awt.dnd.SunDropTargetContextPeer$EventDispatcher"
+# However, this option is already in place.
 
 if [ "$MEMBRANE_STATIC" = "true" ]; then
     args+=("--static")
