@@ -13,7 +13,7 @@ fi
 export JAVA_HOME=$GRAALVM_HOME
 export PATH=$GRAALVM_HOME/bin:$PATH
 
-MEMBRANE_VERSION=0.11.111    #$(cat resources/CLJ_KONDO_VERSION)
+MEMBRANE_VERSION=0.11.111-beta    #$(cat resources/CLJ_KONDO_VERSION)
 
 lein with-profiles +clojure-1.10.3 "do" clean, uberjar
 
