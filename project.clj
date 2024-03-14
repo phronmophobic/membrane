@@ -1,4 +1,4 @@
-(defproject com.phronemophobic/membrane "0.11.1-beta"
+(defproject com.phronemophobic/membrane "0.11.111-beta"
   :description "A platform agnostic library for creating user interfaces"
   :url "https://github.com/phronmophobic/membrane"
   :license {:name "Apache License, Version 2.0"
@@ -21,8 +21,10 @@
                  ;; [com.oracle/appbundler "1.0ea-local"]
                  ;; [org.apache.ant/ant "1.10.5"]
 
+                 ;; For babaskha pod work
+                 [nrepl/bencode "1.1.0"]
                  ]
-
+  :main ^:skip-aot pod.tddpirate.membrane
   :aot [
         ]
 
