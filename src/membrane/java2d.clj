@@ -996,7 +996,7 @@
              (.addKeyListener listener))
          window-title (or window-title
                           "Membrane")
-         f (doto (JFrame. window-title)
+         f (doto (JFrame. ^String window-title)
              (.add panel)
              (.show))
          initial-view (delay
