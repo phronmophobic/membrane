@@ -32,6 +32,15 @@
 
 ;; (set! *warn-on-reflection* true)
 
+
+(defmacro ^:private not-graalvm!
+  "Only runs body when not running inside graal native."
+  [& body]
+  (let [p (System/getProperty "tech.v3.datatype.graal-native")
+        graalvm? (= p "true")]
+    (when (not graalvm?)
+      `(do ~@body))))
+
 (def ^:dynamic *g* nil)
 (def ^:dynamic *paint-style* :membrane.ui/style-fill)
 (def ^:dynamic *image-cache* nil)
@@ -540,19 +549,22 @@
     )
   )
 
-(extend-type javax.swing.JComponent
-  IDraw
-  (draw [this]
-    (.paint this *g*))
+(not-graalvm!
+  ;; don't initialize swing classes
+  ;; in native image
+  (extend-type javax.swing.JComponent
+    IDraw
+    (draw [this]
+      (.paint this *g*))
 
-  ui/IOrigin
-  (-origin [_]
-    [0 0])
+    ui/IOrigin
+    (-origin [_]
+      [0 0])
 
-  IBounds
-  (-bounds [this]
-    (let [dim (.getPreferredSize this)]
-      [(.width dim) (.height dim)])))
+    IBounds
+    (-bounds [this]
+      (let [dim (.getPreferredSize this)]
+        [(.width dim) (.height dim)]))))
 
 (comment
   ;; Example usage of the above
@@ -736,8 +748,11 @@
       (catch Exception e
         (println e)))))
 
+
+;; use literals to avoid initializing KeyEvent class
+;; which breaks native image
 (def keycodes
-  {:unknown -1
+  #_{:unknown -1
    :grave_accent KeyEvent/VK_DEAD_GRAVE
    :escape KeyEvent/VK_ESCAPE 
    :enter KeyEvent/VK_ENTER
@@ -806,7 +821,75 @@
    :right_control KeyEvent/VK_CONTROL
    :right_alt KeyEvent/VK_ALT
    ;; :right_super 347
-   :menu KeyEvent/VK_CONTEXT_MENU})
+   :menu KeyEvent/VK_CONTEXT_MENU}
+  {:right_control 17,
+   :grave_accent 128,
+   :escape 27,
+   :kp_subtract 109,
+   :kp_1 97,
+   :down 40,
+   :kp_equal 61,
+   :home 36,
+   :num_lock 144,
+   :insert 155,
+   :left_control 17,
+   :f21 61448,
+   :f8 119,
+   :f18 61445,
+   :f1 112,
+   :f10 121,
+   :f23 61450,
+   :unknown -1,
+   :f16 61443,
+   :f20 61447,
+   :kp_decimal 110,
+   :kp_7 103,
+   :kp_2 98,
+   :print_screen 154,
+   :f5 116,
+   :delete 127,
+   :kp_8 104,
+   :up 38,
+   :enter 10,
+   :kp_divide 111,
+   :right_alt 18,
+   :kp_5 101,
+   :kp_9 105,
+   :f11 122,
+   :f17 61444,
+   :kp_6 102,
+   :f3 114,
+   :kp_multiply 106,
+   :left_shift 16,
+   :f2 113,
+   :kp_add 107,
+   :f12 123,
+   :kp_3 99,
+   :f22 61449,
+   :right 39,
+   :f14 61441,
+   :kp_4 100,
+   :pause 19,
+   :backspace 8,
+   :f7 118,
+   :kp_0 96,
+   :page_up 33,
+   :f19 61446,
+   :f24 61451,
+   :page_down 34,
+   :f9 120,
+   :end 35,
+   :scroll_lock 145,
+   :tab 9,
+   :f15 61442,
+   :f6 117,
+   :f4 115,
+   :left_alt 18,
+   :menu 525,
+   :caps_lock 20,
+   :left 37,
+   :f13 61440,
+   :right_shift 16})
 (def keymap (into {} (map (comp vec reverse) keycodes)))
 
 (def key-action-map
