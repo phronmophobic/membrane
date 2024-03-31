@@ -68,14 +68,15 @@
                          (io/file "csource"
                                   (str "libmembraneskia-" arch "." shared-suffix)))
 
-        coord (symbol "com.phronemophobic.membrane"
-                      (str "skialib-" platform "-" resource-suffix))
-
-        glfw-platform (case platform
+        coord-platform (case platform
                         "macos" "macosx"
                         platform)
+        coord (symbol "com.phronemophobic.membrane"
+                      (str "skialib-" coord-platform "-" resource-suffix))
+
+
         glfw-dep (symbol "com.phronemophobic"
-                         (str "glfw-" glfw-platform "-" resource-suffix))
+                         (str "glfw-" coord-platform "-" resource-suffix))
         skia-basis (b/create-basis {:project
                                     {:deps
                                      {glfw-dep {:mvn/version "3.3.8"}}}})]
