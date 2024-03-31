@@ -97,7 +97,7 @@
                   :target (.getCanonicalPath
                            (io/file skialib-class-dir
                                     (str resource-prefix "-" resource-suffix)
-                                    (str "libmembraneskialib." shared-suffix)))})
+                                    (str "libmembraneskia." shared-suffix)))})
     (b/jar {:class-dir skialib-class-dir
             :jar-file skialib-jar-file})
     (try ((requiring-resolve 'deps-deploy.deps-deploy/deploy)
