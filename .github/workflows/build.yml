@@ -38,9 +38,6 @@ jobs:
         with:
           name: libmembraneskia-${{matrix.arch}}.dylib
           path: csource/libmembraneskia-${{matrix.arch}}.dylib
-      # - run: ./csource/release.sh
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Java
         uses: actions/setup-java@v2
         with:
@@ -52,7 +49,7 @@ jobs:
         with:
           # Install just one or all simultaneously
           cli: 1.10.1.693 # Clojure CLI based on tools.deps
-      - run: python3 ./csource/deploy_clojars.py
+      - run: clojure -T:skialib-deploy :platform '"${{matrix.platform}}"' :arch '"${{matrix.arch}}"'
         env:
           CLOJARS_USERNAME: ${{ secrets.CLOJARS_USERNAME }}
           CLOJARS_PASSWORD: ${{ secrets.CLOJARS_PASSWORD }}
@@ -83,9 +80,6 @@ jobs:
         with:
           name: libmembraneskia-${{matrix.arch}}.so
           path: csource/libmembraneskia-${{matrix.arch}}.so
-      - run: ./csource/release.sh
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Java
         uses: actions/setup-java@v2
         with:
@@ -96,7 +90,6 @@ jobs:
         with:
           # Install just one or all simultaneously
           cli: 1.10.1.693 # Clojure CLI based on tools.deps
-      - run: python3 ./csource/deploy_clojars.py
-        env:
+      - run: clojure -T:skialib-deploy :platform '"${{matrix.platform}}"' :arch '"${{matrix.arch}}"'        env:
           CLOJARS_USERNAME: ${{ secrets.CLOJARS_USERNAME }}
           CLOJARS_PASSWORD: ${{ secrets.CLOJARS_PASSWORD }}
