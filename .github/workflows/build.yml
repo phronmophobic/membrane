@@ -49,7 +49,7 @@ jobs:
         with:
           # Install just one or all simultaneously
           cli: 1.11.2.1446 # Clojure CLI based on tools.deps
-      - run: clojure -T:skialib-deploy :platform '"${{matrix.platform}}"' :arch '"${{matrix.arch}}"'
+      - run: clojure -T:skialib-deploy :platform '"${{env.platform}}"' :arch '"${{env.arch}}"'
         env:
           CLOJARS_USERNAME: ${{ secrets.CLOJARS_USERNAME }}
           CLOJARS_PASSWORD: ${{ secrets.CLOJARS_PASSWORD }}
@@ -90,7 +90,7 @@ jobs:
         with:
           # Install just one or all simultaneously
           cli: 1.11.2.1446 # Clojure CLI based on tools.deps
-      - run: clojure -T:skialib-deploy :platform '"${{matrix.platform}}"' :arch '"${{matrix.arch}}"'
+      - run: clojure -T:skialib-deploy :platform '"${{env.platform}}"' :arch '"${{env.arch}}"'
         env:
           CLOJARS_USERNAME: ${{ secrets.CLOJARS_USERNAME }}
           CLOJARS_PASSWORD: ${{ secrets.CLOJARS_PASSWORD }}
