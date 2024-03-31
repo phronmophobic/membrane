@@ -1124,6 +1124,109 @@ extern "C" {
         *height = size.height();
     }
 
+
+    /** SkPaint Wrappers **/
+
+    SkPaint* skia_Paint_make(){
+        return new SkPaint();
+    }
+
+    void skia_Paint_delete(SkPaint* paint){
+        delete paint;
+    }
+
+    void skia_Paint_reset(SkPaint* paint){
+        paint->reset();
+    }
+
+    bool skia_Paint_isAntiAlias(SkPaint* paint)  {
+        return paint->isAntiAlias();
+    }
+
+    void skia_Paint_setAntiAlias(SkPaint* paint, bool aa) { paint->setAntiAlias(aa); }
+
+    bool skia_Paint_isDither(SkPaint* paint)  {
+        return paint->isDither();
+    }
+
+    void skia_Paint_setDither(SkPaint* paint, bool dither) { paint->setDither(dither); }
+
+    void skia_Paint_setStroke(SkPaint* paint, bool stroke){
+        paint->setStroke(stroke);
+    }
+
+    uint32_t skia_Paint_getColor(SkPaint* paint)  { return paint->getColor(); }
+
+    void skia_Paint_setColor(SkPaint* paint, uint32_t color){
+        paint->setColor(color);
+    }
+
+    float skia_Paint_getAlphaf(SkPaint* paint)  { return paint->getAlphaf(); }
+
+    // Helper that scales the alpha by 255.
+    uint8_t skia_Paint_getAlpha(SkPaint* paint)  {
+        return paint->getAlpha();
+    }
+
+    void skia_Paint_setAlphaf(SkPaint* paint, float a){
+        paint->setAlphaf(a);
+    }
+
+    SkScalar skia_Paint_getStrokeWidth(SkPaint* paint)  { return paint->getStrokeWidth(); }
+
+    void skia_Paint_setStrokeWidth(SkPaint* paint, SkScalar width){
+        paint->setStrokeWidth(width);
+    }
+
+    SkScalar skia_Paint_getStrokeMiter(SkPaint* paint)  { return paint->getStrokeMiter(); }
+
+    void skia_Paint_setStrokeMiter(SkPaint* paint, SkScalar miter){
+        paint->setStrokeMiter(miter);
+    }
+
+    // enum Cap {
+    //     kButt_Cap,                  //!< no stroke extension
+    //     kRound_Cap,                 //!< adds circle
+    //     kSquare_Cap,                //!< adds square
+    //     kLast_Cap    = kSquare_Cap, //!< largest Cap value
+    //     kDefault_Cap = kButt_Cap,   //!< equivalent to kButt_Cap
+    // };
+
+    // enum Join : uint8_t {
+    //     kMiter_Join,                 //!< extends to miter limit
+    //     kRound_Join,                 //!< adds circle
+    //     kBevel_Join,                 //!< connects outside edges
+    //     kLast_Join    = kBevel_Join, //!< equivalent to the largest value for Join
+    //     kDefault_Join = kMiter_Join, //!< equivalent to kMiter_Join
+    // };
+
+    int getStrokeCap(SkPaint* paint)  { return paint->getStrokeCap(); }
+
+    void skia_Paint_setStrokeCap(SkPaint* paint, int cap){
+        paint->setStrokeCap((SkPaint::Cap)cap);
+    }
+
+    uint8_t skia_Paint_getStrokeJoin(SkPaint* paint)  {
+        return paint->getStrokeJoin();
+    }
+    void skia_Paint_setStrokeJoin(SkPaint* paint, uint8_t join){
+        paint->setStrokeJoin((SkPaint::Join)join);
+    }
+
+    int skia_Paint_getBlendMode_or(SkPaint* paint, int defaultMode) {
+        return (int)paint->getBlendMode_or((SkBlendMode)defaultMode);
+    };
+
+    bool skia_Paint_isSrcOver(SkPaint* paint) {
+        return paint->isSrcOver();
+    }
+
+    void skia_Paint_setBlendMode(SkPaint* paint, int mode){
+        paint->setBlendMode((SkBlendMode)mode);
+    }
+
+    /** END SkPaint Wrappers **/
+
 #if defined(__APPLE__)
     void skia_osx_run_on_main_thread_sync(void(*callback)(void)){
         dispatch_sync(dispatch_get_main_queue(), ^{
