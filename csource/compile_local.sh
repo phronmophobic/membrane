@@ -10,6 +10,6 @@ export arch=arm64
 
 ./compile_macosx.sh
 
-mv libmembraneskia-${arch}.dylib ./macos-aarch64/resources/darwin-aarch64/libmembraneskia.dylib
+cp libmembraneskia-${arch}.dylib ./macos-aarch64/resources/darwin-aarch64/libmembraneskia.dylib
 
 
