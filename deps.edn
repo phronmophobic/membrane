@@ -17,7 +17,7 @@
  {"space-maven" {:url "https://packages.jetbrains.team/maven/p/skija/maven"}
   "sonatype-oss-public" {:url "https://oss.sonatype.org/content/groups/public/"}}
  :aliases
- {:build {:deps {io.github.clojure/tools.build {:git/tag "v0.8.3" :git/sha "0d20256"}
+ {:build {:deps {io.github.clojure/tools.build {:mvn/version "0.10.0"}
                  slipset/deps-deploy {:mvn/version "RELEASE"}}
           :ns-default build}
 
@@ -149,6 +149,14 @@
 
              org.clojure/alpha.spec {:git/url "https://github.com/clojure/spec-alpha2.git"
                                      :git/sha "99456b1856a6fd934e2c30b17920bd790dd81775"}}}
+
+  :skialib-deploy
+  {:deps {io.github.clojure/tools.build {:mvn/version "0.10.0"}
+          slipset/deps-deploy {:mvn/version "RELEASE"}}
+   :exec-fn deploy-skialib
+   :exec-args {:platform "macos"
+               :arch "arm64"}
+   :ns-default build}
 
 
   ,}}
