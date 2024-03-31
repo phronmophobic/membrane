@@ -38,9 +38,9 @@ jobs:
         with:
           name: libmembraneskia-${{matrix.arch}}.dylib
           path: csource/libmembraneskia-${{matrix.arch}}.dylib
-      - run: ./csource/release.sh
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # - run: ./csource/release.sh
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Java
         uses: actions/setup-java@v2
         with:
