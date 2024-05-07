@@ -3275,3 +3275,142 @@
        )))
 
 
+(defn flex-layout
+  "Arranges `elems` according to `layout`.
+  `elems` should be a sequence of views.
+  `layout` is described below.
+
+  `layout` is a map with the following keys:
+  `:direction` either `:row` or `:column`
+  `:gap` number of pixels between elements
+  `:justify-content` one of `:start`, `:center`, `:end`, `:space-between`, `:space-around`, `:space-evenly`
+  `:align` one of `:start`, `:center`, `:end`
+  `:width` Specifies a static width.
+  `:height` Specifies a static height."
+
+  [elems layout]
+  (let [direction (get layout :direction :row)
+
+        ;; not used
+        ;;wrap (get layout :flex/wrap :flex.wrap/nowrap)
+        {:keys [get-size
+                get-cross-size
+                measure-size
+                measure-cross-size
+                make-spacer
+                main-layout
+                align
+                ->alignment]}
+        ;;[ui-size get-size ui-cross-size get-cross-size get-gap make-spacer main-layout align ->alignment]
+        (if (= direction :row)
+          {:get-size :width
+           :get-cross-size :height
+           :measure-size width
+           :measure-cross-size height
+           :make-spacer #(spacer % 0)
+           :main-layout horizontal-layout
+           :align align-row
+           :->alignment {:start :top
+                         :end :bottom
+                         :center :center}}
+          ;; :direction :column
+          {:get-size :height
+           :get-cross-size :width
+           :measure-size height
+           :measure-cross-size width
+           :make-spacer #(spacer 0 %)
+           :main-layout vertical-layout
+           :align align-column
+           :->alignment {:start :left
+                         :end :right
+                         :center :center}})
+
+        size (get-size layout)
+        fixed-size? (some? size)]
+
+    (if fixed-size?
+      (let [ ;; only justify for fixed sizes
+            gap (:gap layout)
+            justification (get layout :justify-content
+                               :start)
+            elems (if gap
+                    (do
+                      (assert (not (#{:space-around
+                                      :space-between
+                                      :space-evenly} justification))
+                              (str :gap "  Doesn't make sense with " justification))
+                      (interpose (make-spacer gap)
+                                 elems))
+                    elems)
+            elems (if-let [alignment (:align layout)]
+                    (align (->alignment alignment)
+                           (get-cross-size layout)
+                           elems)
+                    elems)
+            elems (case justification
+                    :start
+                    (apply main-layout elems)
+
+                    :end
+                    (let [elems (apply main-layout elems)
+                          offset (- size
+                                    (measure-size elems))
+                          [x y] (if (= direction :row)
+                                  [offset 0]
+                                  [0 offset])]
+                      (translate x y
+                                 elems))
+
+                    :center
+                    (let [elems (apply main-layout elems)
+                          offset (/ (- size
+                                       (measure-size elems))
+                                    2)
+                          [x y] (if (= direction :row)
+                                  [offset 0]
+                                  [0 offset])]
+                      (translate x y
+                                 elems))
+
+                    (:space-between
+                     :space-around
+                     :space-evenly)
+                    ((if (= direction :row)
+                       justify-row-content
+                       justify-column-content)
+                     justification
+                     size
+                     elems))
+            [natural-width natural-height] (bounds elems)
+            elems (fixed-bounds
+                   [(or (:width layout)
+                        natural-width)
+                    (or (:height layout)
+                        natural-height)]
+                   elems)]
+        elems)
+
+      ;; not fixed size
+      (let [ ;; justify doesn't make sense for non-fixed-width
+            ;; but gaps do.
+            gap (:gap layout)
+            elems (if gap
+                    (interpose (make-spacer gap)
+                               elems)
+                    elems)
+            elems (apply main-layout elems)
+            elems (if-let [alignment (:align layout)]
+                    (align (->alignment alignment)
+                           (get-cross-size layout)
+                           elems)
+                    elems)
+
+            [natural-width natural-height] (bounds elems)
+            elems (fixed-bounds
+                   [(or (:width layout)
+                        natural-width)
+                    (or (:height layout)
+                        natural-height)]
+                   elems)]
+        elems))))
+
