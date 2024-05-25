@@ -27,7 +27,7 @@ For membrane to run on a platform, the only requirements are:
 - virtual dom
 - [skija](https://github.com/JetBrains/skija) (see [example project](https://github.com/phronmophobic/membrane-skija-example))
 - javafx via cljfx (see [example project](https://github.com/phronmophobic/reveal-treemap))
-- iOS via graalvm (see [example project](https://github.com/phronmophobic/greaseU))
+- iOS via graalvm (see [example project](https://github.com/phronmophobic/grease))
 
 #### Experimental UI framework integrations
 - re-frame (see [example project](https://github.com/phronmophobic/membrane-re-frame-example))
