@@ -493,7 +493,7 @@
                        :let [binding-sym (get binding-syms arg)
                              arg-val
                              (if (.startsWith (name arg) "$")
-                               (if-let [arg-val (get call-arg arg)]
+                               (if-let [[_ arg-val] (find call-arg arg)]
                                  arg-val
                                  (let [val-sym (get binding-syms (keyword (subs (name arg) 1)))]
                                    (symbol (str "$" (name val-sym)))))
@@ -523,6 +523,15 @@
              ~(apply hash-map new-args))
           deps))
       (meta form))))
+
+(comment
+  
+  (path-replace-fn-call-map-literal
+   {}
+   '(scrollview {:body [(ui/label "hi")]
+                 :$body nil})
+   (meta #'membrane.basic-components/scrollview))
+  ,)
 
 (defn- path-replace-fn-call*
   "handles the case where the fn call is a non-literal map
