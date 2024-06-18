@@ -11,6 +11,7 @@
    #?(:cljs cljs.analyzer.api)
    #?(:cljs [cljs.analyzer :as cljs])
    #?(:cljs cljs.env)
+   clojure.string
    com.rpl.specter.impl
    [membrane.ui :as ui :refer [children bounds origin]]))
 
@@ -443,23 +444,34 @@
 
         ;; sort by explicit arguments since
         ;; they are used by the key prefix
-        all-args (sort-by
-                  (fn [sym]
-                    [(not (contains? call-arg (keyword sym)))
-                     (.startsWith (name sym) "$")])
-                  (distinct
-                   (concat (:keys arg-map)
-                           (->> call-arg
-                                (map (comp symbol name first)))
-                           (->> (:keys arg-map)
-                                (map name)
-                                (map #(str "$" %))
-                                (map symbol)))))
+        all-args (->> (concat (map keyword (:keys arg-map))
+                              (keys call-arg)
+                              (->> (:keys arg-map)
+                                   (map name)
+                                   (map #(str "$" %))
+                                   (map keyword)))
+                      distinct
+                      (sort-by (fn [kw]
+                                 [(not (contains? call-arg kw))
+                                  (.startsWith (name kw) "$")])))
 
+        ;; will return true if passed a key that is
+        ;; marked by contextual metadata
+        contextual? (into #{}
+                          (comp (filter (fn [sym]
+                                          (::contextual (meta sym))))
+                                (map keyword))
+                          (:keys arg-map))
+        
         binding-syms
         (into {}
               (for [arg all-args
-                    :let [arg-name (name arg)]]
+                    :let [arg-name (str (when-let [ns (namespace arg)]
+                                          ;; symbols can't have dots in the name
+                                          ;; or they are interpreted as classes.
+                                          (str (clojure.string/replace ns #"\." "-")
+                                               "-"))
+                                        (name arg))]]
                 [arg (gensym (str arg-name  "-"))]))
 
         keypath-prefix
@@ -468,47 +480,42 @@
                :let [arg-name (name k)
                      dollar-arg? (.startsWith arg-name "$")]
                :when (or dollar-arg?
-                         (not (contains? call-arg (keyword (str "$" (name k))))))]
+                         (not (contains? call-arg (keyword
+                                                   (namespace k)
+                                                   (str "$" (name k))))))]
            (if dollar-arg?
-             (get binding-syms (symbol arg-name))
+             (get binding-syms k)
              (symbol (str "$"
-                          (name (get binding-syms (symbol arg-name))) )))))
+                          (name (get binding-syms k)) )))))
 
         bindings (for [arg all-args
                        :when (contains? binding-syms arg)
                        :let [binding-sym (get binding-syms arg)
                              arg-val
                              (if (.startsWith (name arg) "$")
-                               (if (contains? call-arg (keyword arg))
-                                 (let [arg-val (get call-arg (keyword arg))]
-                                   arg-val)
-                                 (let [val-sym (get binding-syms (symbol (subs (name arg) 1)))]
-                                   (symbol (str "$"  (name val-sym)))))
-
-                               (get call-arg (keyword arg)
+                               (if-let [arg-val (get call-arg arg)]
+                                 arg-val
+                                 (let [val-sym (get binding-syms (keyword (subs (name arg) 1)))]
+                                   (symbol (str "$" (name val-sym)))))
+                               ;; not an $arg
+                               (get call-arg arg
                                     (if (= 'context arg)
                                       'context
-                                      (if (-> arg meta ::contextual)
+                                      (if (contextual? arg)
                                         ;; should contextual state also check defaults?
-                                        `(get ~'context ~(keyword (name arg)))
+                                        `(get ~'context ~arg)
                                         `(get ~'extra
                                               [~keypath-prefix
-                                               ~(keyword (str "$" (name arg)))]
-                                              ~(when (contains? defaults arg)
-                                                 (get defaults arg))
-                                              )))))]]
+                                               ~(keyword (namespace arg) (str "$" (name arg)))]
+                                              ~(when (contains? defaults (symbol arg))
+                                                 (get defaults (symbol arg))))))))]]
                    [binding-sym arg-val])
 
         new-args
         (apply
          concat
-         (for [arg all-args
-               :let [arg-name (name arg)
-                     arg-key (keyword arg-name)]]
-           (if (.startsWith arg-name "$")
-             [arg-key
-              (get binding-syms (symbol arg-name))]
-             [arg-key (get binding-syms arg)])))]
+         (for [arg all-args]
+           [arg (get binding-syms arg)]))]
     (with-meta
       `(~first-form
         ~(path-replace
