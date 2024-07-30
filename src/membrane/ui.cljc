@@ -3275,6 +3275,32 @@
        )))
 
 
+(defn ^:private stretch-elems* [size get-stretch measure-size elems]
+  (let [fixed-size-total (transduce
+                          (comp (remove get-stretch)
+                                (map measure-size))
+                          +
+                          0
+                          elems)
+        stretch-size (- size fixed-size-total)
+        stretch-total (transduce
+                       (keep get-stretch)
+                       +
+                       0
+                       elems)
+        ;; stretched elems
+        elems (into []
+                    (map (fn [elem]
+                           (if-let [stretch (get-stretch elem)]
+                             (let [width (*
+                                          stretch-size
+                                          (/ stretch stretch-total))]
+                               (assoc elem
+                                      :flex-layout.stretch/width width))
+                             elem)))
+                    elems)]
+    elems))
+
 (defn flex-layout
   "Arranges `elems` according to `layout`.
   `elems` should be a sequence of views.
@@ -3299,6 +3325,7 @@
                 measure-cross-size
                 make-spacer
                 main-layout
+                get-stretch
                 align
                 ->alignment]}
         ;;[ui-size get-size ui-cross-size get-cross-size get-gap make-spacer main-layout align ->alignment]
@@ -3309,6 +3336,7 @@
            :measure-cross-size height
            :make-spacer #(spacer % 0)
            :main-layout horizontal-layout
+           :get-stretch :flex.grow/width
            :align align-row
            :->alignment {:start :top
                          :end :bottom
@@ -3320,6 +3348,7 @@
            :measure-cross-size width
            :make-spacer #(spacer 0 %)
            :main-layout vertical-layout
+           :get-stretch :flex.grow/height
            :align align-column
            :->alignment {:start :left
                          :end :right
@@ -3327,7 +3356,6 @@
 
         size (get-size layout)
         fixed-size? (some? size)]
-
     (if fixed-size?
       (let [ ;; only justify for fixed sizes
             gap (:gap layout)
@@ -3338,10 +3366,17 @@
                       (assert (not (#{:space-around
                                       :space-between
                                       :space-evenly} justification))
-                              (str :gap "  Doesn't make sense with " justification))
-                      (interpose (make-spacer gap)
-                                 elems))
+                              (str :gap " doesn't make sense with " justification))
+                      (into []
+                            (interpose (make-spacer gap))
+                            elems))
                     elems)
+
+            stretchy? (some get-stretch elems)
+            elems (if stretchy?
+                    (stretch-elems* size get-stretch measure-size elems)
+                    elems)
+
             elems (if-let [alignment (:align layout)]
                     (align (->alignment alignment)
                            (get-cross-size layout)
