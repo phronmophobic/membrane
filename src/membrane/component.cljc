@@ -531,6 +531,11 @@
    '(scrollview {:body [(ui/label "hi")]
                  :$body nil})
    (meta #'membrane.basic-components/scrollview))
+
+  (path-replace-fn-call-map-literal
+   {}
+   '(textarea {:text "foo"})
+   (meta #'membrane.basic-components/textarea))
   ,)
 
 (defn- path-replace-fn-call*
