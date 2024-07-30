@@ -152,6 +152,63 @@
   builder)
 
 
+(def
+  ^:private
+  placeholder-alignments
+  [ ;; Match the baseline of the placeholder with the baseline.
+   :baseline
+   ;; Align the bottom edge of the placeholder with the baseline such that the
+   ;; placeholder sits on top of the baseline.
+   :above-baseline
+   
+   ;; Align the top edge of the placeholder with the baseline specified in
+   ;; such that the placeholder hangs below the baseline.
+   :below-baseline
+
+   ;; Align the top edge of the placeholder with the top edge of the font.
+   ;; When the placeholder is very tall, the extra space will hang from
+   ;; the top and extend through the bottom of the line.
+   :top
+
+   ;; Align the bottom edge of the placeholder with the top edge of the font.
+   ;; When the placeholder is very tall, the extra space will rise from
+   ;; the bottom and extend through the top of the line.
+   :bottom
+
+   ;; Align the middle of the placeholder with the middle of the text. When the
+   ;; placeholder is very tall, the extra space will grow equally from
+   ;; the top and bottom of the line.
+   :middle])
+
+(def ^:private ->placeholder-alignment
+  (into {}
+        (map-indexed
+         (fn [i kw]
+           [kw (int i)]))
+        placeholder-alignments))
+
+(def ^:private
+  ->text-baseline
+  {:alphabetic 0 
+   :ideographic 1})
+
+;; void skia_ParagraphBuilder_addPlaceholder2(ParagraphBuilder *pb, float width, float height, int alignment, int baseline, float offset){
+(defc skia_ParagraphBuilder_addPlaceholder2 membraneskialib void [builder width height alignment baseline offset])
+(defn- skia-ParagraphBuilder-addPlaceholder2 [builder placeholder]
+  (assert (pointer? builder))
+  (let [width (float (:width placeholder))
+        height (float (:height placeholder))
+        alignment (or (->placeholder-alignment (:alignment placeholder))
+                      (int 0))
+        _ (assert alignment)
+        baseline (or (->text-baseline (:baseline placeholder))
+                     0)
+        offset (float (or (:offset placeholder)
+                          0))]
+   (skia_ParagraphBuilder_addPlaceholder2 builder width height alignment baseline offset))
+  builder)
+
+
 (defc skia_Paragraph_delete membraneskialib void [p])
 (defc skia_ParagraphBuilder_build membraneskialib Pointer [builder])
 (defn- skia-ParagraphBuilder-build [builder]
@@ -518,21 +575,100 @@
   paragraph)
 ;; virtual void paint(ParagraphPainter* painter, SkScalar x, SkScalar y) = 0;
 
+(def rect-height-styles
+  [ ;; Provide tight bounding boxes that fit heights per run.
+   :tight
+
+   ;; The height of the boxes will be the maximum height of all runs in the
+   ;; line. All rects in the same line will be the same height.
+   :max
+
+   ;; Extends the top and/or bottom edge of the bounds to fully cover any line
+   ;; spacing. The top edge of each line should be the same as the bottom edge
+   ;; of the line above. There should be no gaps in vertical coverage given any
+   ;; ParagraphStyle line_height.
+   ;;
+   ;; The top and bottom of each rect will cover half of the
+   ;; space above and half of the space below the line.
+   :including-line-spacing-middle
+   ;; The line spacing will be added to the top of the rect.
+   :include-line-spacing-top
+   ;; The line spacing will be added to the bottom of the rect.
+   :include-line-spacing-bottom
+   ;;
+   :strut
+   ])
+(def ^:private
+  ->rect-height-style
+  (into {}
+        (map-indexed (fn [i k]
+                       [k (int i)]))
+        rect-height-styles))
+
+(def rect-width-styles
+  [;; Provide tight bounding boxes that fit widths to the runs of each line
+   ;; independently.
+   :tight
+
+   ;; Extends the width of the last rect of each line to match the position of
+   ;; the widest rect over all the lines.
+   :max])
+
+(def ^:private
+  ->rect-width-style
+  (into {}
+        (map-indexed (fn [i k]
+                       [k (int i)]))
+        rect-width-styles))
+
 ;; // Returns a vector of bounding boxes that enclose all text between
 ;; // start and end glyph indexes, including start and excluding end
 ;; virtual std::vector<TextBox> getRectsForRange(unsigned start,
 ;;                                               unsigned end,
 ;;                                               RectHeightStyle rectHeightStyle,
 ;;                                               RectWidthStyle rectWidthStyle) = 0;
-#_#_(defc skia_Paragraph_getRectsForRange membraneskialib Pointer [paragraph start end rect-style-height rect-style-width])
+(defc skia_Paragraph_getRectsForRange membraneskialib Integer/TYPE [paragraph start end rect-style-height rect-style-width buf max])
 (defn- skia-Paragraph-getRectsForRange [paragraph start end rect-style-height rect-style-width]
   (assert (pointer? paragraph))
-  (skia_Paragraph_getRectsForRange paragraph))
+  (let [buf (ffi-buf)
+        rect-size (* 4 4)
+        max (quot (.size buf)
+                  rect-size)
+
+        n (skia_Paragraph_getRectsForRange paragraph start end
+                                           (or (->rect-height-style rect-style-height)
+                                               (int 0))
+                                           (or (->rect-width-style rect-style-width)
+                                               (int 0))
+                                           buf max)]
+    (into []
+          (map (fn [i]
+                 {:x       (.getFloat  buf  (+  (*  4  0)  (*  rect-size  i)))
+                  :y       (.getFloat  buf  (+  (*  4  1)  (*  rect-size  i)))
+                  :width   (.getFloat  buf  (+  (*  4  2)  (*  rect-size  i)))
+                  :height  (.getFloat  buf  (+  (*  4  3)  (*  rect-size  i)))}))
+          (range n))
+    
+    ))
 ;; virtual std::vector<TextBox> getRectsForPlaceholders() = 0;
-#_#_(defc skia_Paragraph_getRectsForPlaceHolders membraneskialib Pointer [paragraph])
-(defn- skia-Paragraph-getRectsForPlaceHolders [paragraph]
+
+(defc skia_Paragraph_getRectsForPlaceholders membraneskialib Integer/TYPE [paragraph buf max])
+(defn- skia-Paragraph-getRectsForPlaceholders [paragraph]
   (assert (pointer? paragraph))
-  (skia_Paragraph_getRectsForPlaceHolders paragraph))
+  (let [buf (ffi-buf)
+        rect-size (* 4 4)
+        max (quot (.size buf)
+                  rect-size)
+        n (skia_Paragraph_getRectsForPlaceholders paragraph buf max )]
+    (into []
+          (map (fn [i]
+                 {:x       (.getFloat  buf  (+  (*  4  0)  (*  rect-size  i)))
+                  :y       (.getFloat  buf  (+  (*  4  1)  (*  rect-size  i)))
+                  :width   (.getFloat  buf  (+  (*  4  2)  (*  rect-size  i)))
+                  :height  (.getFloat  buf  (+  (*  4  3)  (*  rect-size  i)))}))
+          (range n))
+    
+    ))
 ;; // Returns the index of the glyph that corresponds to the provided coordinate,
 ;; // with the top left corner as the origin, and +y direction as down
 ;; virtual PositionWithAffinity getGlyphPositionAtCoordinate(SkScalar dx, SkScalar dy) = 0;
@@ -556,10 +692,11 @@
   (assert (pointer? paragraph))
   (skia_Paragraph_getWordBoundary paragraph))
 ;; virtual void getLineMetrics(std::vector<LineMetrics>&) = 0;
-#_#_(defc skia_Paragraph_getLineMetrics membraneskialib void [paragraph metrics])
-(defn- skia-Paragraph-getLineMetrics [paragraph metrics]
-  (assert (pointer? paragraph))
-  (skia_Paragraph_getLineMetrics paragraph))
+
+;; (defc skia_Paragraph_getLineMetrics membraneskialib void [paragraph metrics])
+;; (defn- skia-Paragraph-getLineMetrics [paragraph]
+;;   (assert (pointer? paragraph))
+;;   (skia_Paragraph_getLineMetrics paragraph))
 
 
 (defc skia_count_font_families membraneskialib Integer/TYPE [])
@@ -605,7 +742,7 @@
                  :text-style/typeface style
                  :text-style/foreground style
                  :text-style/shadows style
-                 :text-style/background-color style
+                 :text-style/background-color (skia-TextStyle-setBackgroundColor style (skia/->SkPaint v))
 
                  ;; else
                  style))
@@ -646,13 +783,16 @@
   (reduce add-text builder xs))
 
 (defmethod add-text clojure.lang.IPersistentMap [pb chunk]
-  (if-let [style (:style chunk)]
+  (if-let [text (:text chunk)]
+    (if-let [style (:style chunk)]
       (doto pb
         (skia-ParagraphBuilder-pushStyle (->TextStyle style))
-        (skia-ParagraphBuilder-addText (:text chunk))
+        (skia-ParagraphBuilder-addText text)
         (skia-ParagraphBuilder-pop))
       (doto pb
-        (skia-ParagraphBuilder-addText (:text chunk)))))
+        (skia-ParagraphBuilder-addText text)))
+    (when-let [placeholder (:placeholder chunk)]
+      (skia-ParagraphBuilder-addPlaceholder2 pb placeholder))))
 
 (defn- default-paragraph-style []
   (let [text-style (doto (skia-TextStyle-make)
@@ -680,7 +820,25 @@
 
 (def ^:private make-paragraph (memoize make-paragraph*))
 
+(defprotocol IParagraph
+  (get-rects-for-placeholders [para])
+  (get-rects-for-range [para start end height-style width-style])
+  (glyph-position-at-coordinate [para x y]))
+
 (defrecord Paragraph [paragraph width paragraph-style]
+  IParagraph
+  (get-rects-for-range [_ start end height-style width-style]
+    (skia-Paragraph-getRectsForRange
+     (make-paragraph paragraph width paragraph-style)
+     start end height-style width-style))
+  (get-rects-for-placeholders [_]
+    (skia-Paragraph-getRectsForPlaceholders (make-paragraph paragraph width paragraph-style)))
+  (glyph-position-at-coordinate
+    [_ x y]
+    (skia-Paragraph-getGlyphPositionAtCoordinate
+     (make-paragraph paragraph width paragraph-style)
+     x y))
+
   ui/IOrigin
   (-origin [this]
     [0 0])

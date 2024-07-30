@@ -966,9 +966,34 @@
   IDraw
   (draw [this]
     (Skia/skia_draw_rounded_rect *skia-resource*
-                            (float (:width this))
-                            (float (:height this))
-                            (float (:border-radius this)))))
+                                 (float (:width this))
+                                 (float (:height this))
+                                 (float (:border-radius this)))))
+
+
+;; works, but not sure about API
+;; (defc skia_draw_rounded_rect_nine_patch membraneskialib Void/TYPE [skia-resource w h left-rad top-rad right-rad bottom-rad])
+;; (defrecord RoundedRectangle9 [width height left-rad top-rad right-rad bottom-rad]
+;;   ui/IOrigin
+;;   (-origin [_]
+;;     [0 0])
+;;   ui/IBounds
+;;   (-bounds [this]
+;;     [width height])
+
+;;   IDraw
+;;   (draw [this]
+;;     (skia_draw_rounded_rect_nine_patch *skia-resource*
+;;                                  width height left-rad top-rad right-rad bottom-rad)))
+
+;; (defn rounded-rectangle9 [width height left-rad top-rad right-rad bottom-rad]
+;;   (->RoundedRectangle9
+;;    (float width)
+;;    (float height)
+;;    (float left-rad)
+;;    (float top-rad)
+;;    (float right-rad)
+;;    (float bottom-rad)))
 
 
 (extend-type membrane.ui.WithColor
@@ -977,9 +1002,9 @@
     (let [color (:color this)]
       (binding [*paint* (assoc *paint* ::color color)]
         (push-paint
-         (skia-set-color *skia-resource* color)
-         (doseq [drawable (:drawables this)]
-           (draw drawable)))))))
+          (skia-set-color *skia-resource* color)
+          (doseq [drawable (:drawables this)]
+            (draw drawable)))))))
 
 
 (defc skia_set_scale membraneskialib Void/TYPE [skia-resource sx sy])
@@ -1061,8 +1086,13 @@
     [(.getValue width)
      (.getValue height)]))
 
+(defc skia_SkSVGDOM_set_container_size membraneskialib void [svg width height])
+(defn- skia-SkSVGDOM-set-container-size [svg width height]
+  (assert (instance? Pointer svg))
+  (skia_SkSVGDOM_set_container_size svg (float width) (float height)))
+
 (defprotocol SVGFactory
-  "gets or creates an opengl image texture given some various types"
+  "gets or creates an SVGDOM given some various types"
   :extend-via-metadata true
   (get-svg-dom [x]))
 
@@ -1088,38 +1118,306 @@
            svg* (skia-SkSVGDOM-make stream)]
        svg*))})
 
-(defn- load-svg [svg]
-  (if-let [svg* (get @*image-cache* svg)]
+(defn- load-svg [svg container-size]
+  (if-let [svg* (get @*image-cache* [svg container-size])]
     svg*
-    (let [svg* (get-svg-dom svg)]
-      (swap! *image-cache* assoc svg svg*)
+    (let [svg* (get-svg-dom svg)
+          svg* (if container-size
+                 (let [[w h] container-size]
+                   (skia-SkSVGDOM-set-container-size svg* w h)
+                   svg*)
+                 svg*)]
+      (swap! *image-cache* assoc [svg container-size] svg*)
       svg*)))
 
-(defrecord SVG [svg]
+(defrecord SVG [svg container-size]
   IOrigin
   (-origin [this]
     [0 0])
 
   IBounds
   (-bounds [this]
-    (skia-SkSVGDOM-instrinsic-size (load-svg svg)))
-
+    (if container-size
+      container-size
+      (skia-SkSVGDOM-instrinsic-size (load-svg svg container-size))))
+  
   IDraw
   (draw [this]
-    (skia-SkSVGDOM-render (load-svg svg) *skia-resource*)))
+    (let [svg* (load-svg svg container-size)
+          [w h] (skia-SkSVGDOM-instrinsic-size svg*)]
+      (if (and container-size
+               (pos? w)
+               (pos? h))
+        (let [[cw ch] container-size 
+              sx (/ cw w)
+              sy (/ ch h)]
+          (save-canvas
+            (Skia/skia_set_scale *skia-resource* (float sx) (float sy))
+            (skia-SkSVGDOM-render svg* *skia-resource*)))
+        ;; else
+        (skia-SkSVGDOM-render svg* *skia-resource*)))))
 
 (defn svg
   "Displays an svg element.
 
-  `svg` can be a string representation, a java.io.File, or a utf8-encoded byte array."
-  [svg]
-  (SVG. svg))
+  `svg` can be a string representation, a java.io.File, or a utf8-encoded byte array.
+
+  Optionally, a container size can be provided that is used when the root SVG element
+     is specified in relative units.
+
+  The ui/bounds of SVG elements are always . "
+  ([svg]
+   (SVG. svg nil))
+  ([svg container-size]
+   (SVG. svg container-size)))
 
 (comment
   (run
     (constantly
      (svg (.getBytes (slurp "/Users/adrian/Downloads/Clojure-Logo.wine.svg") "utf-8"))))
   ,)
+
+(defc skia_Paint_delete membraneskialib void [p])
+(defc skia_Paint_make membraneskialib Pointer [])
+
+    ;; void skia_Paint_reset(SkPaint* paint){
+(defc skia_Paint_reset membraneskialib void [paint])
+;; int skia_Paint_isAntiAlias(SkPaint* paint)  {
+(defc skia_Paint_isAntiAlias membraneskialib Integer/TYPE [paint])
+;; void skia_Paint_setAntiAlias(SkPaint* paint, int aa) { paint->setAntiAlias(aa); }
+(defc skia_Paint_setAntiAlias membraneskialib void [paint aa])
+;; int skia_Paint_isDither(SkPaint* paint)  {
+(defc skia_Paint_isDither membraneskialib Integer/TYPE [paint])
+;; void skia_Paint_setDither(SkPaint* paint, int dither) { paint->setDither(dither); }
+(defc skia_Paint_setDither membraneskialib void [paint dither])
+;; void skia_Paint_setStroke(SkPaint* paint, int stroke){
+(defc skia_Paint_setStroke membraneskialib void [paint stroke])
+;; uint32_t skia_Paint_getColor(SkPaint* paint)  { return paint->getColor(); }
+(defc skia_Paint_getColor membraneskialib Integer/TYPE [paint])
+;; void skia_Paint_setColor(SkPaint* paint, uint32_t color){
+(defc skia_Paint_setColor membraneskialib void [paint color])
+;; float skia_Paint_getAlphaf(SkPaint* paint)  { return paint->getAlphaf(); }
+(defc skia_Paint_getAlphaf membraneskialib Float/TYPE [paint])
+;; uint8_t skia_Paint_getAlpha(SkPaint* paint)  {
+(defc skia_Paint_getAlpha membraneskialib Byte/TYPE [paint])
+;; void skia_Paint_setAlphaf(SkPaint* paint, float a){
+(defc skia_Paint_setAlphaf membraneskialib void [paint a])
+;; SkScalar skia_Paint_getStrokeWidth(SkPaint* paint)  { return paint->getStrokeWidth(); }
+(defc skia_Paint_getStrokeWidth membraneskialib Float/TYPE [paint])
+;; void skia_Paint_setStrokeWidth(SkPaint* paint, SkScalar width){
+(defc skia_Paint_setStrokeWidth membraneskialib void [paint width])
+;; SkScalar skia_Paint_getStrokeMiter(SkPaint* paint)  { return paint->getStrokeMiter(); }
+(defc skia_Paint_getStrokeMiter membraneskialib Float/TYPE [paint])
+;; void skia_Paint_setStrokeMiter(SkPaint* paint, SkScalar miter){
+(defc skia_Paint_setStrokeMiter membraneskialib void [paint miter])
+;; // enum Cap {
+;; // enum Join : uint8_t {
+;; int getStrokeCap(SkPaint* paint)  { return paint->getStrokeCap(); }
+(defc getStrokeCap membraneskialib Integer/TYPE [paint])
+;; void skia_Paint_setStrokeCap(SkPaint* paint, int cap){
+(defc skia_Paint_setStrokeCap membraneskialib void [paint cap])
+;; uint8_t skia_Paint_getStrokeJoin(SkPaint* paint)  {
+(defc skia_Paint_getStrokeJoin membraneskialib Byte/TYPE [paint])
+;; void skia_Paint_setStrokeJoin(SkPaint* paint, uint8_t join){
+(defc skia_Paint_setStrokeJoin membraneskialib void [paint join])
+;; int skia_Paint_getBlendMode_or(SkPaint* paint, int defaultMode) {
+(defc skia_Paint_getBlendMode_or membraneskialib Integer/TYPE [paint default-mode])
+;; int skia_Paint_isSrcOver(SkPaint* paint) {
+(defc skia_Paint_isSrcOver membraneskialib Integer/TYPE [paint])
+;; void skia_Paint_setBlendMode(SkPaint* paint, int mode){
+(defc skia_Paint_setBlendMode membraneskialib void [paint mode])
+
+(defc skia_SkColor4f_make membraneskialib Pointer [red green blue alpha])
+(defn- skia-SkColor4f-make [r g b a]
+  (skia_SkColor4f_make
+   (float r)
+   (float g)
+   (float b)
+   (float a)))
+
+(defn ^:private ->color [[r g b a]]
+  (skia_SkColor4f_make (float r)
+                       (float g)
+                       (float b)
+                       (float
+                        (if a
+                          a
+                          1))))
+(defc skia_SkColor4f_getComponents membraneskialib void [color red* green* blue* alpha*])
+(defn <-color [color]
+  (let [red (FloatByReference.)
+        green (FloatByReference.)
+        blue (FloatByReference.)
+        alpha (FloatByReference.)]
+    (skia_SkColor4f_getComponents color red green blue alpha)
+    [(.getValue red)
+     (.getValue green)
+     (.getValue blue)
+     (.getValue alpha)]))
+
+(def sk-blend-modes
+  [:clear     ;; //!< r = 0
+   :src       ;; //!< r = s
+   :dst       ;; //!< r = d
+   :src-over  ;; //!< r = s + (1-sa)*d
+   :dst-over  ;; //!< r = d + (1-da)*s
+   :src-in    ;; //!< r = s * da
+   :dst-in    ;; //!< r = d * sa
+   :src-out   ;; //!< r = s * (1-da)
+   :dst-out   ;; //!< r = d * (1-sa)
+   :src-a-top ;; //!< r = s*da + d*(1-sa)
+   :dst-a-top ;; //!< r = d*sa + s*(1-da)
+   :xor       ;; //!< r = s*(1-da) + d*(1-sa)
+   :plus      ;; //!< r = min(s + d, 1)
+   :modulate  ;; //!< r = s*d
+   :screen    ;; //!< r = s + d - s*d
+
+   :overlay     ;; //!< multiply or screen, depending on destination
+   :darken      ;; //!< rc = s + d - max(s*da, d*sa), ra = kSrcOver
+   :lighten     ;; //!< rc = s + d - min(s*da, d*sa), ra = kSrcOver
+   :color-dodge ;; //!< brighten destination to reflect source
+   :color-burn  ;; //!< darken destination to reflect source
+   :hard-light  ;; //!< multiply or screen, depending on source
+   :soft-light  ;; //!< lighten or darken, depending on source
+   :difference ;; //!< rc = s + d - 2*(min(s*da, d*sa)), ra = kSrcOver
+   :exclusion  ;; //!< rc = s + d - two(s*d), ra = kSrcOver
+   :multiply   ;; //!< r = s*(1-da) + d*(1-sa) + s*d
+
+   :hue ;; //!< hue of source with saturation and luminosity of destination
+   :saturation ;; //!< saturation of source with hue and luminosity of destination
+   :color ;; //!< hue and saturation of source with luminosity of destination
+   :luminosity ;; //!< luminosity of source with hue and saturation of destination
+
+   ;; :LastCoeffMode     = kScreen ;; //!< last porter duff blend mode
+   ;; :LastSeparableMode = kMultiply ;; //!< last blend mode operating separately on components
+   ;; :LastMode          = kLuminosity ;; //!< last valid value
+   ])
+
+(def ^:private ->blend-mode
+  (into {}
+        (map-indexed (fn [i kw]
+                       [kw (int i)]))
+        sk-blend-modes))
+
+(def ^:private <-blend-mode
+  (into {}
+        (map-indexed (fn [i kw]
+                       [(int i) kw]))
+        sk-blend-modes))
+
+
+
+
+    
+;; enum Cap {
+;;     kButt_Cap,                  //!< no stroke extension
+;;     kRound_Cap,                 //!< adds circle
+;;     kSquare_Cap,                //!< adds square
+;;     kLast_Cap    = kSquare_Cap, //!< largest Cap value
+;;     kDefault_Cap = kButt_Cap,   //!< equivalent to kButt_Cap
+;; };
+
+(def skpaint-stroke-caps
+  [:butt
+   :round
+   :square])
+
+(def ^:private ->cap
+  (into {}
+        (map-indexed (fn [i kw]
+                       [kw (int i)]))
+        skpaint-stroke-caps))
+
+(def ^:private <-cap
+  (into {}
+        (map-indexed (fn [i kw]
+                       [(int i) kw]))
+        skpaint-stroke-caps))
+
+
+;; enum Join : uint8_t {
+;;     kMiter_Join,                 //!< extends to miter limit
+;;     kRound_Join,                 //!< adds circle
+;;     kBevel_Join,                 //!< connects outside edges
+;;     kLast_Join    = kBevel_Join, //!< equivalent to the largest value for Join
+;;     kDefault_Join = kMiter_Join, //!< equivalent to kMiter_Join
+;; };
+
+(def skpaint-joins
+  [:miter
+   :round
+   :bevel])
+
+(def ^:private ->join
+  (into {}
+        (map-indexed (fn [i kw]
+                       [kw (int i)]))
+        skpaint-joins))
+
+(def ^:private <-join
+  (into {}
+        (map-indexed (fn [i kw]
+                       [(int i) kw]))
+        skpaint-joins))
+
+
+
+(defn ^:private ->bool [b]
+  (if b
+    (int 1)
+    (int 0)))
+
+(defn ^:private <-bool [i]
+  (not (zero? i)))
+
+
+
+(defn- skia-Paint-make []
+  (add-cleaner
+   Paint
+   (proxy [Pointer
+           clojure.lang.ILookup]
+       [(Pointer/nativeValue (skia_Paint_make))]
+
+       (valAt [k]
+         (case k
+           :anti-alias? (<-bool (skia_Paint_isAntiAlias this))
+           :dither? (<-bool (skia_Paint_isDither this))
+           :color (<-color (skia_Paint_getColor this))
+           :alpha (skia_Paint_getAlphaf this)
+           :stroke-width (skia_Paint_getStrokeWidth this)
+           :stroke-miter (skia_Paint_getStrokeMiter this)
+           :stroke-cap (<-cap (getStrokeCap this))
+           :stroke-join (<-join (skia_Paint_getStrokeJoin this))
+           :blend-mode (<-blend-mode (skia_Paint_getBlendMode_or this -1))
+           ;; else
+           nil))
+       )))
+
+(defn ->SkPaint
+  ([m]
+   (->SkPaint (skia-Paint-make)
+              m))
+  ([paint m]
+   (reduce-kv (fn [paint k v]
+                (case k
+                  :anti-alias? (skia_Paint_setAntiAlias paint (->bool v))
+                  :dither? (skia_Paint_setDither paint (->bool v))
+                  :stroke? (skia_Paint_setStroke paint (->bool v))
+                  :color (skia_Paint_setColor paint (->color v))
+                  :alpha (skia_Paint_setAlphaf paint (float v))
+                  :stroke-width (skia_Paint_setStrokeWidth paint (float v))
+                  :stroke-miter (skia_Paint_setStrokeMiter paint (float v))
+                  :stroke-cap (skia_Paint_setStrokeCap paint (->cap v))
+                  :stroke-join (skia_Paint_setStrokeJoin paint (->join v))
+                  :blend-mode (skia_Paint_setBlendMode paint (->blend-mode v))
+
+                  ;; else
+                  nil)
+                paint)
+              paint
+              m)))
+
 
 (def ^:dynamic *origin* [0 0 0])
 (def ^:dynamic *view* nil )
@@ -2467,5 +2765,4 @@
 
 (defn -main [& args]
   (run-sync #(test-skia)))
-
 

@@ -637,6 +637,13 @@ extern "C" {
         resource->surface->getCanvas()->drawRRect(rrect, resource->getPaint());
     }
 
+    // works, but not sure about API
+    // void skia_draw_rounded_rect_nine_patch(SkiaResource* resource, float width, float height, float leftRad, float topRad, float rightRad, float bottomRad){
+    //     SkRRect rrect;
+    //     rrect.setNinePatch({0, 0, width, height}, leftRad, topRad, rightRad, bottomRad);
+    //     resource->surface->getCanvas()->drawRRect(rrect, resource->getPaint());
+    // }
+
     void skia_push_paint(SkiaResource* resource){
         resource->pushPaint();
     }
@@ -757,6 +764,14 @@ extern "C" {
         return color.toSkColor();
     }
 
+    void skia_SkColor4f_getComponents(SkColor color, float* red, float* green, float* blue, float* alpha){
+        SkColor4f colorf = SkColor4f::FromColor(color);
+        *red = colorf.fR;
+        *green = colorf.fG;
+        *blue = colorf.fB;
+        *alpha = colorf.fA;
+    }
+
     void skia_SkRefCntBase_ref(SkRefCntBase* o){
         o->ref();
     }
@@ -787,9 +802,18 @@ extern "C" {
     void skia_ParagraphBuilder_addText(ParagraphBuilder *pb, char* text, int len){
         pb->addText(text, len);
     }
+
     void skia_ParagraphBuilder_addPlaceholder(ParagraphBuilder *pb, PlaceholderStyle* placeholderStyle){
         pb->addPlaceholder(*placeholderStyle);
     }
+
+    // PlaceholderStyle(SkScalar width, SkScalar height, PlaceholderAlignment alignment,
+    //                  TextBaseline baseline, SkScalar offset)
+    void skia_ParagraphBuilder_addPlaceholder2(ParagraphBuilder *pb, float width, float height, int alignment, int baseline, float offset){
+        PlaceholderStyle style(width, height, (PlaceholderAlignment)alignment, (TextBaseline)baseline, offset);
+        pb->addPlaceholder(style);
+    }
+
 
     void skia_Paragraph_delete(Paragraph* p){
         delete p;
@@ -1060,7 +1084,48 @@ extern "C" {
     // ;;                                               RectHeightStyle rectHeightStyle,
     // ;;                                               RectWidthStyle rectWidthStyle) = 0;
 //    skia_Paragraph_getRectsForRange(Paragraph* para);
+    int skia_Paragraph_getRectsForRange(Paragraph* para, int start, int end, int rectHeightStyle, int rectWidthStyle, float* buf, int max){
+        auto boxes = para->getRectsForRange(start, end, (RectHeightStyle)rectHeightStyle, (RectWidthStyle)rectWidthStyle);
+        int cnt = std::min(boxes.size(), (size_t)max);
+        for( int i = 0; i < cnt; i++){
+            TextBox tb(boxes[i]);
+            SkRect rect(tb.rect);
+            buf[i*4+0] = rect.x();
+            buf[i*4+1] = rect.y();
+            buf[i*4+2] = rect.width();
+            buf[i*4+3] = rect.height();
+            
+        }
+
+        return cnt;
+        
+    }
+
+
+// struct TextBox {
+//     SkRect rect;
+//     TextDirection direction;
+
+//     TextBox(SkRect r, TextDirection d) : rect(r), direction(d) {}
+// };
     // ;; virtual std::vector<TextBox> getRectsForPlaceholders() = 0;
+    int skia_Paragraph_getRectsForPlaceholders(Paragraph* para, float* buf, int max){
+        
+        auto boxes = para->getRectsForPlaceholders();
+        int cnt = std::min(boxes.size(), (size_t)max);
+        for( int i = 0; i < cnt; i++){
+            TextBox tb(boxes[i]);
+            SkRect rect(tb.rect);
+            buf[i*4+0] = rect.x();
+            buf[i*4+1] = rect.y();
+            buf[i*4+2] = rect.width();
+            buf[i*4+3] = rect.height();
+            
+        }
+
+        return cnt;
+    }
+
 //    skia_Paragraph_getRectsForPlaceHolders(Paragraph* para);
     // ;; // Returns the index of the glyph that corresponds to the provided coordinate,
     // ;; // with the top left corner as the origin, and +y direction as down
@@ -1118,6 +1183,10 @@ extern "C" {
         svg->render(resource->surface->getCanvas());
     }
 
+    void skia_SkSVGDOM_set_container_size(SkSVGDOM* svg, float width, float height){
+        svg->setContainerSize(SkSize::Make(width, height));
+    }
+
     void skia_SkSVGDOM_instrinsic_size(SkSVGDOM* svg, float *width, float *height){
         SkSize size = svg->getRoot()->intrinsicSize(SkSVGLengthContext(SkSize::Make(0, 0)));
         *width = size.width();
@@ -1139,19 +1208,19 @@ extern "C" {
         paint->reset();
     }
 
-    bool skia_Paint_isAntiAlias(SkPaint* paint)  {
+    int skia_Paint_isAntiAlias(SkPaint* paint)  {
         return paint->isAntiAlias();
     }
 
-    void skia_Paint_setAntiAlias(SkPaint* paint, bool aa) { paint->setAntiAlias(aa); }
+    void skia_Paint_setAntiAlias(SkPaint* paint, int aa) { paint->setAntiAlias(aa); }
 
-    bool skia_Paint_isDither(SkPaint* paint)  {
+    int skia_Paint_isDither(SkPaint* paint)  {
         return paint->isDither();
     }
 
-    void skia_Paint_setDither(SkPaint* paint, bool dither) { paint->setDither(dither); }
+    void skia_Paint_setDither(SkPaint* paint, int dither) { paint->setDither(dither); }
 
-    void skia_Paint_setStroke(SkPaint* paint, bool stroke){
+    void skia_Paint_setStroke(SkPaint* paint, int stroke){
         paint->setStroke(stroke);
     }
 
@@ -1217,7 +1286,7 @@ extern "C" {
         return (int)paint->getBlendMode_or((SkBlendMode)defaultMode);
     };
 
-    bool skia_Paint_isSrcOver(SkPaint* paint) {
+    int skia_Paint_isSrcOver(SkPaint* paint) {
         return paint->isSrcOver();
     }
 
