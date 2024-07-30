@@ -139,9 +139,15 @@
   (when (= ::drag-start (first intent))
     intent))
 
+;; drag start event
+;; :drop-object
+;; 
+;; :pending
+
 (defui drag-and-drop [{:keys [body
                               pending-intents
                               pending-drop-object
+                              pending-init-intents
                               drag-start
                               ^:membrane.component/contextual
                               drop-object]}]
@@ -156,6 +162,7 @@
                     pending-intents)
                    [[:set $drag-start nil]
                     [:set $pending-intents nil]
+                    [:set $pending-init-intents nil]
                     [:set $pending-drop-object nil]]
                    (handler mpos)))
                 :mouse-move
@@ -163,10 +170,12 @@
                   (when (> (+ (abs (- mx (first drag-start)))
                               (abs (- my (second drag-start))))
                            4)
-                    [[:set $drag-start nil]
-                     [:set $pending-intents nil]
-                     [:set $pending-drop-object nil]
-                     [:set $drop-object pending-drop-object]]))
+                    (into [[:set $drag-start nil]
+                           [:set $pending-intents nil]
+                           [:set $pending-drop-object nil]
+                           [:set $pending-init-intents nil]
+                           [:set $drop-object pending-drop-object]]
+                          pending-init-intents)))
                 body)
 
                drop-object
@@ -188,9 +197,11 @@
                         drag-start-intent (some drag-start?
                                                 intents)]
                     (if drag-start-intent
-                      [[:set $drag-start mpos]
-                       [:set $pending-intents intents]
-                       [:set $pending-drop-object (nth drag-start-intent 1)]]
+                      (let [m (nth drag-start-intent 1)]
+                        [[:set $drag-start mpos]
+                         [:set $pending-intents intents]
+                         [:set $pending-init-intents (::init m)]
+                         [:set $pending-drop-object (::obj m)]])
                       ;; else
                       intents)))
                 body))]
