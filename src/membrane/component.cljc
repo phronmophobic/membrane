@@ -499,7 +499,7 @@
                                    (symbol (str "$" (name val-sym)))))
                                ;; not an $arg
                                (get call-arg arg
-                                    (if (= 'context arg)
+                                    (if (= :context arg)
                                       'context
                                       (if (contextual? arg)
                                         ;; should contextual state also check defaults?
