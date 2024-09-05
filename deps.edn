@@ -18,6 +18,7 @@
   "sonatype-oss-public" {:url "https://oss.sonatype.org/content/groups/public/"}}
  :aliases
  {:build {:deps {io.github.clojure/tools.build {:mvn/version "0.10.0"}
+                 org.clojure/data.json {:mvn/version "2.5.0"}
                  slipset/deps-deploy {:mvn/version "RELEASE"}}
           :ns-default build}
 
@@ -157,6 +158,18 @@
    :exec-args {:platform "macos"
                :arch "arm64"}
    :ns-default build}
+
+  :native-image
+  {:extra-paths ["native-image/src"]
+   :jvm-opts ["-Dtech.v3.datatype.graal-native=true"
+              "-Dclojure.compiler.direct-linking=true"
+              "-Dclojure.spec.skip-macros=true"]
+   :extra-deps {com.github.clj-easy/graal-build-time {:mvn/version "1.0.5"}
+                com.phronemophobic.membrane/skialib-macosx-aarch64 {;; :mvn/version "RELEASE"
+                                                                 :local/root "csource/macos-aarch64"
+                                                                 ;; :mvn/version "0.14-beta"
+                                                                 }}
+   }
 
 
   ,}}

@@ -49,6 +49,13 @@
            com.phronemophobic.membrane.Skia)
   (:gen-class))
 
+(defmacro building-graalvm-image? []
+   (try
+     (import 'org.graalvm.nativeimage.ImageInfo)
+     `(org.graalvm.nativeimage.ImageInfo/inImageBuildtimeCode)
+     (catch ClassNotFoundException e
+       false)))
+
 (defmacro print-timing [& body]
   `(let [threadmx-bean# (java.lang.management.ManagementFactory/getThreadMXBean)
          before-time# (.getCurrentThreadUserTime threadmx-bean#)
@@ -65,33 +72,37 @@
 (def ^:private main-class-loader @clojure.lang.Compiler/LOADER)
 
 (def ^:private
-  opengl (try
-           (com.sun.jna.NativeLibrary/getInstance "opengl")
-           (catch java.lang.UnsatisfiedLinkError e
-             (try
-               (com.sun.jna.NativeLibrary/getInstance "GL")
-               (catch java.lang.UnsatisfiedLinkError e
-                 (try
-                   (com.sun.jna.NativeLibrary/getInstance "OpenGL")
-                   (catch java.lang.UnsatisfiedLinkError e
-                     nil)))))))
+  opengl (delay
+           (try
+             (com.sun.jna.NativeLibrary/getInstance "opengl")
+             (catch java.lang.UnsatisfiedLinkError e
+               (try
+                 (com.sun.jna.NativeLibrary/getInstance "GL")
+                 (catch java.lang.UnsatisfiedLinkError e
+                   (try
+                     (com.sun.jna.NativeLibrary/getInstance "OpenGL")
+                     (catch java.lang.UnsatisfiedLinkError e
+                       nil))))))))
 (def ^:private
-  objlib (try
-           (com.sun.jna.NativeLibrary/getInstance "CoreFoundation")
-           (catch java.lang.UnsatisfiedLinkError e
-             nil)))
+  objlib (delay
+           (try
+             (com.sun.jna.NativeLibrary/getInstance "CoreFoundation")
+             (catch java.lang.UnsatisfiedLinkError e
+               nil))))
 
 ;; These libraries is absolutely necessary to show windows, but it's crashing the documentation generator
 (def ^:private
-  glfw (try
-         (com.sun.jna.NativeLibrary/getInstance "glfw")
-         (catch java.lang.UnsatisfiedLinkError e
-           nil)))
+  glfw (delay
+         (try
+           (com.sun.jna.NativeLibrary/getInstance "glfw")
+           (catch java.lang.UnsatisfiedLinkError e
+             nil))))
 (def ^:private
-  membraneskialib (try
-                    (com.sun.jna.NativeLibrary/getInstance "membraneskia")
-                    (catch java.lang.UnsatisfiedLinkError e
-                      nil)))
+  membraneskialib (delay
+                    (try
+                      (com.sun.jna.NativeLibrary/getInstance "membraneskia")
+                      (catch java.lang.UnsatisfiedLinkError e
+                        nil))))
 
 (def ffi-buf*
   (ThreadLocal/withInitial
@@ -117,15 +128,19 @@
   ([fn-name lib ret]
    `(defc ~fn-name ~lib ~ret []))
   ([fn-name lib ret args]
-   (let [cfn-sym (with-meta (gensym "cfn") {:tag 'com.sun.jna.Function})]
-     `(if ~lib
-        (let [~cfn-sym (.getFunction ~(with-meta lib {:tag 'com.sun.jna.NativeLibrary})
-                                     ~(name fn-name))]
-          (defn- ~fn-name [~@args]
-            (.invoke ~cfn-sym
-                     ~ret (to-array [~@args]))))
+   (let [cfn-sym (gensym "cfn")
+         cfn (with-meta
+               (list `deref cfn-sym)
+               {:tag 'com.sun.jna.Function})
+         lib-sym (gensym "lib")]
+     `(let [~cfn-sym (delay
+                       (if-let [~lib-sym (deref ~lib)]
+                         (.getFunction ~(with-meta lib-sym {:tag 'com.sun.jna.NativeLibrary})
+                                       ~(name fn-name))
+                         (throw (Exception. (str ~(name fn-name) " not loaded.")))))]
         (defn- ~fn-name [~@args]
-          (throw (Exception. (str ~(name fn-name) " not loaded."))))))))
+          (.invoke ~cfn
+                   ~ret (to-array [~@args])))))))
 
 (defmacro if-class
   ([class-name then]
@@ -479,7 +494,7 @@
       (skia-font-family-name
        (get-font (ui/font skia-logical-font 12))))))
 
-(defc glGetError opengl Integer/TYPE)
+
 (defc skia_render_line membraneskialib Void/TYPE [resource font-ptr line text-length x y])
 (defc skia_next_line membraneskialib Void/TYPE [resource font-ptr])
 (def byte-array-class (type (byte-array 0)))
@@ -1472,23 +1487,6 @@
 
 (declare vertical-layout horizontal-layout)
 
-
-(def ^com.sun.jna.Function getClass
-  (when objlib
-    (.getFunction ^com.sun.jna.NativeLibrary objlib "objc_getClass")))
-(def ^com.sun.jna.Function argv
-  (when objlib
-    (.getFunction ^com.sun.jna.NativeLibrary objlib "_NSGetArgv")))
-(def ^com.sun.jna.Function argc
-  (when objlib
-    (.getFunction ^com.sun.jna.NativeLibrary objlib "_NSGetArgc")))
-
-
-(try
-  (defc skia_osx_run_on_main_thread_sync membraneskialib void [callback])
-  (catch java.lang.UnsatisfiedLinkError e
-    (def skia_osx_run_on_main_thread_sync nil)))
-
 (deftype DispatchCallback [f]
   com.sun.jna.CallbackProxy
   (getParameterTypes [_]
@@ -1517,17 +1515,35 @@
 
 
 
-(defn- dispatch-sync! [f]
-  (if-class com.apple.concurrent.Dispatch
-    (.execute (.getBlockingMainQueueExecutor (eval '(com.apple.concurrent.Dispatch/getInstance)))
-              f)
-    (if skia_osx_run_on_main_thread_sync
-      (let [callback (DispatchCallback. f)]
-        (skia_osx_run_on_main_thread_sync callback)
-        ;; please don't garbage collect me while i'm running
-        (identity callback))
-      (f)))
-  nil)
+(if (building-graalvm-image?)
+  ;; native image calls -main on the main thread already
+  ;;   using the normal skia_osx_run_on_main_thread_sync
+  ;;   causes the thread to lock up.
+  ;;   therefore, we just assume skia/run-sync is called on the main thread.
+  (defn- dispatch-sync! [f]
+    (f))
+  (let [skia_osx_run_on_main_thread_sync
+        (delay
+          (try
+            (let [f (.getFunction @membraneskialib "skia_osx_run_on_main_thread_sync")]
+              (fn [callback]
+                (.invoke ^com.sun.jna.Function
+                         f
+                         void
+                         (to-array [callback]))))
+            (catch java.lang.UnsatisfiedLinkError e
+              nil)))]
+    (defn- dispatch-sync! [f]
+      (if-class com.apple.concurrent.Dispatch
+        (.execute (.getBlockingMainQueueExecutor (eval '(com.apple.concurrent.Dispatch/getInstance)))
+                  f)
+        (if-let [skia_osx_run_on_main_thread_sync @skia_osx_run_on_main_thread_sync]
+          (let [callback (DispatchCallback. f)]
+            (skia_osx_run_on_main_thread_sync callback)
+            ;; please don't garbage collect me while i'm running
+            (identity callback))
+          (f)))
+      nil)))
 
 ;; (.invoke getClass Pointer   (to-array ["NSAutoreleasePool"]))
 
@@ -1552,10 +1568,11 @@
   (jna/invoke Pointer CoreFoundation/sel_registerName sel))
 
 
-(defmacro def-objc-class [kls]
-  `(let [result# (.invoke getClass Pointer (to-array [~(name kls)]))]
+(defmacro get-objc-class [kls]
+  `(let [getClass# (.getFunction ^com.sun.jna.NativeLibrary @objlib "objc_getClass")
+         result# (.invoke getClass# Pointer (to-array [~(name kls)]))]
      (assert result# (str "No Class found for " ~(name kls)))
-     (def ~kls result#)))
+     result#))
 (defmacro objc-call [obj return-type sel & args]
   (let [sel-sym (gensym "sel_")]
     `(let [ ;; NSUserDefaults (.invoke getClass Pointer   (to-array ["NSUserDefaults"]))
@@ -1565,17 +1582,17 @@
       (jna/invoke ~return-type CoreFoundation/objc_msgSend ~obj ~sel-sym ~@args)))
   )
 
-(when objlib
-  (def-objc-class NSUserDefaults)
-  (def-objc-class NSNumber)
-  (def-objc-class NSDictionary))
-
 ;; (objc-call standard-user-defaults Pointer "objectForKey:" (nsstring "ApplePressAndHoldEnabled"))
 (defn- fix-press-and-hold! []
-  (when objlib
-    (let [defaults (objc-call NSDictionary Pointer "dictionaryWithObject:forKey:"
-                              (objc-call NSNumber Pointer "numberWithBool:" (char 0))
-                              (nsstring "ApplePressAndHoldEnabled"))
+  (when @objlib
+    (let [
+          NSDictionary (get-objc-class NSDictionary)
+          NSNumber (get-objc-class NSNumber)
+          NSUserDefaults (get-objc-class NSUserDefaults)
+
+          defaults (objc-call NSDictionary Pointer "dictionaryWithObject:forKey:"
+                     (objc-call NSNumber Pointer "numberWithBool:" (char 0))
+                     (nsstring "ApplePressAndHoldEnabled"))
           standard-user-defaults (objc-call NSUserDefaults Pointer "standardUserDefaults")]
       (objc-call standard-user-defaults void "registerDefaults:" defaults))))
 
@@ -1602,19 +1619,18 @@
 
 (defmacro glfw-call [ret fn-name & args]
   `(.invoke ^com.sun.jna.Function
-            (.getFunction ^com.sun.jna.NativeLibrary glfw ~(name fn-name))
+            (.getFunction ^com.sun.jna.NativeLibrary @glfw ~(name fn-name))
             ~ret
             (to-array (vector ~@args))))
 
 (defn- glfw-post-empty-event []
   (glfw-call void glfwPostEmptyEvent))
 
-(defmacro gl
+#_(defmacro gl
   ([fn-name]
    `(gl ~fn-name []))
   ([fn-name args]
    `(jna/invoke void ~(symbol "opengl" (name fn-name)) ~@args)))
-
 
 (declare sx sy)
 
