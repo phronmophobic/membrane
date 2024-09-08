@@ -34,7 +34,6 @@
 
             )
   (:import tech.v3.datatype.native_buffer.NativeBuffer
-           org.graalvm.nativeimage.c.function.CEntryPointLiteral
            java.nio.ByteBuffer)
   
   (:gen-class))
@@ -177,9 +176,12 @@
                                        ['height :float32]
                                        ['radius :float32]]}
 
-   :skia_load_font {:rettype :pointer
-                    :argtypes [['fontfilename :pointer?]
-                               ['fontsize :float32]]}
+   :skia_load_font2 {:rettype :pointer
+                     :argtypes [['fontfilename :pointer?]
+                                ['fontsize :float32]
+                                ['weight :int32]
+                                ['width :int32]
+                                ['slant :int32]]}
 
 
    :skia_push_paint {:rettype :void
@@ -829,15 +831,49 @@
 ;; (intern (the-ns 'membrane.ui) 'index-for-position index-for-position)
 (reset! membrane.ui/index-for-position* index-for-position)
 
+(def font-slants
+  {:upright 1,
+   :italic 2,
+   :oblique 3})
+(def font-weights
+  {:invisible 0
+   :thin 100
+   :extra-light 200
+   :light 300
+   :normal 400
+   :medium 500
+   :semi-bold 600
+   :bold 700
+   :extra-bold 800
+   :black 900
+   :extra-black 1000})
+(def font-widths
+  {:ultracondensed 1
+   :extracondensed 2
+   :condensed 3
+   :semicondensed 4
+   :normal 5
+   :semiexpanded 6
+   :expanded 7
+   :extraexpanded 8
+   :ultraexpanded 9})
 
-(defn- load-font [font-path font-size]
-  (assert (or (string? font-path)
-              (nil? font-path)))
-  (let [font-path-ptr (when font-path
-                        (dt-ffi/string->c font-path))
-        font-ptr (skia_load_font font-path-ptr (float font-size))]
-    (assert font-ptr (str "unable to load font: " font-path " " font-size))
-    font-ptr))
+(defn- load-font
+  ([path size]
+   (load-font path size nil nil nil))
+  ([path size weight width slant]
+   (assert (or (string? path)
+               (nil? path)))
+   (let [weight (get font-weights weight
+                     (or weight -1))
+         width (get font-widths width
+                    (or width -1))
+         slant (get font-slants slant
+                    (or slant -1))
+         font-ptr (skia_load_font2 path (float size) (int weight) (int width) (int slant))]
+     (assert font-ptr (str "unable to load font: " path " " size))
+
+     font-ptr)))
 
 (def ^:dynamic *already-drawing* nil)
 

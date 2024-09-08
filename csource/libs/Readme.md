@@ -101,14 +101,12 @@ bin/gn gen out/Static --args='target_cpu="x86_64" is_official_build=true skia_us
 #  add is_component_build=true for shared
 # shared library doesn't export all symbols needed, but ios app needs shared library. need to build both
 # may need to comment out ios_min app in BUILD.gn
-bin/gn gen out/ios64Static --args='target_os="ios" is_official_build=true skia_use_system_expat=false skia_use_system_harfbuzz=false skia_use_system_icu=false skia_use_system_libjpeg_turbo=false skia_use_system_libpng=false skia_use_system_libwebp=false skia_use_system_zlib=false ios_min_target="14.1" skia_enable_skottie=false skia_use_metal=true'
+bin/gn gen out/ios64Static --args='target_os="ios" is_official_build=true skia_use_system_expat=false skia_use_system_harfbuzz=false skia_use_system_icu=false skia_use_system_libjpeg_turbo=false skia_use_system_libpng=false skia_use_system_libwebp=false skia_use_system_zlib=false ios_min_target="14.1" skia_enable_skottie=false skia_use_metal=true skia_enable_skshaper=true skia_enable_skparagraph=true skia_enable_gpu=true'
 
-bin/gn gen out/ios64Shared --args='target_os="ios" is_official_build=true is_component_build=true skia_use_system_expat=false skia_use_system_harfbuzz=false skia_use_system_icu=false skia_use_system_libjpeg_turbo=false skia_use_system_libpng=false skia_use_system_libwebp=false skia_use_system_zlib=false ios_min_target="14.1" skia_enable_skottie=false skia_use_metal=true '
+# for ios
+ninja -C out/ios64Static skia modules
 
-
-
-
-
+# in general
 ninja -C out/Static/
 
 ```
