@@ -2795,6 +2795,135 @@
   [handlers body]
   (OnEvent. handlers body))
 
+;; Same as OnEvent, but other events "pass through"
+(defrecord OnEventRaw [handlers body]
+  IOrigin
+  (-origin [_]
+    [0 0])
+
+  IBounds
+  (-bounds [this]
+    (child-bounds body))
+
+  IMakeNode
+  (make-node [this childs]
+    (assert (= (count childs) 1))
+    (OnEvent. handlers (first childs)))
+
+  IChildren
+  (-children [this]
+    [body])
+
+  IMouseMove
+  (-mouse-move [this pos]
+    (if-let [on-mouse-move (:mouse-move handlers)]
+      (on-mouse-move pos)
+      (-mouse-move body pos)))
+
+  IMouseEvent
+  (-mouse-event [this pos button mouse-down? mods]
+    (assert
+     (not (and (contains? handlers :mouse-event)
+               (or (contains? handlers :mouse-down)
+                   (contains? handlers :mouse-up)))))
+    (if-let [on-mouse-event (:mouse-event handlers)]
+      (on-mouse-event pos button mouse-down? mods)
+      (if mouse-down?
+        (if-let [on-mouse-down (:mouse-down handlers)]
+          (on-mouse-down pos)
+          (-mouse-event body pos button mouse-down? mods))
+        (if-let [on-mouse-up (:mouse-up handlers)]
+          (on-mouse-up pos)
+          (-mouse-event body pos button mouse-down? mods)))))
+
+  IDrop
+  (-drop [this paths pos]
+    (if-let [on-drop (:drop handlers)]
+      (on-drop paths pos)
+      (-drop body paths pos)))
+
+  IScroll
+  (-scroll [elem offset mpos]
+    (if-let [on-scroll (:scroll handlers)]
+      (on-scroll offset mpos)
+      (-scroll body offset mpos)))
+
+  IHasKeyEvent
+  (has-key-event [this]
+    (boolean (or (:key-event handlers)
+                 (some has-key-event (children this)))))
+
+  IKeyEvent
+  (-key-event [this key scancode action mods]
+    (if-let [on-key-event (:key-event handlers)]
+      (on-key-event key scancode action mods)
+      (-key-event body key scancode action mods)))
+
+  IHasKeyPress
+  (has-key-press [this]
+    (boolean
+     (or (:key-press handlers)
+         (some has-key-press (children this)))))
+
+  IKeyPress
+  (-key-press [this key]
+    (if-let [on-key-press (:key-press handlers)]
+      (on-key-press key)
+      (-key-press body key)))
+
+  IHasMouseMoveGlobal
+  (has-mouse-move-global [this]
+    (boolean (or (:mouse-move-global handlers)
+                 (some has-mouse-move-global (children this)))))
+
+  IMouseMoveGlobal
+  (-mouse-move-global [this pos]
+    (if-let [on-mouse-move-global (:mouse-move-global handlers)]
+      (on-mouse-move-global pos)
+      (-mouse-move-global body pos)))
+
+  IMouseEnterGlobal
+  (-mouse-enter-global [this enter?]
+    (if-let [on-mouse-enter-global (:mouse-enter-global handlers)]
+      (on-mouse-enter-global enter?)
+      (-mouse-enter-global body enter?)))
+
+  IClipboardCopy
+  (-clipboard-copy [this]
+    (if-let [on-clipboard-copy (:clipboard-copy handlers)]
+      (on-clipboard-copy)
+      (-clipboard-copy body)))
+
+  IClipboardCut
+  (-clipboard-cut [this]
+    (if-let [on-clipboard-cut (:clipboard-cut handlers)]
+      (on-clipboard-cut)
+      (-clipboard-cut body)))
+
+  IClipboardPaste
+  (-clipboard-paste [this s]
+    (if-let [on-clipboard-paste (:clipboard-paste handlers)]
+      (on-clipboard-paste s)
+      (-clipboard-paste body s)))
+
+  IBubble
+  (-bubble [this events]
+    (if-let [on-bubble (:bubble handlers)]
+      (on-bubble events)
+      (-bubble body events)))
+
+  IHandleEvent
+  (-can-handle? [this other-event-type]
+    (contains? handlers other-event-type))
+
+  (-handle-event [this event-type event-args]
+    (let [handler (get handlers event-type)]
+      (assert handler)
+      (apply handler event-args))))
+
+(defn raw-on [handlers body]
+  (OnEventRaw. handlers body))
+
 (defn on
   "Wraps an elem with event handlers.
 
