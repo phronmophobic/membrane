@@ -2537,7 +2537,11 @@
           (Skia/skia_clear skia-resource)
           (draw view)
           (Skia/skia_flush skia-resource)
-          (glfw-call Void/TYPE glfwSwapBuffers window))))))
+
+          (glfw-call Void/TYPE glfwSwapBuffers window)
+
+          (when-let [on-present (::on-present this)]
+            (on-present view)))))))
 
 (defonce window-chan (chan 1))
 

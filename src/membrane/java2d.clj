@@ -986,7 +986,9 @@
             (.setColor ^Graphics2D *g* Color/white)
             (.fillRect ^Graphics2D *g* 0 0 (.getWidth ^Component this) (.getHeight ^Component this))
             (.setColor ^Graphics2D *g* Color/black)
-            (draw to-render)))))))
+            (draw to-render)
+            (when-let [on-present (::on-present window)]
+              (on-present to-render))))))))
 
 
 
@@ -1062,9 +1064,11 @@
                    view-fn
                    (fn [_]
                      (view-fn)))
-         window {:panel (atom nil)
-                 :ui (atom nil)
-                 :render view-fn}
+         window (merge
+                 {:panel (atom nil)
+                  :ui (atom nil)
+                  :render view-fn}
+                 (select-keys options [::on-present]))
          panel (doto ^Component (make-panel window)
                  (.setFocusable true))
          _ (reset! (:panel window)
