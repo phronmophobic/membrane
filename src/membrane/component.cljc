@@ -1216,7 +1216,35 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
             intents))
     intents))
 
-(defrecord TopEventHandler [handler body focus $focus scroll-state $scroll-state]
+
+(defui wrap-scroll [{:keys [body focus scroll-state]}]
+  (ui/raw-on
+   {:mouse-event
+    (fn [pos button mouse-down? mods]
+      (if (and scroll-state
+               (not mouse-down?))
+        [[:set $scroll-state nil]]
+        (let [intents (ui/mouse-event body pos button mouse-down? mods)]
+          (if (seq intents)
+            (if mouse-down?
+              (wrap-start-scroll $scroll-state pos intents)
+              intents)
+            (when mouse-down?
+              (when focus
+                [[:set $focus nil]]))))))
+    :mouse-move
+    (fn [pos]
+     (if scroll-state
+       (let [[mx2 my2] (:mpos scroll-state)
+             [mx my] pos
+             scrollf (:scrollf scroll-state)
+             intents (scrollf [(- mx mx2)
+                               (- my my2)])]
+         intents)
+       (ui/mouse-move body pos)))}
+   body))
+
+(defrecord TopEventHandler [handler body]
   ui/IOrigin
   (-origin [_]
     [0 0])
@@ -1228,7 +1256,7 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
   ui/IMakeNode
   (make-node [this childs]
     (assert (= (count childs) 1))
-    (TopEventHandler. handler (first childs) focus $focus scroll-state $scroll-state))
+    (TopEventHandler. handler (first childs)))
 
   ui/IChildren
   (-children [this]
@@ -1236,56 +1264,27 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
 
   ui/IMouseMove
   (-mouse-move [this pos]
-    (if scroll-state
-      (let [[mx2 my2] (:mpos scroll-state)
-            [mx my] pos
-            scrollf (:scrollf scroll-state)
-            intents (scrollf [(- mx mx2)
-                              (- my my2)])]
-        (handler intents))
-      (let [intents (membrane.ui/mouse-move body pos)]
-        (when (seq intents)
-          (handler intents)))))
+    (handler (ui/mouse-move body pos)))
 
   ui/IMouseEvent
   (-mouse-event [this pos button mouse-down? mods]
-    (if (and scroll-state
-             (not mouse-down?))
-      (handler [[:set $scroll-state nil]])
-      (let [intents (membrane.ui/mouse-event body pos button mouse-down? mods)]
-        (if (seq intents)
-          (if mouse-down?
-            (let [intents (wrap-start-scroll $scroll-state pos intents)]
-              (handler intents))
-            (handler intents))
-          (when mouse-down?
-            (when focus
-              (handler [[:set $focus nil]]))
-            nil)))))
+    (handler (ui/mouse-event body pos button mouse-down? mods)))
 
   ui/IDrop
   (-drop [this paths pos]
-    (let [intents (membrane.ui/drop body paths pos)]
-      (when (seq intents)
-        (handler intents))))
+    (handler (ui/drop body paths pos)))
 
   ui/IScroll
-  (-scroll [elem offset mpos]
-    (let [intents (membrane.ui/scroll body offset mpos)]
-      (when (seq intents)
-        (handler intents))))
+  (-scroll [this offset mpos]
+    (handler (ui/scroll body offset mpos)))
 
   ui/IKeyEvent
   (-key-event [this key scancode action mods]
-    (let [intents (membrane.ui/key-event body key scancode action mods)]
-      (when (seq intents)
-        (handler intents))))
+    (handler (ui/key-event body key scancode action mods)))
 
   ui/IKeyPress
   (-key-press [this key]
-    (let [intents (membrane.ui/key-press body key)]
-      (when (seq intents)
-        (handler intents))))
+    (handler (ui/key-press body key)))
 
   ui/IHasMouseMoveGlobal
   (has-mouse-move-global [this]
@@ -1293,33 +1292,23 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
 
   ui/IMouseMoveGlobal
   (-mouse-move-global [this pos]
-    (let [intents (membrane.ui/mouse-move-global body pos)]
-      (when (seq intents)
-        (handler intents))))
+    (handler (ui/mouse-move-global body pos)))
 
   ui/IMouseEnterGlobal
   (-mouse-enter-global [this enter?]
-    (let [intents (membrane.ui/mouse-enter-global body enter?)]
-      (when (seq intents)
-        (handler intents))))
+    (handler (ui/mouse-enter-global body enter?)))
 
   ui/IClipboardCopy
   (-clipboard-copy [this]
-    (let [intents (membrane.ui/clipboard-copy body)]
-      (when (seq intents)
-        (handler intents))))
+    (handler (ui/clipboard-copy body)))
 
   ui/IClipboardCut
   (-clipboard-cut [this]
-    (let [intents (membrane.ui/clipboard-cut body)]
-      (when (seq intents)
-        (handler intents))))
+    (handler (ui/clipboard-cut body)))
 
   ui/IClipboardPaste
   (-clipboard-paste [this s]
-    (let [intents (membrane.ui/clipboard-paste body s)]
-      (when (seq intents)
-        (handler intents))))
+    (handler (ui/clipboard-paste body s)))
 
   ui/IBubble
   (-bubble [this events]
@@ -1332,6 +1321,15 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
   (-handle-event [this event-type event-args]
     (assert false)))
 
+;; This allocates a new TopEventHandler
+;; each time it's called.
+;; Potentially, some work could be
+;; done ahead of time instead of on
+;; each call.
+;; However, performance hasn't yet been
+;; a priority issue and it would be nice
+;; to have some good benchmarks setup before
+;; spending too much time on optimization.
 (defui top-level-ui [{:keys [state
                              body
                              path-keys
@@ -1358,9 +1356,10 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
         top-extra (::top-extra state)
         scroll-state (:scroll-state top-extra)]
     (TopEventHandler. handler
-                      main-view
-                      focus $focus
-                      scroll-state $scroll-state)))
+                      (wrap-scroll {:body main-view
+                                    :$body nil
+                                    :focus focus
+                                    :scroll-state scroll-state}))))
 
 
 
@@ -1507,6 +1506,11 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
          handler (if handler
                    handler
                    (default-handler state-atom))
+         ;; avoid calling handler with empty seqs or nil
+         ;; for backwards compatibility
+         handler #(when (seq %)
+                    (handler %))
+
          top-ui (ui-var->top-level-ui ui-var)
          top-ui (assoc top-ui :handler handler)
          top-level (fn
