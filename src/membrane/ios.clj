@@ -216,6 +216,9 @@
    :skia_offscreen_image {:rettype :pointer
                           :argtypes [['resource :pointer]]}
 
+   :skia_SkRefCntBase_unref {:rettype :pointer
+                             :argtypes [['o :pointer]]}
+
    ,})
 
 (dt-ffi/define-library-interface
@@ -441,26 +444,15 @@
   (skia_set_alpha skia-resource (unchecked-byte (* alpha 255))))
 
 
-(def font-dir "/System/Library/Fonts/")
 (defn- get-font [font]
   (let [font-ptr
         (if-let [font-ptr (get @*font-cache* font)]
           font-ptr
           (let [font-name (or (:name font)
-                              (:name ui/default-font))
-                font-path (when font-name
-                            (if (.startsWith ^String font-name "/")
-                              font-name
-                              (str font-dir font-name)))
-                font-path (when font-path
-                            (if (.exists (clojure.java.io/file font-path))
-                              font-path
-                              (do
-                                (println font-path " does not exist!")
-                                (:name ui/default-font))))]
+                              (:name ui/default-font))]
             (let [font-size (or (:size font)
                                 (:size ui/default-font))
-                  font-ptr (load-font font-path font-size)]
+                  font-ptr (load-font font-name font-size)]
               (swap! *font-cache* assoc font font-ptr)
               font-ptr)))]
     font-ptr))
@@ -474,7 +466,8 @@
     (save-canvas
      (doseq [line lines
              :let [buf (dt-ffi/string->c line)
-                   buf-length (native-buffer/native-buffer-byte-len buf)]]
+                   ;; strings are null terminated
+                   buf-length (dec (native-buffer/native-buffer-byte-len buf))]]
        ;; (.write ^Memory skia-buf 0 line-bytes 0 (alength ^bytes line-bytes))
        
        (skia_next_line *skia-resource* font-ptr)
@@ -505,7 +498,12 @@
       [maxx maxy]))
   IDraw
   (draw [this]
-    (draw (->Cached (LabelRaw. (:text this)
+    (draw (LabelRaw. (:text this)
+                     (:font this)))
+    ;; Drawing to cached view looks bad on iOS
+    ;; and memory is more scarce.
+    ;; avoid where possible.
+    #_(draw (->Cached (LabelRaw. (:text this)
                                (:font this))))))
 
 
@@ -870,6 +868,8 @@
                     (or width -1))
          slant (get font-slants slant
                     (or slant -1))
+         path (when path
+                (dt-ffi/string->c path))
          font-ptr (skia_load_font2 path (float size) (int weight) (int width) (int slant))]
      (assert font-ptr (str "unable to load font: " path " " size))
 
@@ -901,10 +901,17 @@
                               (skia_set_scale *skia-resource* (float xscale) (float yscale)))
                             (skia_translate *skia-resource* padding padding)
                             (draw drawable)
-                            ;; todo: fix memory leak!
                             (skia_offscreen_image *skia-resource*))
-                      img-info [img img-width img-height]]
-                  (swap! *draw-cache* assoc [drawable content-scale *paint*] img-info)
+                      img-info [img img-width img-height]
+                      ;; only keep one image at a time.
+                      [old _] (reset-vals! *draw-cache* {[drawable content-scale *paint*] img-info})
+                      old-img-info (-> old first)
+                      old-img (when old-img-info
+                                (-> old-img-info val (nth 0)))]
+                  ;; cleanup old image
+                  (when old-img
+                    (skia_SkRefCntBase_unref old-img))
+
                   img-info)))]
         (save-canvas
          (skia_translate  *skia-resource* (float (- padding)) (float (- padding)))
@@ -1161,7 +1168,7 @@
             *window* window
             *draw-cache* draw-cache
             ;; turn off draw cache to avoid memory leaks for now
-            *already-drawing* true]
+            *already-drawing* false]
     (draw view)))
 
 ;; (defn membrane_touch_ended [x y]
