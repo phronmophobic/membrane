@@ -85,6 +85,16 @@ deps.edn dependency:
 com.phronemophobic/membrane {:mvn/version "0.14.4-beta"}
 ```
 
+### Skia Native Dependencies
+
+To use the skia backend, the native dependencies that match your target platform are required. If multiple native dependencies are included, it will automatically choose the right one.
+
+```clojure
+com.phronemophobic.membrane/skialib-macosx-x86-64 {:mvn/version "0.14-beta"}
+com.phronemophobic.membrane/skialib-linux-x86-64 {:mvn/version "0.14-beta"}
+com.phronemophobic.membrane/skialib-macosx-aarch64 {:mvn/version "0.14-beta"}
+```
+
 ## Built With Membrane
 
 [membrane.term](https://github.com/phronmophobic/membrane.term) - A simple terminal emulator in clojure.  
