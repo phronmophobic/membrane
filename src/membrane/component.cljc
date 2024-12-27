@@ -1131,6 +1131,24 @@
                 (let [rendered# (~render-cached-fn-name this#)]
                   (membrane.ui/-mouse-event rendered# pos# button# mouse-down?# mods#)))
 
+               ;; clipboard events don't have default implementations for some reason.
+               ;; Not sure if these should be implemented here (probably)
+
+               ;; membrane.ui/IClipboardCopy
+               ;; (~'-clipboard-copy [this#]
+               ;;  (let [rendered# (~render-cached-fn-name this#)]
+               ;;    (membrane.ui/-clipboard-copy rendered#)))
+
+               ;; membrane.ui/IClipboardCut
+               ;; (~'-clipboard-cut [this#]
+               ;;  (let [rendered# (~render-cached-fn-name this#)]
+               ;;    (membrane.ui/-clipboard-cut rendered#)))
+
+               ;; membrane.ui/IClipboardPaste
+               ;; (~'-clipboard-paste [this# s#]
+               ;;  (let [rendered# (~render-cached-fn-name this#)]
+               ;;    (membrane.ui/-clipboard-paste rendered# s#)))
+
                membrane.ui/IChildren
                (~'-children [this#]
                 [(~render-cached-fn-name this#)]))
