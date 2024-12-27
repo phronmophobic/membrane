@@ -2888,23 +2888,28 @@
       (on-mouse-enter-global enter?)
       (-mouse-enter-global body enter?)))
 
+  ;; Clipboard events don't have default implementations.
+  ;; They probably should to match the other events, but
+  ;; I don't want to make a big change this moment
+  ;; without thinking about it a bit more.
+  ;; For now, just calling wrappers.
   IClipboardCopy
   (-clipboard-copy [this]
     (if-let [on-clipboard-copy (:clipboard-copy handlers)]
       (on-clipboard-copy)
-      (-clipboard-copy body)))
+      (clipboard-copy body)))
 
   IClipboardCut
   (-clipboard-cut [this]
     (if-let [on-clipboard-cut (:clipboard-cut handlers)]
       (on-clipboard-cut)
-      (-clipboard-cut body)))
+      (clipboard-cut body)))
 
   IClipboardPaste
   (-clipboard-paste [this s]
     (if-let [on-clipboard-paste (:clipboard-paste handlers)]
       (on-clipboard-paste s)
-      (-clipboard-paste body s)))
+      (clipboard-paste body s)))
 
   IBubble
   (-bubble [this events]
