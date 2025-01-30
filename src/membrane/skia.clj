@@ -2721,21 +2721,7 @@
           (println e))
 
         (finally
-          (cleanup)))))
-
-
-  )
-
-(defn bstr [num]
-  ;;String.format("%16s", Integer.toBinaryString(1)).replace(' ', '0')
-  (-> num
-      (java.lang.Integer/toBinaryString)
-      (->> (format "%16s"))
-      (.replace " " "0"))
-  
-  
-  )
-
+          (cleanup))))))
 
 (def toolkit
   (reify
