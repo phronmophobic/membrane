@@ -900,10 +900,8 @@ extern "C" {
         std::vector<SkString> families(familiesCount);
         for (int i = 0; i < familiesCount; ++i) {
             families[i] = *familiesArr[i];
-            LOG("font family: %s\n", familiesArr[i]->c_str());
         }
 
-        LOG("font families: %lu\n", families.size());
         style->setFontFamilies(families);
     }
     void skia_TextStyle_setBaselineShift(TextStyle* style, float shift){
