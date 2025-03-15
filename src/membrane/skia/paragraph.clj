@@ -757,7 +757,7 @@
 ;; // Finds the first and last glyphs that define a word containing
 ;; // the glyph at index offset
 ;; virtual SkRange<size_t> getWordBoundary(unsigned offset) = 0;
-(defn- skia-Paragraph-getWordBoundary [paragraph offset]
+#_(defn- skia-Paragraph-getWordBoundary [paragraph offset]
   (assert (pointer? paragraph))
   (skia_Paragraph_getWordBoundary paragraph))
 ;; virtual void getLineMetrics(std::vector<LineMetrics>&) = 0;
