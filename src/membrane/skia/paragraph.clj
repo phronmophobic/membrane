@@ -1,17 +1,117 @@
 (ns membrane.skia.paragraph
-  (:require [membrane.skia :as skia
-             :refer [defc
-                     ffi-buf]]
-            [membrane.ui :as ui])
-  (:import com.sun.jna.Pointer
-           com.sun.jna.Memory
-           com.sun.jna.Native
-           com.sun.jna.ptr.IntByReference
-           com.phronemophobic.membrane.Skia
+  (:require[membrane.skia.impl.paint :as paint]
+           [tech.v3.datatype :as dtype]
+           [tech.v3.datatype.struct :as dt-struct]
+           [tech.v3.datatype.ffi :as dt-ffi]
+           [tech.v3.datatype.native-buffer :as native-buffer]
+           [membrane.ui :as ui])
+  (:import java.util.function.Supplier
            java.lang.ref.Cleaner))
+
+(set! *warn-on-reflection* true)
+
+(if (= "true" (System/getProperty "membrane.ios"))
+  (require '[membrane.ios :as backend])
+  (require '[membrane.skia :as backend]))
 
 (def ^:private void Void/TYPE)
 (def cleaner (delay (Cleaner/create)))
+
+(def ffi-buf*
+  (ThreadLocal/withInitial
+   (reify
+     Supplier
+     (get [_]
+       (native-buffer/malloc 4096
+                             {:uninitialized? true
+                              :resource-type :auto})))))
+(defmacro ffi-buf []
+  ` ^tech.v3.datatype.native_buffer.NativeBuffer
+  (.get  ^ThreadLocal ffi-buf*))
+(defmacro ffi-buf-size []
+  `(.size (ffi-buf)))
+
+
+(def paragraph-fns
+  {
+   :skia_SkRefCntBase_ref {:rettype :void :argtypes '[[o :pointer]]}
+   :skia_SkRefCntBase_unref {:rettype :void :argtypes '[[o :pointer]]}
+   :skia_SkString_delete {:rettype :void :argtypes '[[sk-string :pointer]]}
+   :skia_SkString_make_utf8 {:rettype :pointer? :argtypes '[[buf :pointer] [len :int32]]}
+   :skia_SkColor4f_make {:rettype :int32 :argtypes '[[red :float32] [green :float32] [blue :float32] [alpha :float32] ]}
+   :skia_FontStyle_delete {:rettype :void :argtypes '[[style :pointer]]}
+   :skia_FontStyle_make {:rettype :pointer? :argtypes '[[make :int32] [width :int32] [slant :int32] ]}
+   :skia_ParagraphBuilder_delete {:rettype :void :argtypes '[[pb :pointer]]}
+   :skia_ParagraphBuilder_make {:rettype :pointer? :argtypes '[[paragraph-style :pointer]]}
+   :skia_ParagraphBuilder_pushStyle {:rettype :void :argtypes '[[builder :pointer] [style :pointer]]}
+   :skia_ParagraphBuilder_pop {:rettype :void :argtypes '[[builder :pointer]]}
+   :skia_ParagraphBuilder_addText {:rettype :void :argtypes '[[builder :pointer] [text :pointer] [len :int32]]}
+   :skia_ParagraphBuilder_addPlaceholder {:rettype :void :argtypes '[[builder :pointer] [style :pointer]]}
+   :skia_ParagraphBuilder_addPlaceholder2 {:rettype :void :argtypes '[[builder :pointer] [width :float32] [height :float32] [alignment :int32] [baseline :int32] [offset :float32]]}
+   :skia_Paragraph_delete {:rettype :void :argtypes '[[p :pointer]]}
+   :skia_ParagraphBuilder_build {:rettype :pointer? :argtypes '[[builder :pointer]]}
+   :skia_ParagraphBuilder_reset {:rettype :void :argtypes '[[builder :pointer]]}
+   :skia_TextStyle_delete {:rettype :void :argtypes '[[style :pointer]]}
+   :skia_TextStyle_make {:rettype :pointer}
+   :skia_TextStyle_setColor {:rettype :pointer? :argtypes '[[style :pointer] [color :int32]]}
+   :skia_TextStyle_setForeground {:rettype :void :argtypes '[[style :pointer] [foreground :pointer]]}
+   :skia_TextStyle_clearForegroundColor {:rettype :void :argtypes '[[style :pointer]]}
+   :skia_TextStyle_setBackgroundColor {:rettype :void :argtypes '[[style :pointer] [background :pointer]]}
+   :skia_TextStyle_clearBackgroundColor {:rettype :void :argtypes '[[style :pointer]]}
+   :skia_TextStyle_setDecoration {:rettype :void :argtypes '[[style :pointer] [decoration :int32]]}
+   :skia_TextStyle_setDecorationMode {:rettype :void :argtypes '[[style :pointer] [mode :int32]]}
+   :skia_TextStyle_setDecorationStyle {:rettype :void :argtypes '[[style :pointer] [td-style :int32]]}
+   :skia_TextStyle_setDecorationColor {:rettype :void :argtypes '[[style :pointer] [color :int32]]}
+   :skia_TextStyle_setDecorationThicknessMultiplier {:rettype :void :argtypes '[[style :pointer] [n :float32]]}
+   :skia_TextStyle_setFontStyle {:rettype :void :argtypes '[[style :pointer] [font-style :pointer]]}
+   :skia_TextStyle_addShadow {:rettype :void :argtypes '[[style :pointer] [shadow :pointer]]}
+   :skia_TextStyle_resetShadows {:rettype :void :argtypes '[[style :pointer]]}
+   :skia_TextStyle_setFontSize {:rettype :void :argtypes '[[style :pointer] [font-size :float32]]}
+   :skia_TextStyle_setFontFamilies {:rettype :void :argtypes '[[style :pointer] [families :pointer] [num-families :int32]]}
+   :skia_TextStyle_setBaselineShift {:rettype :void :argtypes '[[style :pointer] [shift :float32]]}
+   :skia_TextStyle_setHeight {:rettype :void :argtypes '[[style :pointer] [height :float32]]}
+   :skia_TextStyle_setHeightOverride {:rettype :void :argtypes '[[style :pointer] [height-override :int32]]}
+   :skia_TextStyle_setHalfLeading {:rettype :void :argtypes '[[style :pointer] [half-leading :int32]]}
+   :skia_TextStyle_setLetterSpacing {:rettype :void :argtypes '[[style :pointer] [letter-spacing :float32]]}
+   :skia_TextStyle_setWordSpacing {:rettype :void :argtypes '[[style :pointer] [word-spacing :float32]]}
+   :skia_TextStyle_setTypeface {:rettype :void :argtypes '[[style :pointer] [face :pointer]]}
+   :skia_TextStyle_setLocale {:rettype :void :argtypes '[[style :pointer] [locale :pointer]]}
+   :skia_TextStyle_setTextBaseline {:rettype :void :argtypes '[[style :pointer] [baseline :int32]]}
+   :skia_TextStyle_setPlaceholder {:rettype :void :argtypes '[[style :pointer]]}
+   :skia_ParagraphStyle_delete {:rettype :void :argtypes '[[ps :pointer]]}
+   :skia_ParagraphStyle_make {:rettype :pointer?}
+   :skia_ParagraphStyle_turnHintingOff {:rettype  :void :argtypes '[[style :pointer]]}
+   :skia_ParagraphStyle_setStrutStyle {:rettype :void :argtypes '[[style :pointer] [strut-style :pointer]]}
+   :skia_ParagraphStyle_setTextStyle {:rettype :void :argtypes '[[style :pointer] [text-style :pointer]]}
+   :skia_ParagraphStyle_setTextDirection {:rettype :void :argtypes '[[style :pointer] [direction :int32]]}
+   :skia_ParagraphStyle_setTextAlign {:rettype :void :argtypes '[[style :pointer] [align :int32]]}
+   :skia_ParagraphStyle_setMaxLines {:rettype :void :argtypes '[[style :pointer] [max-lines :int32]]}
+   :skia_ParagraphStyle_setEllipsis {:rettype :void :argtypes '[[style :pointer] [ellipsis :pointer]]}
+   :skia_ParagraphStyle_setHeight {:rettype :void :argtypes '[[style :pointer] [height :float32]]}
+   :skia_ParagraphStyle_setTextHeightBehavior {:rettype :void :argtypes '[[style :pointer] [text-height-behavior :int32]]}
+   :skia_ParagraphStyle_setReplaceTabCharacters {:rettype :void :argtypes '[[style :pointer] [value :int32]]}
+   :skia_Paragraph_getMaxWidth {:rettype :float32 :argtypes '[[paragraph :pointer]]}
+   :skia_Paragraph_getHeight {:rettype :float32 :argtypes '[[paragraph :pointer]]}
+   :skia_Paragraph_getMinIntrinsicWidth {:rettype :float32 :argtypes '[[paragraph :pointer]]}
+   :skia_Paragraph_getMaxIntrinsicWidth {:rettype :float32 :argtypes '[[paragraph :pointer]]}
+   :skia_Paragraph_getAlphabeticBaseline {:rettype :float32 :argtypes '[[paragraph :pointer]]}
+   :skia_Paragraph_getIdeographicBaseline {:rettype :float32 :argtypes '[[paragraph :pointer]]}
+   :skia_Paragraph_getLongestLine {:rettype :float32 :argtypes '[[paragraph :pointer]]}
+   :skia_Paragraph_didExceedMaxLines {:rettype :int32 :argtypes '[[paragraph :pointer]]}
+   :skia_Paragraph_layout {:rettype :void :argtypes '[[paragraph :pointer] [width :float32]]}
+   :skia_Paragraph_paint {:rettype :void :argtypes '[[paragraph :pointer] [resource :pointer] [x :float32] [y :float32]]}
+   :skia_Paragraph_getRectsForRange {:rettype :int32 :argtypes '[[paragraph :pointer] [start :int32] [end :int32] [rect-style-height :int32] [rect-style-width :int32] [buf :pointer] [max :int32]]}
+   :skia_Paragraph_getRectsForPlaceholders {:rettype :int32 :argtypes '[[paragraph :pointer] [buf :pointer] [max :int32]]}
+   :skia_Paragraph_getGlyphPositionAtCoordinate {:rettype :void :argtypes '[[paragraph :pointer] [dx :float32] [dy :float32] [*pos :pointer] [*affinity :pointer]]}
+   :skia_count_font_families {:rettype :int32 :argtypes '[]}
+   :skia_get_family_name {:rettype :void :argtypes '[[family-name :pointer] [len :int64] [index :int32]]} 
+
+   ,})
+
+(dt-ffi/define-library-interface
+  paragraph-fns)
+
+
 
 (def
   ^:private
@@ -28,16 +128,12 @@
    (int 0)
    dec))
 
-(def membraneskialib @#'skia/membraneskialib)
-
 (defn- pointer? [p]
-  (instance? Pointer p))
+  (dt-ffi/convertible-to-pointer? p))
 
-(defc skia_SkRefCntBase_ref membraneskialib void [o])
 ;; `ref` is already taken
 (defn- inc-ref [o]
   (skia_SkRefCntBase_ref o))
-(defc skia_SkRefCntBase_unref membraneskialib void [o])
 (defn- unref [o]
   (skia_SkRefCntBase_unref o))
 
@@ -46,31 +142,29 @@
     p
     (let [delete-sym (symbol (str "skia_" type "_delete"))]
       `(let [p# ~p
-             ptr# (Pointer/nativeValue p#)]
+             ptr# (dt-ffi/pointer->address p#)]
          (.register ^Cleaner @cleaner p#
                     (fn []
-                      (~delete-sym (Pointer. ptr#))))
+                      (~delete-sym (dt-ffi/->pointer ptr#))))
          p#))))
 
 (defn- ref-count [p name]
-  (let [ptr (Pointer/nativeValue p)]
+  (let [ptr (dt-ffi/pointer->address p)]
     (.register ^Cleaner @cleaner p
                (fn []
-                 (skia_SkRefCntBase_unref (Pointer. ptr))))
+                 (skia_SkRefCntBase_unref (dt-ffi/->pointer ptr))))
     p))
 
-(defc skia_SkString_delete membraneskialib void [sk-string])
 ;; SkString* skia_make_skstring_utf8(char *s, int len)
-(defc skia_SkString_make_utf8 membraneskialib Pointer [buf len])
 (defn- ->SkString [^String s]
-  (let [buf (.getBytes s "utf8")
-        len (alength buf)]
+  (let [buf (dt-ffi/string->c s)
+        len (dec (count buf))]
     (add-cleaner
      SkString
      (skia_SkString_make_utf8 buf len))))
 
+
 ;; SkColor skia_SkColor4f_make(float red, float green, float blue, float alpha)
-(defc skia_SkColor4f_make membraneskialib Pointer [red green blue alpha])
 (defn- skia-SkColor4f-make [r g b a]
   (skia_SkColor4f_make
    (float r)
@@ -78,14 +172,43 @@
    (float b)
    (float a)))
 
-(defc skia_FontStyle_delete membraneskialib void [style])
-(defc skia_FontStyle_make membraneskialib Pointer [make width slant])
+;; copied from membrane.skia to avoid requiring membrane.skia
+;; avoiding requiring membrane.skia so that paragraphs can be used
+;; by ios.
+(def font-slants
+  {:upright 1,
+   :italic 2,
+   :oblique 3})
+(def font-weights
+  {:invisible 0
+   :thin 100
+   :extra-light 200
+   :light 300
+   :normal 400
+   :medium 500
+   :semi-bold 600
+   :bold 700
+   :extra-bold 800
+   :black 900
+   :extra-black 1000})
+(def font-widths
+  {:ultracondensed 1
+   :extracondensed 2
+   :condensed 3
+   :semicondensed 4
+   :normal 5
+   :semiexpanded 6
+   :expanded 7
+   :extraexpanded 8
+   :ultraexpanded 9})
+
+
 (defn- skia-FontStyle-make [weight width slant]
-  (let [weight (get skia/font-weights weight
+  (let [weight (get font-weights weight
                     (or weight -1))
-        width (get skia/font-widths width
+        width (get font-widths width
                    (or width -1))
-        slant (get skia/font-slants slant
+        slant (get font-slants slant
                    (or slant -1))]
     (assert (or (= -1 weight)
                 (>= weight 0)))
@@ -102,20 +225,16 @@
 (defn- ->FontStyle [{:font-style/keys [weight width slant]}]
   (skia-FontStyle-make weight width slant))
 
-(defn- fill-buf-with-ptrs [buf ptrs]
-  (loop [offset 0
-         ptrs (seq ptrs)]
-    (if ptrs
-      (let [ptr (first ptrs)]
-        (.setPointer ^Memory buf offset ptr)
-        (recur (+ offset Native/POINTER_SIZE)
-               (next ptrs)))))
-  nil)
+#_(defn- fill-buf-with-ptrs [buf ptrs]
+    (loop [offset 0
+           ptrs (seq ptrs)]
+      (if ptrs
+        (let [ptr (first ptrs)]
+          (.setPointer ^Memory buf offset ptr)
+          (recur (+ offset Native/POINTER_SIZE)
+                 (next ptrs)))))
+    nil)
 
-
-
-(defc skia_ParagraphBuilder_delete membraneskialib void [pb])
-(defc skia_ParagraphBuilder_make membraneskialib Pointer [paragraph-style])
 (defn- skia-ParagraphBuilder-make [paragraph-style]
   (assert (pointer? paragraph-style))
   
@@ -123,28 +242,25 @@
    ParagraphBuilder
    (skia_ParagraphBuilder_make paragraph-style)))
 
-(defc skia_ParagraphBuilder_pushStyle membraneskialib void [builder style])
 (defn- skia-ParagraphBuilder-pushStyle [builder style]
   (assert (pointer? builder))
   (assert (pointer? style))
   (skia_ParagraphBuilder_pushStyle builder style)
   builder)
 
-(defc skia_ParagraphBuilder_pop membraneskialib void [builder])
 (defn- skia-ParagraphBuilder-pop [builder]
   (assert (pointer? builder))
   (skia_ParagraphBuilder_pop builder)
   builder)
 
-(defc skia_ParagraphBuilder_addText membraneskialib void [builder text len])
 (defn- skia-ParagraphBuilder-addText [builder ^String s]
   (assert (pointer? builder))
-  (let [buf (.getBytes s "utf8")
-        len (alength buf)]
+  (let [buf (dt-ffi/string->c s)
+        len (dec (count buf))]
     (skia_ParagraphBuilder_addText builder buf len)
+
     builder))
 
-(defc skia_ParagraphBuilder_addPlaceholder membraneskialib void [builder style])
 (defn- skia-ParagraphBuilder-addPlaceholder [builder style]
   (assert (pointer? builder))
   (assert (pointer? style))
@@ -193,7 +309,6 @@
    :ideographic 1})
 
 ;; void skia_ParagraphBuilder_addPlaceholder2(ParagraphBuilder *pb, float width, float height, int alignment, int baseline, float offset){
-(defc skia_ParagraphBuilder_addPlaceholder2 membraneskialib void [builder width height alignment baseline offset])
 (defn- skia-ParagraphBuilder-addPlaceholder2 [builder placeholder]
   (assert (pointer? builder))
   (let [width (float (:width placeholder))
@@ -205,33 +320,27 @@
                      0)
         offset (float (or (:offset placeholder)
                           0))]
-   (skia_ParagraphBuilder_addPlaceholder2 builder width height alignment baseline offset))
+    (skia_ParagraphBuilder_addPlaceholder2 builder width height alignment baseline offset))
   builder)
 
 
-(defc skia_Paragraph_delete membraneskialib void [p])
-(defc skia_ParagraphBuilder_build membraneskialib Pointer [builder])
 (defn- skia-ParagraphBuilder-build [builder]
   (assert (pointer? builder))
   (add-cleaner
    Paragraph
    (skia_ParagraphBuilder_build builder)))
 
-(defc skia_ParagraphBuilder_reset membraneskialib void [builder])
 (defn- skia-ParagraphBuilder-reset [builder]
   (assert (pointer? builder))
   (skia_ParagraphBuilder_reset builder)
   builder)
 
 
-(defc skia_TextStyle_delete membraneskialib void [style])
-(defc skia_TextStyle_make membraneskialib Pointer)
 (defn- skia-TextStyle-make []
   (add-cleaner
    TextStyle
    (skia_TextStyle_make)))
 
-(defc skia_TextStyle_setColor membraneskialib void [style color])
 (defn- skia-TextStyle-setColor [style [r g b a]]
   (let [color (skia_SkColor4f_make (float r)
                                    (float g)
@@ -243,7 +352,6 @@
     (skia_TextStyle_setColor style color)
     style))
 
-(defc skia_TextStyle_setForeground membraneskialib void [style foreground])
 (defn- skia-TextStyle-setForeground [style foreground]
   (assert (pointer? style))
   (assert (pointer? foreground))
@@ -251,31 +359,26 @@
   style)
 
 
-(defc skia_TextStyle_clearForegroundColor membraneskialib void [style])
 (defn- skia-TextStyle-clearForegroundColor [style]
   (assert (pointer? style))
   (skia_TextStyle_clearForegroundColor style)
   style)
 
-(defc skia_TextStyle_setBackgroundColor membraneskialib void [style background])
 (defn- skia-TextStyle-setBackgroundColor [style background]
   (assert (pointer? style))
   (skia_TextStyle_setBackgroundColor style background)
   style)
 
-(defc skia_TextStyle_clearBackgroundColor membraneskialib void [style])
 (defn- skia-TextStyle-clearBackgroundColor [style]
   (assert (pointer? style))
   (skia_TextStyle_clearBackgroundColor style)
   style)
 
-(defc skia_TextStyle_setDecoration membraneskialib void [style decoration])
 (defn- skia-TextStyle-setDecoration [style decoration]
   (assert (pointer? style))
   (skia_TextStyle_setDecoration style (text-decoration->int decoration))
   style)
 
-(defc skia_TextStyle_setDecorationMode membraneskialib void [style mode])
 (defn- skia-TextStyle-setDecorationMode [style mode]
   (assert (pointer? style))
   (skia_TextStyle_setDecorationMode
@@ -285,7 +388,6 @@
      :text-decoration-mode/through 1))
   style)
 
-(defc skia_TextStyle_setDecorationStyle membraneskialib void [style td-style])
 (defn- skia-TextStyle-setDecorationStyle [style td-style]
   (assert (pointer? style))
   (skia_TextStyle_setDecorationStyle
@@ -298,7 +400,6 @@
      :text-decoration-style/wavy 4))
   style)
 
-(defc skia_TextStyle_setDecorationColor membraneskialib void [style color])
 (defn- skia-TextStyle-setDecorationColor [style [r g b a]]
   (assert (pointer? style))
   (let [color (skia_SkColor4f_make (float r)
@@ -308,10 +409,9 @@
                                     (if a
                                       a
                                       1)))]
-   (skia_TextStyle_setDecorationColor style color))
+    (skia_TextStyle_setDecorationColor style color))
   style)
 
-(defc skia_TextStyle_setDecorationThicknessMultiplier membraneskialib void [style n])
 (defn- skia-TextStyle-setDecorationThicknessMultiplier [style n]
   (assert (pointer? style))
   ;; skia can hard crash on values near zero
@@ -319,62 +419,60 @@
   (skia_TextStyle_setDecorationThicknessMultiplier style (float n))
   style)
 
-(defc skia_TextStyle_setFontStyle membraneskialib void [style font-style])
 (defn- skia-TextStyle-setFontStyle [style font-style]
   (assert (pointer? style))
   (skia_TextStyle_setFontStyle style
                                (->FontStyle font-style))
   style)
 
-(defc skia_TextStyle_addShadow membraneskialib void [style shadow])
 (defn- skia-TextStyle-addShadow [style shadow]
   (assert (pointer? style))
   (assert (pointer? shadow))
   (skia_TextStyle_addShadow style shadow)
   style)
 
-(defc skia_TextStyle_resetShadows membraneskialib void [style])
 (defn- skia-TextStyle-resetShadows [style]
   (assert (pointer? style))
   (skia_TextStyle_resetShadows style)
   style)
 
-(defc skia_TextStyle_setFontSize membraneskialib void [style font-size])
 (defn- skia-TextStyle-setFontSize [style font-size]
   (assert (pointer? style))
   (assert (>= font-size 0))
   (skia_TextStyle_setFontSize style (float font-size))
   style)
 
-(defc skia_TextStyle_setFontFamilies membraneskialib void [style families num-families])
 (defn- skia-TextStyle-setFontFamilies [style families]
   (assert (pointer? style))
-  (let [sk-families (ffi-buf)
-        sk-strings (into []
+  (let [sk-strings (into []
                          (map ->SkString)
-                         families)]
-    (fill-buf-with-ptrs sk-families sk-strings)
+                         families)
+        sk-families (dtype/make-container
+                     :native-heap
+                     :int64
+                     (into []
+                           (map #(dt-ffi/pointer->address %))
+                           sk-strings))]
+    #_(fill-buf-with-ptrs sk-families sk-strings)
     (skia_TextStyle_setFontFamilies style
                                     sk-families
                                     (count sk-strings))
     ;; don't garbage collect me please
-    (identity sk-strings))
+    (identity sk-strings)
+    (identity sk-families))
   style)
 
-(defc skia_TextStyle_setBaselineShift membraneskialib void [style shift])
 (defn- skia-TextStyle-setBaselineShift [style shift]
   (assert (pointer? style))
   (assert (>= shift 0))
   (skia_TextStyle_setBaselineShift style (float shift))
   style)
 
-(defc skia_TextStyle_setHeight membraneskialib void [style height])
 (defn- skia-TextStyle-setHeight [style height]
   (assert (pointer? style))
   (skia_TextStyle_setHeight style (float height))
   style)
 
-(defc skia_TextStyle_setHeightOverride membraneskialib void [style height-override])
 (defn- skia-TextStyle-setHeightOverride [style height-override]
   (assert (pointer? style))
   (skia_TextStyle_setHeightOverride style (if height-override
@@ -382,75 +480,62 @@
                                             (int 0)))
   style)
 
-(defc skia_TextStyle_setHalfLeading membraneskialib void [style half-leading])
 (defn- skia-TextStyle-setHalfLeading [style half-leading]
   (assert (pointer? style))
   (skia_TextStyle_setHalfLeading style (int half-leading))
   style)
 
-(defc skia_TextStyle_setLetterSpacing membraneskialib void [style letter-spacing])
 (defn- skia-TextStyle-setLetterSpacing [style letter-spacing]
   (assert (pointer? style))
   (skia_TextStyle_setLetterSpacing style (float letter-spacing))
   style)
 
-(defc skia_TextStyle_setWordSpacing membraneskialib void [style word-spacing])
 (defn- skia-TextStyle-setWordSpacing [style word-spacing]
   (assert (pointer? style))
   (skia_TextStyle_setWordSpacing style (float word-spacing))
   style)
 
-(defc skia_TextStyle_setTypeface membraneskialib void [style face])
 (defn- skia-TextStyle-setTypeface [style face]
   (assert (pointer? style))
   (assert (pointer? face))
   (skia_TextStyle_setTypeface style face)
   style)
 
-(defc skia_TextStyle_setLocale membraneskialib void [style locale])
 (defn- skia-TextStyle-setLocale [style locale]
   (skia_TextStyle_setLocale style (->SkString locale))
   style)
 
-(defc skia_TextStyle_setTextBaseline membraneskialib void [style baseline])
 (defn- skia-TextStyle-setTextBaseline [style baseline]
   (assert (pointer? style))
   (skia_TextStyle_setTextBaseline style (int baseline))
   style)
 
-(defc skia_TextStyle_setPlaceholder membraneskialib void [style])
 (defn- skia-TextStyle-setPlaceholder [style]
   (assert (pointer? style))
   (skia_TextStyle_setPlaceholder style)
   style)
 
-(defc skia_ParagraphStyle_delete membraneskialib void [ps])
-(defc skia_ParagraphStyle_make membraneskialib Pointer)
 (defn- skia-ParagraphStyle-make []
   (add-cleaner
    ParagraphStyle
    (skia_ParagraphStyle_make)))
 
-(defc skia_ParagraphStyle_turnHintingOff membraneskialib void [style])
 (defn- skia-ParagraphStyle-turnHintingOff [style]
   (skia_ParagraphStyle_turnHintingOff style)
   style)
 
-(defc skia_ParagraphStyle_setStrutStyle membraneskialib void [style strut-style])
 (defn- skia-ParagraphStyle-setStrutStyle [style strut-style]
   (assert (pointer? style))
   (assert (pointer? strut-style))
   (skia_ParagraphStyle_setStrutStyle style strut-style)
   style)
 
-(defc skia_ParagraphStyle_setTextStyle membraneskialib void [style text-style])
 (defn- skia-ParagraphStyle-setTextStyle [style text-style]
   (assert (pointer? style))
   (assert (pointer? text-style))
   (skia_ParagraphStyle_setTextStyle style text-style)
   style)
 
-(defc skia_ParagraphStyle_setTextDirection membraneskialib void [style direction])
 (defn- skia-ParagraphStyle-setTextDirection [style direction]
   (assert (pointer? style))
   (skia_ParagraphStyle_setTextDirection style
@@ -470,7 +555,6 @@
    :text-align/justify (int 3)
    :text-align/start (int 4)
    :text-align/end (int 5)})
-(defc skia_ParagraphStyle_setTextAlign membraneskialib void [style align])
 (defn- skia-ParagraphStyle-setTextAlign [style align]
   (assert (pointer? style))
   (let [align-int (get text-align-ints align)]
@@ -478,20 +562,17 @@
     (skia_ParagraphStyle_setTextAlign style align-int))
   style)
 
-(defc skia_ParagraphStyle_setMaxLines membraneskialib void [style max-lines])
 (defn- skia-ParagraphStyle-setMaxLines [style max-lines]
   (assert (pointer? style))
   (assert #(>= max-lines 0))
   (skia_ParagraphStyle_setMaxLines style (int max-lines))
   style)
 
-(defc skia_ParagraphStyle_setEllipsis membraneskialib void [style ellipsis])
 (defn- skia-ParagraphStyle-setEllipsis [style ellipsis]
   (assert (pointer? style))
   (skia_ParagraphStyle_setEllipsis style (->SkString ellipsis))
   style)
 
-(defc skia_ParagraphStyle_setHeight membraneskialib void [style height])
 (defn- skia-ParagraphStyle-setHeight [style height]
   (assert (pointer? style))
   (assert #(>= height 0))
@@ -504,7 +585,6 @@
    :text-height-behavior/disable-first-ascent (int 1)
    :text-height-behavior/disable-last-ascent (int 2)
    :text-height-behavior/disable-all (int 3)})
-(defc skia_ParagraphStyle_setTextHeightBehavior membraneskialib void [style text-height-behavior])
 (defn- skia-ParagraphStyle-setTextHeightBehavior [style text-height-behavior]
   (assert (pointer? style))
   (let [text-height-behavior-int (get text-height-behavior-ints text-height-behavior)]
@@ -512,7 +592,6 @@
     (skia_ParagraphStyle_setTextHeightBehavior style text-height-behavior-int))
   style)
 
-(defc skia_ParagraphStyle_setReplaceTabCharacters membraneskialib void [style value])
 (defn- skia-ParagraphStyle-setReplaceTabCharacters [style value]
   (assert (pointer? style))
   (skia_ParagraphStyle_setReplaceTabCharacters style
@@ -521,53 +600,43 @@
                                                  (int 0)))
   style)
 
-(defc skia_Paragraph_getMaxWidth membraneskialib Float/TYPE [paragraph])
 (defn- skia-Paragraph-getMaxWidth [paragraph]
   (assert (pointer? paragraph))
   (skia_Paragraph_getMaxWidth paragraph))
 
-(defc skia_Paragraph_getHeight membraneskialib Float/TYPE [paragraph])
 (defn- skia-Paragraph-getHeight [paragraph]
   (assert (pointer? paragraph))
   (skia_Paragraph_getHeight paragraph))
 
-(defc skia_Paragraph_getMinIntrinsicWidth membraneskialib Float/TYPE [paragraph])
 (defn- skia-Paragraph-getMinIntrinsicWidth [paragraph]
   (assert (pointer? paragraph))
   (skia_Paragraph_getMinIntrinsicWidth paragraph))
 
-(defc skia_Paragraph_getMaxIntrinsicWidth membraneskialib Float/TYPE [paragraph])
 (defn- skia-Paragraph-getMaxIntrinsicWidth [paragraph]
   (assert (pointer? paragraph))
   (skia_Paragraph_getMaxIntrinsicWidth paragraph))
 
-(defc skia_Paragraph_getAlphabeticBaseline membraneskialib Float/TYPE [paragraph])
 (defn- skia-Paragraph-getAlphabeticBaseline [paragraph]
   (assert (pointer? paragraph))
   (skia_Paragraph_getAlphabeticBaseline paragraph))
 
-(defc skia_Paragraph_getIdeographicBaseline membraneskialib Float/TYPE [paragraph])
 (defn- skia-Paragraph-getIdeographicBaseline [paragraph]
   (assert (pointer? paragraph))
   (skia_Paragraph_getIdeographicBaseline paragraph))
 
-(defc skia_Paragraph_getLongestLine membraneskialib Float/TYPE [paragraph])
 (defn- skia-Paragraph-getLongestLine [paragraph]
   (assert (pointer? paragraph))
   (skia_Paragraph_getLongestLine paragraph))
 
-(defc skia_Paragraph_didExceedMaxLines membraneskialib Integer/TYPE [paragraph])
 (defn- skia-Paragraph-didExceedMaxLines [paragraph]
   (assert (pointer? paragraph))
   (skia_Paragraph_didExceedMaxLines paragraph))
 
-(defc skia_Paragraph_layout membraneskialib void [paragraph width])
 (defn- skia-Paragraph-layout [paragraph width]
   (assert (pointer? paragraph))
   (skia_Paragraph_layout paragraph (float width))
   paragraph)
 
-(defc skia_Paragraph_paint membraneskialib void [paragraph resource x y])
 (defn- skia-Paragraph-paint [paragraph resource x y]
   (assert (pointer? paragraph))
   (assert (pointer? resource))
@@ -627,12 +696,11 @@
 ;;                                               unsigned end,
 ;;                                               RectHeightStyle rectHeightStyle,
 ;;                                               RectWidthStyle rectWidthStyle) = 0;
-(defc skia_Paragraph_getRectsForRange membraneskialib Integer/TYPE [paragraph start end rect-style-height rect-style-width buf max])
 (defn- skia-Paragraph-getRectsForRange [paragraph start end rect-style-height rect-style-width]
   (assert (pointer? paragraph))
   (let [buf (ffi-buf)
         rect-size (* 4 4)
-        max (quot (.size buf)
+        max (quot (ffi-buf-size)
                   rect-size)
 
         n (skia_Paragraph_getRectsForRange paragraph start end
@@ -643,75 +711,72 @@
                                            buf max)]
     (into []
           (map (fn [i]
-                 {:x       (.getFloat  buf  (+  (*  4  0)  (*  rect-size  i)))
-                  :y       (.getFloat  buf  (+  (*  4  1)  (*  rect-size  i)))
-                  :width   (.getFloat  buf  (+  (*  4  2)  (*  rect-size  i)))
-                  :height  (.getFloat  buf  (+  (*  4  3)  (*  rect-size  i)))}))
-          (range n))
-    
-    ))
+                 {:x       (native-buffer/read-float buf  (+  (*  4  0)  (*  rect-size  i)))
+                  :y       (native-buffer/read-float buf  (+  (*  4  1)  (*  rect-size  i)))
+                  :width   (native-buffer/read-float buf  (+  (*  4  2)  (*  rect-size  i)))
+                  :height  (native-buffer/read-float buf  (+  (*  4  3)  (*  rect-size  i)))}))
+          (range n))))
 ;; virtual std::vector<TextBox> getRectsForPlaceholders() = 0;
 
-(defc skia_Paragraph_getRectsForPlaceholders membraneskialib Integer/TYPE [paragraph buf max])
 (defn- skia-Paragraph-getRectsForPlaceholders [paragraph]
   (assert (pointer? paragraph))
   (let [buf (ffi-buf)
         rect-size (* 4 4)
-        max (quot (.size buf)
+        max (quot (ffi-buf-size)
                   rect-size)
         n (skia_Paragraph_getRectsForPlaceholders paragraph buf max )]
     (into []
           (map (fn [i]
-                 {:x       (.getFloat  buf  (+  (*  4  0)  (*  rect-size  i)))
-                  :y       (.getFloat  buf  (+  (*  4  1)  (*  rect-size  i)))
-                  :width   (.getFloat  buf  (+  (*  4  2)  (*  rect-size  i)))
-                  :height  (.getFloat  buf  (+  (*  4  3)  (*  rect-size  i)))}))
-          (range n))
-    
-    ))
+                 {:x       (native-buffer/read-float buf  (+  (*  4  0)  (*  rect-size  i)))
+                  :y       (native-buffer/read-float buf  (+  (*  4  1)  (*  rect-size  i)))
+                  :width   (native-buffer/read-float buf  (+  (*  4  2)  (*  rect-size  i)))
+                  :height  (native-buffer/read-float buf  (+  (*  4  3)  (*  rect-size  i)))}))
+          (range n))))
+
+
 ;; // Returns the index of the glyph that corresponds to the provided coordinate,
 ;; // with the top left corner as the origin, and +y direction as down
 ;; virtual PositionWithAffinity getGlyphPositionAtCoordinate(SkScalar dx, SkScalar dy) = 0;
-(defc skia_Paragraph_getGlyphPositionAtCoordinate membraneskialib void [paragraph dx dy *pos *affinity])
 (defn- skia-Paragraph-getGlyphPositionAtCoordinate [paragraph dx dy]
   (assert (pointer? paragraph))
-  (let [*pos (IntByReference.)
-        *affinity (IntByReference.)]
-   (skia_Paragraph_getGlyphPositionAtCoordinate paragraph
-                                                (float dx)
-                                                (float dy)
-                                                *pos
-                                                *affinity)
-   [(.getValue *pos)
-    (.getValue *affinity)]))
+  (let [*pos (-> (native-buffer/malloc 4
+                                       {:uninitialized? true
+                                        :resource-type :auto})
+                 (native-buffer/set-native-datatype :int32))
+        *affinity (-> (native-buffer/malloc 4
+                                            {:uninitialized? true
+                                             :resource-type :auto})
+                      (native-buffer/set-native-datatype :int32))]
+    (skia_Paragraph_getGlyphPositionAtCoordinate paragraph
+                                                 (float dx)
+                                                 (float dy)
+                                                 *pos
+                                                 *affinity)
+    [(nth *pos 0)
+     (nth *affinity 0)]))
 ;; // Finds the first and last glyphs that define a word containing
 ;; // the glyph at index offset
 ;; virtual SkRange<size_t> getWordBoundary(unsigned offset) = 0;
-#_#_(defc skia_Paragraph_getWordBoundary membraneskialib Pointer [paragraph offset])
 (defn- skia-Paragraph-getWordBoundary [paragraph offset]
   (assert (pointer? paragraph))
   (skia_Paragraph_getWordBoundary paragraph))
 ;; virtual void getLineMetrics(std::vector<LineMetrics>&) = 0;
 
-;; (defc skia_Paragraph_getLineMetrics membraneskialib void [paragraph metrics])
 ;; (defn- skia-Paragraph-getLineMetrics [paragraph]
 ;;   (assert (pointer? paragraph))
 ;;   (skia_Paragraph_getLineMetrics paragraph))
 
 
-(defc skia_count_font_families membraneskialib Integer/TYPE [])
-(defc skia_get_family_name membraneskialib void [family-name len index])
 (defn available-font-families []
   (let [num (skia_count_font_families)
         buf (ffi-buf)
-        buf-size (.size buf)]
+        buf-size (ffi-buf-size)]
     (into []
           (map (fn [index]
                  (skia_get_family_name buf buf-size
                                        index)
-                 (.getString ^Memory buf 0 "utf-8")))
+                 (dt-ffi/c->string buf)))
           (range num))))
-
 
 
 (defn- ->TextStyle [s]
@@ -742,7 +807,7 @@
                  :text-style/typeface style
                  :text-style/foreground style
                  :text-style/shadows style
-                 :text-style/background-color (skia-TextStyle-setBackgroundColor style (skia/->SkPaint v))
+                 :text-style/background-color (skia-TextStyle-setBackgroundColor style (paint/->SkPaint v))
 
                  ;; else
                  style))
@@ -853,10 +918,10 @@
           height (skia-Paragraph-getHeight para)]
       [width height]))
 
-  skia/IDraw
+  backend/IDraw
   (draw [this]
     (let [paragraph (make-paragraph paragraph width paragraph-style)]
-      (skia-Paragraph-paint paragraph skia/*skia-resource* 0 0))))
+      (skia-Paragraph-paint paragraph backend/*skia-resource* 0 0))))
 
 (defn intrinsic-width [para]
   (let [{:keys [paragraph width paragraph-style]} para
