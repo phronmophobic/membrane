@@ -34,10 +34,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./csource/download_skia.sh
       - run: ./csource/compile_macosx.sh
-      - uses: actions/upload-artifact@v2
-        with:
-          name: libmembraneskia-${{matrix.arch}}.dylib
-          path: csource/libmembraneskia-${{matrix.arch}}.dylib
       - name: Setup Java
         uses: actions/setup-java@v2
         with:
@@ -76,10 +72,6 @@ jobs:
       - run: sudo ./csource/prepare_linux.sh
       - run: ./csource/download_skia.sh
       - run: ./csource/compile_linux.sh
-      - uses: actions/upload-artifact@v2
-        with:
-          name: libmembraneskia-${{matrix.arch}}.so
-          path: csource/libmembraneskia-${{matrix.arch}}.so
       - name: Setup Java
         uses: actions/setup-java@v2
         with:
