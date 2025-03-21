@@ -8,7 +8,7 @@ public class Skia {
 
     public static native void skia_reshape(Pointer resource, int frameBufferWidth, int frameBufferHeight, float xscale, float yscale);
     public static native void skia_clear(Pointer resources);
-    public static native void skia_flush(Pointer resources);
+    public static native void skia_flush_and_submit(Pointer resources);
     public static native void skia_cleanup(Pointer resources);
     public static native void skia_set_scale (Pointer resource, float sx, float sy);
     public static native void skia_render_line(Pointer resource, Pointer font, Pointer text, int text_length, float x, float y);

@@ -1975,7 +1975,6 @@
 (defc skia_reshape membraneskialib Void/TYPE [skia-resource fb-width fb-height xscale yscale])
 (defc skia_cleanup membraneskialib Void/TYPE [skia-resource])
 (defc skia_clear membraneskialib Void/TYPE [skia-resource])
-(defc skia_flush membraneskialib Void/TYPE [skia-resource])
 
 (defmacro with-cpu-skia-resource [resource-sym size & body]
   `(let [size# ~size
@@ -2294,7 +2293,7 @@
 
           (Skia/skia_clear skia-resource)
           (draw view)
-          (Skia/skia_flush skia-resource)
+          (Skia/skia_flush_and_submit skia-resource)
 
           (glfw-call Void/TYPE glfwSwapBuffers window)
 

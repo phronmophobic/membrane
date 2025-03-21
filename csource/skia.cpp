@@ -1,6 +1,5 @@
 #include "skia.h"
 
-#ifdef SK_GL
 
 #if defined(__APPLE__)
 #include <OpenGL/gl.h>
@@ -8,10 +7,10 @@
 
 #include <GL/gl.h>
 
+
 #endif
 
 
-#endif
 
 #include "modules/skparagraph/include/Paragraph.h"
 #include "modules/skparagraph/include/ParagraphBuilder.h"
@@ -20,6 +19,11 @@
 #include "modules/skparagraph/include/TypefaceFontProvider.h"
 #include <SkEncodedImageFormat.h>
 #include <SkColorSpace.h>
+#include <SkFontMgr.h>
+#include <include/ports/SkFontMgr_empty.h>
+#include <include/encode/SkPngEncoder.h>
+#include <include/encode/SkJpegEncoder.h>
+#include <include/encode/SkWebpEncoder.h>
 #include "modules/svg/include/SkSVGDOM.h"
 #include "modules/svg/include/SkSVGSVG.h"
 #include "modules/svg/include/SkSVGRenderContext.h"
@@ -27,8 +31,64 @@
 #include <iostream>
 #include <fstream>
 
-#include "src/gpu/gl/GrGLDefines.h"
-#include "gl/GrGLInterface.h"
+#include "include/gpu/ganesh/gl/GrGLDirectContext.h"
+#include "include/gpu/ganesh/gl/GrGLBackendSurface.h"
+#include "include/gpu/ganesh/GrBackendSurface.h"
+#include "include/gpu/ganesh/GrDirectContext.h"
+#include "include/gpu/ganesh/gl/GrGLInterface.h"
+#include "include/gpu/ganesh/SkSurfaceGanesh.h"
+
+
+// FONT STUFF //
+// https://github.com/kyamagu/skia-python/commit/fa88b2febb5462844ef4d2e5c27e132d0f4594d2
+
+#ifdef __APPLE__
+#include "include/ports/SkFontMgr_mac_ct.h"
+#endif
+
+#ifdef __linux__
+#include "include/ports/SkFontConfigInterface.h"
+#include "include/ports/SkFontMgr_FontConfigInterface.h"
+#endif
+
+#ifdef _WIN32
+#include "include/ports/SkTypeface_win.h"
+#endif
+
+#include <mutex>
+
+namespace {
+
+bool g_factory_called = false;
+
+}  // namespace
+
+static sk_sp<SkFontMgr> fontmgr_factory() {
+#if defined(__APPLE__)
+  return SkFontMgr_New_CoreText(nullptr);
+#elif defined(__linux__)
+  sk_sp<SkFontConfigInterface> fci(SkFontConfigInterface::RefGlobal());
+  return fci ? SkFontMgr_New_FCI(std::move(fci)) : nullptr;
+#elif defined(_WIN32)
+  return SkFontMgr_New_DirectWrite();
+#else
+  return SkFontMgr_New_Custom_Empty(); /* last resort: SkFontMgr::RefEmpty(); */
+#endif
+}
+
+sk_sp<SkFontMgr> SkFontMgr_RefDefault() {
+  static std::once_flag flag;
+  static sk_sp<SkFontMgr> mgr;
+  std::call_once(flag, [] {
+    mgr = fontmgr_factory();
+    g_factory_called = true;
+  });
+  return mgr;
+}
+
+
+
+// END FONT STUFF //
 
 #if defined(__APPLE__)
 #import <CoreFoundation/CoreFoundation.h>
@@ -94,49 +154,46 @@ extern "C" {
     }
 
     SkiaResource* skia_init_cpu(int width, int height){
-        sk_sp<SkSurface> rasterSurface =
-            SkSurface::MakeRasterN32Premul(width, height);
+	sk_sp<SkSurface> rasterSurface(SkSurfaces::Raster(SkImageInfo::MakeN32Premul(width, height)));
         return new SkiaResource(nullptr, rasterSurface);
     }
 
     void skia_reshape(SkiaResource* resource, int frameBufferWidth, int frameBufferHeight, float xscale, float yscale){
 
-        #ifdef SK_GL
         if ( resource->surface){
             resource->surface.reset();
             resource->grContext.reset();
         }
 
-        sk_sp<GrDirectContext> grContext = GrDirectContext::MakeGL();
-        SkASSERT(grContext);
-        grContext->ref();
+	// https://skia.org/docs/user/api/skcanvas_creation/#gpu
 
-        GrGLFramebufferInfo info;
-        info.fFBOID = (GrGLuint) 0;
-        info.fFormat = GL_RGBA8;
-        SkColorType colorType  = kRGBA_8888_SkColorType;
+	// You've already created your OpenGL context and bound it.
+	sk_sp<const GrGLInterface> interface = GrGLMakeNativeInterface();
 
-        int kStencilBits = 8;  // Skia needs 8 stencil bits
-        int kMsaaSampleCount = 0;
+	sk_sp<GrDirectContext> context = GrDirectContexts::MakeGL(interface);
 
-        GrBackendRenderTarget target(frameBufferWidth, frameBufferHeight, kMsaaSampleCount, kStencilBits, info);
+	GrGLFramebufferInfo framebufferInfo;
+        framebufferInfo.fFBOID = 0;
+	framebufferInfo.fFormat = GL_RGBA8;
+	auto backendRenderTarget = GrBackendRenderTargets::MakeGL(frameBufferWidth, frameBufferHeight, 0, 0 , framebufferInfo);
 
-        SkSurfaceProps surfaceProps(0, kUnknown_SkPixelGeometry);
-        sk_sp<SkSurface> surface(SkSurface::MakeFromBackendRenderTarget(grContext.get(), target,
-                                                                        kBottomLeft_GrSurfaceOrigin,
-                                                                        colorType, nullptr, &surfaceProps));
+	sk_sp<SkSurface> gpuSurface(
+	    SkSurfaces::WrapBackendRenderTarget(context.get(),
+						backendRenderTarget,
+						kBottomLeft_GrSurfaceOrigin,
+						kRGBA_8888_SkColorType,
+						nullptr,
+						nullptr));
+	if (!gpuSurface) {
+	    return;
+	}
+
+	SkCanvas* gpuCanvas = gpuSurface->getCanvas();
+	
+	resource->grContext = context;
         
-        SkASSERT(surface);
-
-        SkCanvas* canvas = surface->getCanvas();
-        
-        canvas->scale(xscale, yscale);
-
-        resource->grContext = grContext;
-        resource->surface = surface;
-
-        #endif
-
+        gpuCanvas->scale(xscale, yscale);
+	resource->surface = gpuSurface;
     }
 
     void skia_clear(SkiaResource* resource){
@@ -144,8 +201,9 @@ extern "C" {
         canvas->clear(SK_ColorWHITE);
     }
 
-    void skia_flush(SkiaResource* resource){
-        resource->surface->getCanvas()->flush();
+    void skia_flush_and_submit(SkiaResource* resource){
+	resource->grContext->flush(resource->surface.get());
+	resource->grContext->submit();
     }
 
     void skia_cleanup(SkiaResource* resource){
@@ -267,7 +325,7 @@ extern "C" {
         SkImageInfo info = SkImageInfo::Make(width, height, kBGRA_8888_SkColorType, kUnpremul_SkAlphaType);
 
 
-        sk_sp<SkSurface> cpuSurface(SkSurface::MakeRaster(info));
+	sk_sp<SkSurface> cpuSurface(SkSurfaces::Raster(info));
 
         if (!cpuSurface) {
             SkDebugf("SkSurface::MakeRenderTarget returned null\n");
@@ -282,7 +340,7 @@ extern "C" {
         SkImageInfo info = SkImageInfo::Make(width, height, kBGRA_8888_SkColorType, kUnpremul_SkAlphaType);
 
         sk_sp<SkSurface> surface =
-            SkSurface::MakeRasterDirect(info, buf, rowBytes);
+            SkSurfaces::WrapPixels(info, buf, rowBytes);
 
         SkiaResource* bufResource = new SkiaResource(NULL, surface);
 
@@ -301,7 +359,7 @@ extern "C" {
         SkImageInfo info = SkImageInfo::Make(width, height, colorType, alphaType);
 
         sk_sp<SkSurface> sourceSurface =
-            SkSurface::MakeRasterDirect(info, buffer, rowBytes);
+            SkSurfaces::WrapPixels(info, buffer, rowBytes);
 
         sourceSurface->draw(resource->surface->getCanvas(), 0, 0, &resource->getPaint());
     }
@@ -488,7 +546,7 @@ extern "C" {
 
     SkFont* skia_load_font2(const char* name, float size, int weight, int width, int slant){
         if ( name ){
-            sk_sp<SkTypeface> typeface = SkTypeface::MakeFromFile(name);
+	    sk_sp<SkTypeface> typeface = SkFontMgr_RefDefault()->makeFromFile(name);
             if ( typeface ){
                 SkFont* font = new SkFont(typeface, size);
 
@@ -514,7 +572,7 @@ extern "C" {
                 }
 
                 SkFontStyle style(weight, width, skslant);
-                sk_sp<SkTypeface> typeface = SkTypeface::MakeFromName(name, style);
+                sk_sp<SkTypeface> typeface = SkFontMgr_RefDefault()->legacyMakeTypeface(name, style);
 
                 if ( typeface ){
                     return new SkFont(typeface, size);
@@ -523,13 +581,13 @@ extern "C" {
                 }
             }
         } else{
-            return new SkFont(nullptr, size);
+            return new SkFont(SkFontMgr_RefDefault()->matchFamilyStyle(NULL, SkFontStyle()), size);
         }
     }
 
 
     SkImage* skia_load_image(const char* path){
-        sk_sp<SkImage> image = SkImage::MakeFromEncoded(SkData::MakeFromFileName(path));
+        sk_sp<SkImage> image = SkImages::DeferredFromEncodedData(SkData::MakeFromFileName(path));
         if ( image ) {
             image->ref();
         }
@@ -541,7 +599,7 @@ extern "C" {
 
         sk_sp<SkData> data = SkData::MakeWithCopy(buffer, buffer_length);
 
-        sk_sp<SkImage> image = SkImage::MakeFromEncoded(data);
+        sk_sp<SkImage> image = SkImages::DeferredFromEncodedData(data);
         if ( image ) {
             image->ref();
         }
@@ -673,7 +731,7 @@ extern "C" {
         SkImageInfo info = SkImageInfo:: MakeN32Premul(width, height);
 
 
-        sk_sp<SkSurface> cpuSurface(SkSurface::MakeRaster(info));
+	sk_sp<SkSurface> cpuSurface(SkSurfaces::Raster(info));
 
         // gpu surface won't draw if offscreen originally
         // sk_sp<SkSurface> gpuSurface(
@@ -706,22 +764,40 @@ extern "C" {
         if (!img) { return 0; }
 
         SkEncodedImageFormat fmt = SkEncodedImageFormat::kPNG;
+	sk_sp<SkData> img_data = NULL;
         switch (format){
-        case 1  : fmt = SkEncodedImageFormat::kBMP  ; break;
-        case 2  : fmt = SkEncodedImageFormat::kGIF  ; break;
-        case 3  : fmt = SkEncodedImageFormat::kICO  ; break;
-        case 4  : fmt = SkEncodedImageFormat::kJPEG ; break;
-        case 5  : fmt = SkEncodedImageFormat::kPNG  ; break;
-        case 6  : fmt = SkEncodedImageFormat::kWBMP ; break;
-        case 7  : fmt = SkEncodedImageFormat::kWEBP ; break;
-        case 8  : fmt = SkEncodedImageFormat::kPKM  ; break;
-        case 9  : fmt = SkEncodedImageFormat::kKTX  ; break;
-        case 10 : fmt = SkEncodedImageFormat::kASTC ; break;
-        case 11 : fmt = SkEncodedImageFormat::kDNG  ; break;
-        case 12 : fmt = SkEncodedImageFormat::kHEIF ; break;
-        }
+        // case 1  : fmt = SkEncodedImageFormat::kBMP  ; break;
+        // case 2  : fmt = SkEncodedImageFormat::kGIF  ; break;
+        // case 3  : fmt = SkEncodedImageFormat::kICO  ; break;
+        // case 4  : fmt = SkEncodedImageFormat::kJPEG ; break;
+        // case 5  : fmt = SkEncodedImageFormat::kPNG  ; break;
+        // case 6  : fmt = SkEncodedImageFormat::kWBMP ; break;
+        // case 7  : fmt = SkEncodedImageFormat::kWEBP ; break;
+        // case 8  : fmt = SkEncodedImageFormat::kPKM  ; break;
+        // case 9  : fmt = SkEncodedImageFormat::kKTX  ; break;
+        // case 10 : fmt = SkEncodedImageFormat::kASTC ; break;
+        // case 11 : fmt = SkEncodedImageFormat::kDNG  ; break;
+        // case 12 : fmt = SkEncodedImageFormat::kHEIF ; break;
+        case 4: 
+	{
+	    auto options = SkJpegEncoder::Options();
+	    options.fQuality = quality;
+	    img_data = SkJpegEncoder::Encode(resource->grContext.get(), img.get(), options);
+	    break;
+	}
+        case 5:
+	    img_data = SkPngEncoder::Encode(resource->grContext.get(), img.get(), SkPngEncoder::Options());
+	    break;
+        case 7:
+	{
+	    auto options = SkWebpEncoder::Options();
+	    options.fQuality = quality;
+	    img_data = SkWebpEncoder::Encode(resource->grContext.get(), img.get(), options);
+	    break;
+	}
 
-        sk_sp<SkData> img_data(img->encodeToData(fmt, quality));
+
+        }
 
         if (!img_data) { return 0; }
         SkFILEWStream out(path);
@@ -787,7 +863,7 @@ extern "C" {
     ParagraphBuilder* skia_ParagraphBuilder_make(ParagraphStyle* paragraphStyle){
 
         auto fontCollection = sk_make_sp<FontCollection>();
-        fontCollection->setDefaultFontManager(SkFontMgr::RefDefault());
+        fontCollection->setDefaultFontManager(SkFontMgr_RefDefault());
         // fontCollection->enableFontFallback();
 
         ParagraphBuilder* pb = ParagraphBuilder::make(*paragraphStyle, fontCollection).release();
@@ -1148,12 +1224,12 @@ extern "C" {
 //    skia_Paragraph_getLineMetrics(Paragraph* para);
 
     int skia_count_font_families(){
-        return SkFontMgr::RefDefault()->countFamilies();
+        return SkFontMgr_RefDefault()->countFamilies();
     }
 
     void skia_get_family_name(char* familyName, size_t len, int index){
         SkString s = SkString();
-        SkFontMgr::RefDefault()->getFamilyName(index, &s);
+        SkFontMgr_RefDefault()->getFamilyName(index, &s);
         strncpy(familyName, s.c_str(), len);
     }
 

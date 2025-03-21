@@ -1,15 +1,12 @@
 #include <stack>
-#include "GrDirectContext.h"
-#include "gl/GrGLInterface.h"
+#include "ganesh/GrDirectContext.h"
 #include "SkData.h"
 #include "SkImage.h"
 #include "SkStream.h"
 #include "SkSurface.h"
 
-#include "include/gpu/GrBackendSurface.h"
 #include "include/core/SkCanvas.h"
 #include "include/core/SkFont.h"
-#include "src/gpu/gl/GrGLDefines.h"
 #include "SkTextBlob.h"
 
 

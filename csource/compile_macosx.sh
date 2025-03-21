@@ -17,6 +17,7 @@ clang++ \
     -I "$skia_root"/include/core \
     -I "$skia_root"/include/utils \
     -I "$skia_root"/include/private \
+    -I "$skia_root"/include/codec \
     -framework OpenGL \
     -framework Cocoa \
     -framework IOKit \

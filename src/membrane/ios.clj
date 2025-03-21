@@ -53,8 +53,8 @@
    :skia_clear {:rettype :void
                 :argtypes [['resources :pointer]]}
 
-   :skia_flush {:rettype :void
-                :argtypes [['resources :pointer]]}
+   ;; :skia_flush {:rettype :void
+   ;;              :argtypes [['resources :pointer]]}
 
    :skia_cleanup {:rettype :void
                   :argtypes [['resources :pointer]]}
