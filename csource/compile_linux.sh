@@ -28,7 +28,8 @@ c++ \
     -DSK_GL=1 \
     -lGL \
     -lfontconfig \
-    -lskunicode \
+    -lskunicode_core \
+    -lskunicode_icu \
     -lskshaper \
     skia.cpp
 
