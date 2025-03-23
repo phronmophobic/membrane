@@ -14,6 +14,7 @@ c++ \
     -I ./libs/skia/include/core \
     -I ./libs/skia/include/utils \
     -I ./libs/skia/include/private \
+    -I "$skia_root"/include/codec \
     -L ./libs/skia/out/Release-${arch} \
     -Wl,--whole-archive \
     ./libs/skia/out/Release-${arch}/libskia.a \
