@@ -21,6 +21,7 @@ c++ \
     -Wl,--whole-archive \
     "$skia_root"/out/Release-${arch}/libskia.a \
     "$skia_root"/out/Release-${arch}/libskparagraph.a \
+    "$skia_root"/out/Release-${arch}/libsvg.a \
     -Wl,--no-whole-archive \
     -shared \
     -std=c++17 \
@@ -31,8 +32,9 @@ c++ \
     -lskunicode_core \
     -lskunicode_icu \
     -lskshaper \
+    -lsvg \
     skia.cpp
 
-
+cp libmembraneskia-x86_64.so ./linux-x86-64/resources/linux-x86-64/libmembraneskia.so
 
 echo 'done'
