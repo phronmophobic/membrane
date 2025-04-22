@@ -443,7 +443,11 @@
 
 
 (def font-dir "/System/Library/Fonts/")
-(defn- get-font [font]
+(defn- get-font-maybe
+  "Returns a SkFont pointer. May return nil if not not found.
+
+  Will lookup and fill *font-cache*."
+  [font]
   (let [font-ptr
         (if-let [font-ptr (get @*font-cache* font)]
           font-ptr
@@ -463,9 +467,21 @@
             (let [font-size (or (:size font)
                                 (:size ui/default-font))
                   font-ptr (load-font font-path font-size (:weight font) (:width font) (:slant font))]
-              (swap! *font-cache* assoc font font-ptr)
+              (when font-ptr
+                (swap! *font-cache* assoc font font-ptr))
               font-ptr)))]
     font-ptr))
+(defn- get-font
+  "Returns a SkFont pointer. Throws exception when font is not found.
+
+  Will lookup and fill *font-cache*."
+  [font]
+  (let [font-ptr (get-font-maybe font)]
+    (when-not font-ptr
+      (throw (ex-info "Font could not be loaded."
+                      {:font font})))
+    font-ptr))
+
 
 (defc skia_font_family_name membraneskialib Void/TYPE [font family-name len])
 (defn skia-font-family-name [font-ptr]
@@ -475,9 +491,11 @@
     (.getString ^Memory buf 0 "utf-8")))
 
 (defn font-exists? [font]
-  (let [font-ptr (get-font font)]
-    (= (skia-font-family-name font-ptr)
-       (:name font))))
+  (let [font-ptr (get-font-maybe font)]
+    (if (nil? font-ptr)
+      false
+      (= (skia-font-family-name font-ptr)
+         (:name font)))))
 
 (defn logical-font->font-family
   "Returns the font family for the given `logical-font`.
@@ -1482,7 +1500,9 @@
    :ultraexpanded 9})
 
 (defc skia_load_font2 membraneskialib Pointer [font-path font-size])
-(defn- load-font [path size weight width slant]
+(defn- load-font
+  "Returns a pointer to a SkFont. May return nil if font does not exist."
+  [path size weight width slant]
   (assert (or (string? path)
               (nil? path)))
   (let [weight (get font-weights weight
@@ -1492,7 +1512,6 @@
         slant (get font-slants slant
                    (or slant -1))
         font-ptr (Skia/skia_load_font2 path (float size) (int weight) (int width) (int slant))]
-    (assert font-ptr (str "unable to load font: " path " " size))
 
     font-ptr))
 
