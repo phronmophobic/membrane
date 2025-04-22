@@ -117,7 +117,7 @@
                      [:name "Apache License, Version 2.0"]
                      [:url "http://www.apache.org/licenses/LICENSE-2.0"]]]]
                   :lib coord
-                  :version "0.16-beta-SNAPSHOT"
+                  :version "0.16-beta"
                   :basis skia-basis})
     (b/copy-file {:src shared-lib-path
                   :target (.getCanonicalPath
