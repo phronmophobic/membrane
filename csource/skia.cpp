@@ -47,8 +47,7 @@
 #endif
 
 #ifdef __linux__
-#include "include/ports/SkFontConfigInterface.h"
-#include "include/ports/SkFontMgr_FontConfigInterface.h"
+#include "include/ports/SkFontMgr_fontconfig.h"
 #endif
 
 #ifdef _WIN32
@@ -67,8 +66,7 @@ static sk_sp<SkFontMgr> fontmgr_factory() {
 #if defined(__APPLE__)
   return SkFontMgr_New_CoreText(nullptr);
 #elif defined(__linux__)
-  sk_sp<SkFontConfigInterface> fci(SkFontConfigInterface::RefGlobal());
-  return fci ? SkFontMgr_New_FCI(std::move(fci)) : nullptr;
+  return SkFontMgr_New_FontConfig(NULL);
 #elif defined(_WIN32)
   return SkFontMgr_New_DirectWrite();
 #else
