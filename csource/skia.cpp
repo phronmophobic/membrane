@@ -24,6 +24,7 @@
 #include <include/encode/SkPngEncoder.h>
 #include <include/encode/SkJpegEncoder.h>
 #include <include/encode/SkWebpEncoder.h>
+#include "modules/skshaper/utils/FactoryHelpers.h"
 #include "modules/svg/include/SkSVGDOM.h"
 #include "modules/svg/include/SkSVGSVG.h"
 #include "modules/svg/include/SkSVGRenderContext.h"
@@ -1244,7 +1245,11 @@ extern "C" {
     }
 
     SkSVGDOM* skia_SkSVGDOM_make(SkStream* stream){
-        return SkSVGDOM::MakeFromStream(*stream).release();
+        auto builder = SkSVGDOM::Builder();
+        builder.setFontManager(SkFontMgr_RefDefault());
+        builder.setTextShapingFactory(SkShapers::BestAvailable());
+
+        return builder.make(*stream).release();
     }
 
     void skia_SkSVGDOM_delete(SkSVGDOM* svg){
