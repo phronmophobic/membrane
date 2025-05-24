@@ -1548,8 +1548,8 @@
                               (Skia/skia_set_scale *skia-resource* (float xscale) (float yscale)))
                             (Skia/skia_translate *skia-resource* padding padding)
                             (draw drawable)
-                            ;; todo: fix memory leak!
-                            (Skia/skia_offscreen_image *skia-resource*))
+
+                            (add-cleaner SkImage (Skia/skia_offscreen_image *skia-resource*)))
                       img-info [img img-width img-height]]
                   (swap! *draw-cache* assoc [drawable content-scale *paint*] img-info)
                   img-info)))]
