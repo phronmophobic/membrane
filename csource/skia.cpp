@@ -757,6 +757,10 @@ extern "C" {
 
     }
 
+    void skia_delete_image(SkImage* img){
+        delete img;
+    }
+
     int skia_save_image(SkiaResource* resource, int format, int quality, const char* path){
 
         sk_sp<SkImage> img(resource->surface->makeImageSnapshot());
