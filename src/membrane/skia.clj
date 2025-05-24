@@ -1073,6 +1073,11 @@
                       (~delete-sym (Pointer. ptr#))))
          p#)))
 
+(defc skia_SkImage_delete membraneskialib Void/TYPE [stream])
+(defn- skia-SkImage-delete [stream]
+  (assert (instance? Pointer stream))
+  (skia_SkImage_delete stream))
+
 (defc skia_SkStream_delete membraneskialib Void/TYPE [stream])
 (defn- skia-SkStream-delete [stream]
   (assert (instance? Pointer stream))
