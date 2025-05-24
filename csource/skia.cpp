@@ -1374,10 +1374,31 @@ extern "C" {
     /** END SkPaint Wrappers **/
 
 #if defined(__APPLE__)
-    void skia_osx_run_on_main_thread_sync(void(*callback)(void)){
-        dispatch_sync(dispatch_get_main_queue(), ^{
-                callback();
-            });
+
+
+
+@interface SkialibCallbackWrapper : NSObject
+
+@property (nonatomic, assign) void (*callback)(void);
+
+- (void)runCallback;
+
+@end
+
+@implementation SkialibCallbackWrapper
+
+- (void)runCallback {
+    self.callback();
+}
+
+@end
+
+void skia_osx_run_on_main_thread_sync(void(*callback)(void)){
+    @autoreleasepool {
+        SkialibCallbackWrapper *cbwrapper = [[SkialibCallbackWrapper alloc] init];
+        cbwrapper.callback = callback;
+	[cbwrapper performSelectorOnMainThread:@selector(runCallback) withObject:nil waitUntilDone:YES];
     }
+}
 #endif
 }

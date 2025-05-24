@@ -34,6 +34,7 @@ clang++ \
     -arch ${arch} \
     -dynamiclib \
     -std=c++17 \
+    -x objective-c++ \
     -o libmembraneskia-${arch}.dylib \
     skia.cpp
 
