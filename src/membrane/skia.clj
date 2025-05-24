@@ -1066,12 +1066,12 @@
 
 (defmacro ^:private add-cleaner [type p]
   (let [delete-sym (symbol (str "skia_" type "_delete"))]
-      `(let [p# ~p
-             ptr# (Pointer/nativeValue p#)]
-         (.register ^Cleaner @cleaner p#
-                    (fn []
-                      (~delete-sym (Pointer. ptr#))))
-         p#)))
+    `(let [p# ~p
+           ptr# (Pointer/nativeValue p#)]
+       (.register ^Cleaner @cleaner p#
+                  (fn []
+                    (~delete-sym (Pointer. ptr#))))
+       p#)))
 
 (defc skia_SkImage_delete membraneskialib Void/TYPE [stream])
 (defn- skia-SkImage-delete [stream]
