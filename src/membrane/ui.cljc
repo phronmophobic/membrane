@@ -4,6 +4,28 @@
   #?(:clj (:import javax.imageio.ImageIO))
   (:refer-clojure :exclude [drop]))
 
+#?(:clj
+   (defn ^:private hm-lookup
+     "If the specified key is not already associated with a value (or is mapped to null), attempts to compute its value using the given mapping function and enters it into this map unless null."
+     ([^java.util.Map hm key compute]
+      (.computeIfAbsent hm key
+                        (reify java.util.function.Function
+                          (apply [_f _k]
+                            (compute)))))))
+
+#?(:clj
+   (defn ^:private memo1 [f]
+     (let [cache* (ThreadLocal/withInitial
+                   (reify
+                     java.util.function.Supplier
+                     (get [_]
+                       (java.util.WeakHashMap.))))]
+       (fn [o]
+         (let [cache ^java.util.Map (.get ^ThreadLocal cache*)]
+           (hm-lookup cache o #(f o))))))
+   :cljs (defn memo1 [f]
+           (memoize f)))
+
 (defrecord Font [name size weight width slant])
 
 
@@ -308,7 +330,7 @@
   ^{:arglists '([elem])
     :doc
     "Returns a 2 element vector with the [width, height] of an element's bounds with respect to its origin"}
-  bounds (memoize #(-bounds %)))
+  bounds (memo1 #(-bounds %)))
 
 (defn child-bounds [elem]
   (let [[ox oy] (origin elem)
@@ -585,7 +607,7 @@
          (.printStackTrace e)
          [0 0])))
 
-   (def image-size* (atom (memoize image-size-raw)))
+   (def image-size* (atom (memo1 image-size-raw)))
 
    (defn image-size
      "Returns the [width, height] of the file at image-path."

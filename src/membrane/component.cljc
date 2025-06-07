@@ -13,7 +13,8 @@
    #?(:cljs cljs.env)
    clojure.string
    com.rpl.specter.impl
-   [membrane.ui :as ui :refer [children bounds origin]]))
+   [membrane.ui :as ui :refer [children bounds origin]])
+  #?(:clj (:import java.util.function.Function)))
 
 #?
 (:clj
@@ -940,15 +941,45 @@
 
 (defn ^:private doall* [s] (dorun (tree-seq seqable? seq s)) s)
 
-(def component-cache (cw/basic-cache-factory {::basis 1}))
+(def ^:dynamic component-cache
+  #?(:cljs (cw/basic-cache-factory {::basis 1})
+     :clj
+     (let [cache* (ThreadLocal/withInitial
+                   (reify
+                     java.util.function.Supplier
+                     (get [_]
+                       (java.util.WeakHashMap.))))]
+       (reify
+         clojure.lang.IDeref
+         (deref [_]
+           (.get cache*))))))
+
+#?(:clj
+   (defn get-component-cache
+     ^java.util.Map []
+     (.get ^ThreadLocal component-cache)))
 
 (defn reset-component-cache!
   "For debugging purposes only. Ideally, should never be necessary."
   []
-  (swap! component-cache
-         (fn [old-cache]
-           (let [old-basis (cache/lookup old-cache ::basis)]
-             (cache/seed old-cache {::basis (inc old-basis)}))) ))
+  #?(:cljs
+     (swap! component-cache
+            (fn [old-cache]
+              (let [old-basis (cache/lookup old-cache ::basis)]
+                (cache/seed old-cache {::basis (inc old-basis)}))) )
+     :clj
+     (alter-var-root #'component-cache
+                     (constantly
+                      (let [cache* (ThreadLocal/withInitial
+                                    (reify
+                                      java.util.function.Supplier
+                                      (get [_]
+                                        (java.util.WeakHashMap.))))]
+                        (reify
+                          clojure.lang.IDeref
+                          (deref [_]
+                            (.get cache*))))))
+     nil))
 
 ;; make it easier for syntax quote to use the correct
 ;; namespaced symbol
@@ -957,9 +988,34 @@
 (def cache-evict cache/evict)
 (def cache-miss cache/miss)
 
-(def has-key-press-memo (memoize ui/has-key-press))
-(def has-key-event-memo (memoize ui/has-key-event))
-(def has-mouse-move-global-memo (memoize ui/has-mouse-move-global))
+#?(:clj
+   (defn ^:private hm-lookup
+     "If the specified key is not already associated with a value (or is mapped to null), attempts to compute its value using the given mapping function and enters it into this map unless null."
+     ([^java.util.Map hm key compute]
+      (.computeIfAbsent hm key
+                        (reify Function
+                          (apply [_f _k]
+                            (compute)))))))
+
+
+#?(:clj
+   (defn ^:private memo1 [f]
+     (let [cache* (ThreadLocal/withInitial
+                   (reify
+                     java.util.function.Supplier
+                     (get [_]
+                       #_(java.util.HashMap.)
+                       (java.util.WeakHashMap.))))]
+       (fn [o]
+         (let [cache ^java.util.Map (.get ^ThreadLocal cache*)]
+           (hm-lookup cache o #(f o))))))
+
+   :cljs (defn memo1 [f]
+           (memoize f)))
+
+(def has-key-press-memo (memo1 #(when % (ui/has-key-press %))))
+(def has-key-event-memo (memo1 #(when % (ui/has-key-event %))))
+(def has-mouse-move-global-memo (memo1 #(when % (ui/has-mouse-move-global %))))
 
 (defmacro defui
   "Define a component.
@@ -1078,9 +1134,19 @@
                      (doall* (map #(path-replace % deps) body)))))
 
              (defn ~render-cached-fn-name  {:no-doc true} [elem#]
-               (cache-lookup-or-miss component-cache
-                                     elem#
-                                     ~render-fn-name))
+               #?(:cljs (cache-lookup-or-miss component-cache
+                                              elem#
+                                              ~render-fn-name)
+                  :clj
+                  (let [^java.util.Map
+                        cache# @component-cache
+                        ;; key must contain component type
+                        key# [~ui-name-kw elem#]]
+                    ;; duplicate hm-lookup code so we can keep it private
+                    (.computeIfAbsent cache# key#
+                                      (reify Function
+                                        (apply [_f# _k#]
+                                          (~render-fn-name elem#)))))))
 
              (defrecord ~component-name []
                membrane.ui/IOrigin

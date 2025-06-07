@@ -14,6 +14,33 @@
   (require '[membrane.ios :as backend])
   (require '[membrane.skia :as backend]))
 
+(defn ^:private memo123 [f]
+  (let [cache* (ThreadLocal/withInitial
+                (reify
+                  java.util.function.Supplier
+                  (get [_]
+                    (java.util.WeakHashMap.))))]
+    (fn
+      ([o]
+       (let [cache ^java.util.Map (.get ^ThreadLocal cache*)]
+         (or (.get cache o)
+             (let [result (f o)]
+               (.put cache o result)
+               result))))
+      ([o1 o2]
+       (let [cache ^java.util.Map (.get ^ThreadLocal cache*)]
+         (or (.get cache [o1 o2])
+             (let [result (f o1 o2)]
+               (.put cache [o1 o2] result)
+               result))))
+      ([o1 o2 o3]
+       (let [cache ^java.util.Map (.get ^ThreadLocal cache*)]
+         (or (.get cache [o1 o2 o3])
+             (let [result (f o1 o2 o3)]
+               (.put cache [o1 o2 o3] result)
+               result)))))))
+
+
 (def ^:private void Void/TYPE)
 (def cleaner (delay (Cleaner/create)))
 
@@ -883,7 +910,7 @@
                      (skia-Paragraph-layout width))]
      paragraph)))
 
-(def ^:private make-paragraph (memoize make-paragraph*))
+(def ^:private make-paragraph (memo123 make-paragraph*))
 
 (defprotocol IParagraph
   (get-rects-for-placeholders [para])

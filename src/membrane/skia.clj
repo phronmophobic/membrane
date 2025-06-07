@@ -56,6 +56,19 @@
      (catch ClassNotFoundException e
        false)))
 
+(defn ^:private memo1 [f]
+  (let [cache* (ThreadLocal/withInitial
+                (reify
+                  java.util.function.Supplier
+                  (get [_]
+                    (java.util.WeakHashMap.))))]
+    (fn [o]
+      (let [cache ^java.util.Map (.get ^ThreadLocal cache*)]
+        (or (.get cache o)
+            (let [result (f o)]
+              (.put cache o result)
+              result))))))
+
 (defmacro print-timing [& body]
   `(let [threadmx-bean# (java.lang.management.ManagementFactory/getThreadMXBean)
          before-time# (.getCurrentThreadUserTime threadmx-bean#)
@@ -1474,7 +1487,7 @@
 
 (defonce
   swizzle-image-size
-  (reset! membrane.ui/image-size* (memoize image-size-raw)))
+  (reset! membrane.ui/image-size* (memo1 image-size-raw)))
 
 
 (def font-slants
@@ -1532,7 +1545,7 @@
       (draw drawable)
       (let [[xscale yscale :as content-scale] @(:window-content-scale *window*)
             [img img-width img-height]
-            (if-let [img-info (get @*draw-cache* [drawable content-scale *paint*])]
+            (if-let [img-info (.get ^java.util.Map *draw-cache* [drawable content-scale *paint*])]
               img-info
               (do
                 (let [[w h] (bounds drawable)
@@ -1551,7 +1564,7 @@
 
                             (add-cleaner SkImage (Skia/skia_offscreen_image *skia-resource*)))
                       img-info [img img-width img-height]]
-                  (swap! *draw-cache* assoc [drawable content-scale *paint*] img-info)
+                  (.put ^java.util.Map *draw-cache* [drawable content-scale *paint*] img-info)
                   img-info)))]
         (save-canvas
          (Skia/skia_translate *skia-resource* (float (- padding)) (float (- padding)))
@@ -2183,7 +2196,7 @@
                  :window window
                  :image-cache (atom {})
                  :font-cache (atom {})
-                 :draw-cache (atom {})
+                 :draw-cache (java.util.WeakHashMap.)
                  :ui (atom nil)
                  :mouse-position (atom [0 0])
                  :window-content-scale (atom [1 1])
@@ -2282,6 +2295,7 @@
     (when window
       (glfw-call Boolean/TYPE glfwWindowShouldClose window)))
   (cleanup! [this]
+    (.clear ^java.util.Map (:draw-cache this))
     (Skia/skia_cleanup skia-resource)
     (glfw-call void glfwDestroyWindow window)
     (assoc this
