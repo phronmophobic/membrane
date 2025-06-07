@@ -78,6 +78,19 @@
    :skia_Paragraph_delete {:rettype :void :argtypes '[[p :pointer]]}
    :skia_ParagraphBuilder_build {:rettype :pointer? :argtypes '[[builder :pointer]]}
    :skia_ParagraphBuilder_reset {:rettype :void :argtypes '[[builder :pointer]]}
+
+   :skia_StrutStyle_delete {:rettype :void :argtypes '[[style :pointer]]}
+   :skia_StrutStyle_make {:rettype :pointer}
+   :skia_StrutStyle_setFontFamilies {:rettype :void :argtypes '[[style :pointer] [families :pointer] [families-count :int32]]}
+   :skia_StrutStyle_setFontStyle {:rettype :void :argtypes '[[style :pointer] [font-style :pointer]]}
+   :skia_StrutStyle_setFontSize {:rettype :void :argtypes '[[style :pointer] [size :float32]]}
+   :skia_StrutStyle_setHeight {:rettype :void :argtypes '[[style :pointer] [height :float32]]}
+   :skia_StrutStyle_setLeading {:rettype :void :argtypes '[[style :pointer] [leading :float32]]}
+   :skia_StrutStyle_setStrutEnabled {:rettype :void :argtypes '[[style :pointer] [enabled? :int32]]}
+   :skia_StrutStyle_setForceStrutHeight {:rettype :void :argtypes '[[style :pointer] [force? :int32]]}
+   :skia_StrutStyle_setHeightOverride {:rettype :void :argtypes '[[style :pointer] [height-override? :int32]]}
+   :skia_StrutStyle_setHalfLeading {:rettype :void :argtypes '[[style :pointer] [half-leading? :int32]]}
+
    :skia_TextStyle_delete {:rettype :void :argtypes '[[style :pointer]]}
    :skia_TextStyle_make {:rettype :pointer}
    :skia_TextStyle_setColor {:rettype :pointer? :argtypes '[[style :pointer] [color :int32]]}
@@ -362,6 +375,72 @@
   (skia_ParagraphBuilder_reset builder)
   builder)
 
+
+(defn- skia-StrutStyle-make []
+  (add-cleaner
+   StrutStyle
+   (skia_StrutStyle_make)))
+
+;; skia_StrutStyle_setFontFamilies(StrutStyle* style, SkString** familiesArr, int familiesCount)
+(defn- skia-StrutStyle-setFontFamilies [style families]
+  (assert (pointer? style))
+
+  (let [sk-strings (into []
+                         (map ->SkString)
+                         families)
+        sk-families (dtype/make-container
+                     :native-heap
+                     :int64
+                     (into []
+                           (map #(dt-ffi/pointer->address %))
+                           sk-strings))]
+    (skia_StrutStyle_setFontFamilies style
+                                     sk-families
+                                     (count sk-strings))
+    ;; don't garbage collect me please
+    (identity sk-strings)
+    (identity sk-families))
+  style)
+;; skia_StrutStyle_setFontStyle(StrutStyle* style, SkFontStyle* fontStyle)
+(defn- skia-StrutStyle-setFontStyle [style font-style]
+  (assert (pointer? style))
+  (skia_StrutStyle_setFontStyle style font-style)
+  style)
+;; skia_StrutStyle_setFontSize(StrutStyle* style, float size)
+(defn- skia-StrutStyle-setFontSize [style size]
+  (assert (pointer? style))
+  (skia_StrutStyle_setFontSize style (float size))
+  style)
+;; skia_StrutStyle_setHeight(StrutStyle* style, float height)
+(defn- skia-StrutStyle-setHeight [style height]
+  (assert (pointer? style))
+  (skia_StrutStyle_setHeight style (float height))
+  style)
+;; skia_StrutStyle_setLeading(StrutStyle* style, float Leading)
+(defn- skia-StrutStyle-setLeading [style leading]
+  (assert (pointer? style))
+  (skia_StrutStyle_setLeading style (float leading))
+  style)
+;; skia_StrutStyle_setStrutEnabled(StrutStyle* style, int v)
+(defn- skia-StrutStyle-setStrutEnabled [style enabled?]
+  (assert (pointer? style))
+  (skia_StrutStyle_setStrutEnabled style (int (if enabled? 1 0)))
+  style)
+;; skia_StrutStyle_setForceStrutHeight(StrutStyle* style, int v)
+(defn- skia-StrutStyle-setForceStrutHeight [style force-strut-height?]
+  (assert (pointer? style))
+  (skia_StrutStyle_setForceStrutHeight style (int (if force-strut-height? 1 0)))
+  style)
+;; skia_StrutStyle_setHeightOverride(StrutStyle* style, int v)
+(defn- skia-StrutStyle-setHeightOverride [style override?]
+  (assert (pointer? style))
+  (skia_StrutStyle_setHeightOverride style (int (if override? 1 0)))
+  style)
+;; skia_StrutStyle_setHalfLeading(StrutStyle* style, int halfLeading)
+(defn- skia-StrutStyle-setHalfLeading [style half-leading?]
+  (assert (pointer? style))
+  (skia_StrutStyle_setHalfLeading style (int (if half-leading? 1 0)))
+  style)
 
 (defn- skia-TextStyle-make []
   (add-cleaner
@@ -845,6 +924,24 @@
                ;; default color is black
                (assoc s :text-style/color [0 0 0]))))
 
+(defn- ->StrutStyle [s]
+  (reduce-kv (fn [style k v]
+               (case k
+                 :strut-style/font-families (skia-StrutStyle-setFontFamilies style v)
+                 :strut-style/font-style (skia-StrutStyle-setFontStyle style (->FontStyle v))
+                 :strut-style/font-size (skia-StrutStyle-setFontSize style v)
+                 :strut-style/height (skia-StrutStyle-setHeight style v)
+                 :strut-style/leading (skia-StrutStyle-setLeading style v)
+                 :strut-style/strut-enabled (skia-StrutStyle-setStrutEnabled style v)
+                 :strut-style/force-strut-height (skia-StrutStyle-setForceStrutHeight style v)
+                 :strut-style/height-override (skia-StrutStyle-setHeightOverride style v)
+                 :strut-style/half-leading (skia-StrutStyle-setHalfLeading style v)
+
+                 ;; else
+                 style))
+             (skia-StrutStyle-make)
+             s))
+
 (defn ->ParagraphStyle [ps]
   (reduce-kv (fn [ps k v]
                (case k
@@ -857,8 +954,12 @@
                  :paragraph-style/max-lines (skia-ParagraphStyle-setMaxLines ps v)
                  :paragraph-style/ellipsis (skia-ParagraphStyle-setEllipsis ps v)
                  :paragraph-style/height (skia-ParagraphStyle-setHeight ps v)
+                 ;; this was a typo, keep for backwards compatibility
                  :paragraph-style/text-behavior (skia-ParagraphStyle-setTextHeightBehavior ps v)
+                 :paragraph-style/text-height-behavior (skia-ParagraphStyle-setTextHeightBehavior ps v)
                  :paragraph-style/replace-tab-characters? (skia-ParagraphStyle-setReplaceTabCharacters ps v)
+
+                 :paragraph-style/strut-style (skia-ParagraphStyle-setStrutStyle ps (->StrutStyle v)) 
 
                  ;; else
                  ps))

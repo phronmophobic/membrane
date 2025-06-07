@@ -905,6 +905,29 @@ extern "C" {
         pb->Reset();
     }
 
+    void skia_StrutStyle_delete(StrutStyle* style){
+        delete style;
+    }
+
+    StrutStyle* skia_StrutStyle_make(){
+        return new StrutStyle();
+    }
+    void skia_StrutStyle_setFontFamilies(StrutStyle* style, SkString** familiesArr, int familiesCount) { 
+	std::vector<SkString> families(familiesCount);
+        for (int i = 0; i < familiesCount; ++i) {
+            families[i] = *familiesArr[i];
+        }
+        style->setFontFamilies(families);
+    }
+    void skia_StrutStyle_setFontStyle(StrutStyle* style, SkFontStyle* fontStyle) { style->setFontStyle(*fontStyle); }
+    void skia_StrutStyle_setFontSize(StrutStyle* style, float size) { style->setFontSize(size); }
+    void skia_StrutStyle_setHeight(StrutStyle* style, float height) { style->setHeight(height); }
+    void skia_StrutStyle_setLeading(StrutStyle* style, float Leading) { style->setLeading(Leading); }
+    void skia_StrutStyle_setStrutEnabled(StrutStyle* style, int v) { style->setStrutEnabled(v); }
+    void skia_StrutStyle_setForceStrutHeight(StrutStyle* style, int v) { style->setForceStrutHeight(v); }
+    void skia_StrutStyle_setHeightOverride(StrutStyle* style, int v) { style->setHeightOverride(v); }
+    void skia_StrutStyle_setHalfLeading(StrutStyle* style, int halfLeading) { style->setHalfLeading(halfLeading); }
+
     void skia_TextStyle_delete(TextStyle* style){
         delete style;
     }
