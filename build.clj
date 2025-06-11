@@ -5,7 +5,7 @@
             [clojure.string :as str]))
 
 (def lib 'com.phronemophobic/membrane)
-(def version "0.17.0-beta-SNAPSHOT")
+(def version "0.18.0-beta-SNAPSHOT")
 (def class-dir "target/classes")
 (def basis (b/create-basis {:project "deps.edn"}))
 (def jar-file (format "target/%s-%s.jar" (name lib) version))
@@ -117,7 +117,7 @@
                      [:name "Apache License, Version 2.0"]
                      [:url "http://www.apache.org/licenses/LICENSE-2.0"]]]]
                   :lib coord
-                  :version "0.17-beta"
+                  :version "0.18-beta"
                   :basis skia-basis})
     (b/copy-file {:src shared-lib-path
                   :target (.getCanonicalPath
