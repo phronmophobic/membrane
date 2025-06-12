@@ -149,7 +149,8 @@
    ,})
 
 (dt-ffi/define-library-interface
-  paragraph-fns)
+  paragraph-fns
+  {:libraries ["membraneskia"]})
 
 
 
