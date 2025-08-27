@@ -307,7 +307,7 @@
 (def GL_STENCIL_BUFFER_BIT (int 0x00000400))
 (def GLFW_VISIBLE (int 0x00020004))
 
-
+(def GLFW_LOCK_KEY_MODS (int 0x00033004))
 (def GLFW_MOD_SHIFT 0x0001)
 (def GLFW_MOD_CONTROL 0x0002)
 (def GLFW_MOD_ALT 0x0004)
@@ -2238,6 +2238,11 @@
       (glfw-call Pointer glfwSetWindowRefreshCallback window window-refresh-callback)
       (glfw-call Pointer glfwSetWindowCloseCallback window window-close-callback)
       ;; (glfw-call Pointer glfwSetCursorEnterCallback window mouse-enter-callback)
+
+      ;; When this input mode is enabled, any callback that receives modifier
+      ;; bits will have the GLFW_MOD_CAPS_LOCK bit set if Caps Lock was on when the event occurred
+      ;; and the GLFW_MOD_NUM_LOCK bit set if Num Lock was on.
+      (glfw-call void glfwSetInputMode window GLFW_LOCK_KEY_MODS (int 1))
 
       (glfw-call void glfwSetWindowPos window window-x window-y)
 
