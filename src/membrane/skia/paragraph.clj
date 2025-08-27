@@ -589,7 +589,7 @@
 
 (defn- skia-TextStyle-setHalfLeading [style half-leading]
   (assert (pointer? style))
-  (skia_TextStyle_setHalfLeading style (int half-leading))
+  (skia_TextStyle_setHalfLeading style (int (if half-leading 1 0)))
   style)
 
 (defn- skia-TextStyle-setLetterSpacing [style letter-spacing]
