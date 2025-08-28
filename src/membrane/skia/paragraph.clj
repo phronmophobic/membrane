@@ -1019,6 +1019,12 @@
   (get-rects-for-range [para start end height-style width-style])
   (glyph-position-at-coordinate [para x y]))
 
+(defn glyph-index [para x y]
+  (let [[idx aff] (glyph-position-at-coordinate para x y)]
+    (if (= 1 aff)
+      idx
+      (dec idx))))
+
 (defrecord Paragraph [paragraph width paragraph-style]
   IParagraph
   (get-rects-for-range [_ start end height-style width-style]
