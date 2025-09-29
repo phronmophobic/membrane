@@ -1674,7 +1674,7 @@
                 *draw-cache* (:draw-cache window)]
         (handler window (aget args 0)))
       (catch Exception e
-        (println e)))
+        ((or (:error-callback window) println) e)))
     nil))
 
 (defn- make-window-close-callback [window handler]
@@ -1700,7 +1700,7 @@
                 *draw-cache* (:draw-cache window)]
         (handler window (aget args 0) (aget args 1) (aget args 2) ))
       (catch Exception e
-        (println e)))
+        ((or (:error-callback window) println) e)))
     nil))
 
 (defn- make-reshape-callback [window handler]
@@ -1728,7 +1728,7 @@
                 *draw-cache* (:draw-cache window)]
         (handler window (aget args 0) (aget args 1)))
       (catch Exception e
-        (println e)))
+        ((or (:error-callback window) println) e)))
     nil))
 (defn- make-mouse-enter-callback [window handler]
   (MouseEnterCallback. window handler))
@@ -1755,7 +1755,7 @@
                 *draw-cache* (:draw-cache window)]
         (handler window (aget args 0) (aget args 1)))
       (catch Exception e
-        (println e)))
+        ((or (:error-callback window) println) e)))
     nil))
 
 
@@ -1764,7 +1764,7 @@
   (try
     (mouse-event @(:ui window) @(:mouse-position window) button (= 1 action) mods)
     (catch Exception e
-      (println e)))
+      ((or (:error-callback window) println) e)))
 
   (repaint! window))
 
@@ -1781,7 +1781,7 @@
                 *draw-cache* (:draw-cache window)]
         (handler window (aget args 0) (aget args 1) (aget args 2) (aget args 3)))
       (catch Exception e
-        (println e)))
+        ((or (:error-callback window) println) e)))
     nil))
 
 (defn- make-mouse-button-callback [window handler]
@@ -1809,7 +1809,7 @@
                 *draw-cache* (:draw-cache window)]
         (handler window (aget args 0) (aget args 1) (aget args 2)))
       (catch Exception e
-        (println e)))
+        ((or (:error-callback window) println) e)))
 
     nil))
 
@@ -1833,7 +1833,7 @@
                 *draw-cache* (:draw-cache window)]
         (handler window (aget args 0)))
       (catch Exception e
-        (println e)))
+        ((or (:error-callback window) println) e)))
     nil))
 
 (defn- make-window-refresh-callback [window handler]
@@ -1864,7 +1864,7 @@
               paths (.getStringArray ^Pointer string-pointers  0 num-paths "utf-8")]
           (handler window (aget args 0) paths)))
       (catch Exception e
-        (println e)))
+        ((or (:error-callback window) println) e)))
     nil))
 
 (defn- make-drop-callback [window handler]
@@ -1876,7 +1876,7 @@
     (doall (mouse-move @(:ui window) [x y]))
     (doall (mouse-move-global @(:ui window) [x y]))
     (catch Exception e
-      (println e)))
+      ((or (:error-callback window) println) e)))
 
 
   (reset! (:mouse-position window) [(double x)
@@ -1900,7 +1900,7 @@
                   *draw-cache* (:draw-cache window)]
           (handler window (aget args 0) (aget args 1) (aget args 2)))
         (catch Exception e
-          (println e)))
+          ((or (:error-callback window) println) e)))
     nil))
 
 (defn- make-cursor-pos-callback [window handler]
@@ -1944,7 +1944,7 @@
           (try
             (ui/key-press ui k)
             (catch Exception e
-              (println e)))
+              ((or (:error-callback window) println) e)))
 
           ))
       ))
@@ -1965,7 +1965,7 @@
                 *draw-cache* (:draw-cache window)]
         (handler window (aget args 0) (aget args 1) (aget args 2) (aget args 3) (aget args 4)))
       (catch Exception e
-        (println e)))
+        ((or (:error-callback window) println) e)))
     nil))
 
 (defn- make-key-callback [window handler]
@@ -1982,7 +1982,7 @@
     (try
       (ui/key-press ui k)
       (catch Exception e
-        (println e))))
+        ((or (:error-callback window) println) e))))
 
   ;;(repaint! window)
   )
@@ -2000,7 +2000,7 @@
                 *draw-cache* (:draw-cache window)]
         (handler window (aget args 0) (aget args 1) ))
       (catch Exception e
-        (println e)))
+        ((or (:error-callback window) println) e)))
     nil))
 
 (defn- make-character-callback [window handler]
@@ -2171,7 +2171,7 @@
                        quality
                        path)))))
 
-(defrecord GlfwSkiaWindow [view-fn window handlers callbacks ui mouse-position skia-resource image-cache font-cache draw-cache window-content-scale window-start-width window-start-height window-start-x window-start-y window-title window-size]
+(defrecord GlfwSkiaWindow [view-fn window handlers callbacks ui mouse-position skia-resource image-cache font-cache draw-cache window-content-scale window-start-width window-start-height window-start-x window-start-y window-title window-size error-callback]
   IWindow
   (init! [this]
     (let [window-width (int (or window-start-width 787))
@@ -2354,15 +2354,17 @@
   `options` is a map that can contain the following keys
   Optional parameters
 
-  `window-start-width`: the starting width of the window
-  `window-start-height`: the starting height of the window
+  `:window-start-width`: the starting width of the window
+  `:window-start-height`: the starting height of the window
   note: The window may be resized.
 
-  `window-start-x`: the starting x coordinate of the top left corner of the window
-  `window-start-y`: the starting y coordinate of the top left corner of the window
+  `:window-start-x`: the starting x coordinate of the top left corner of the window
+  `:window-start-y`: the starting y coordinate of the top left corner of the window
   note: The window may be moved.
 
-  `handlers`: A map of callback backs for glfw events
+  `:error-callback`: A function to call when an error occurs on the event thread. Defaults to `clojure.core/println`.
+
+  `:handlers`: A map of callback backs for glfw events
   The events correspond to the available glfw events. If no `handlers` map is provided, then the defaults are used.
   If a handlers key is provided, it does not replace the defaults, but get merged into the defaults.
 
@@ -2403,7 +2405,7 @@
            (run-helper window-chan
                        (:membrane.skia/on-main options))
            (catch Exception e
-             (println e)))))))
+             ((or (:error-callback options) println) e)))))))
 
 (defn run
   "Open a window and call `view-fn` to draw. Returns a channel that is closed when the window is closed.
@@ -2414,15 +2416,17 @@
   `options` is a map that can contain the following keys
   Optional parameters
 
-  `window-start-width`: the starting width of the window
-  `window-start-height`: the starting height of the window
+  `:window-start-width`: the starting width of the window
+  `:window-start-height`: the starting height of the window
   note: The window may be resized.
 
-  `window-start-x`: the starting x coordinate of the top left corner of the window
-  `window-start-y`: the starting y coordinate of the top left corner of the window
+  `:window-start-x`: the starting x coordinate of the top left corner of the window
+  `:window-start-y`: the starting y coordinate of the top left corner of the window
   note: The window may be moved.
 
-  `handlers`: A map of callback backs for glfw events
+  `:error-callback`: A function to call when an error occurs on the event thread. Defaults to `clojure.core/println`.
+
+  `:handlers`: A map of callback backs for glfw events
   The events correspond to the available glfw events. If no `handlers` map is provided, then the defaults are used.
   If a handlers key is provided, it does not replace the defaults, but get merged into the defaults.
 
