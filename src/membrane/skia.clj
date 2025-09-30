@@ -1308,6 +1308,9 @@
         nil))))
 
 
+(defonce main-thread-serializer
+  (delay
+    (java.util.concurrent.Executors/newSingleThreadExecutor)))
 
 (if (building-graalvm-image?)
   ;; native image calls -main on the main thread already
@@ -1331,12 +1334,15 @@
       (if-class com.apple.concurrent.Dispatch
         (.execute (.getBlockingMainQueueExecutor (eval '(com.apple.concurrent.Dispatch/getInstance)))
                   f)
-        (if-let [skia_osx_run_on_main_thread_sync @skia_osx_run_on_main_thread_sync]
-          (let [callback (DispatchCallback. f)]
-            (skia_osx_run_on_main_thread_sync callback)
-            ;; please don't garbage collect me while i'm running
-            (identity callback))
-          (f)))
+        @(.submit ^java.util.concurrent.ExecutorService @main-thread-serializer
+                  ^Runnable
+                  (fn []
+                    (if-let [skia_osx_run_on_main_thread_sync @skia_osx_run_on_main_thread_sync]
+                      (let [callback (DispatchCallback. f)]
+                        (skia_osx_run_on_main_thread_sync callback)
+                        ;; please don't garbage collect me while i'm running
+                        (identity callback))
+                      (f)))))
       nil)))
 
 ;; (.invoke getClass Pointer   (to-array ["NSAutoreleasePool"]))
