@@ -56,6 +56,12 @@ public class Skia {
 
     public static native int skia_save_image(Pointer image, int format, int quality, String path);
 
+    public static native Pointer skia_encode_image(Pointer image, int format, int quality);
+    public static native Pointer skia_SkData_data(Pointer skdata);
+    public static native long skia_SkData_size(Pointer skdata);
+    public static native void skia_SkData_ref(Pointer skdata);
+    public static native void skia_SkData_unref(Pointer skdata);
+
     public static native int skia_fork_pty(short rows, short columns);
 
     static {

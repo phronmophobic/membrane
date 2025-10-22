@@ -761,8 +761,23 @@ extern "C" {
         delete img;
     }
 
-    int skia_save_image(SkiaResource* resource, int format, int quality, const char* path){
+    const void* skia_SkData_data(SkData* data){
+        return data->data();
+    }
 
+    size_t skia_SkData_size(SkData* data){
+        return data->size();
+    }
+
+    void skia_SkData_ref(SkData* data){
+        data->ref();
+    }
+
+    void skia_SkData_unref(SkData* data){
+        data->unref();
+    }
+    
+    SkData* skia_encode_image(SkiaResource* resource, int format, int quality){
         sk_sp<SkImage> img(resource->surface->makeImageSnapshot());
         if (!img) { return 0; }
 
@@ -802,9 +817,19 @@ extern "C" {
 
         }
 
+        return img_data.release();
+    }
+
+    int skia_save_image(SkiaResource* resource, int format, int quality, const char* path){
+
+        SkData* img_data = skia_encode_image(resource, format, quality);
+
         if (!img_data) { return 0; }
         SkFILEWStream out(path);
-        return out.write(img_data->data(), img_data->size());
+
+        int result = out.write(img_data->data(), img_data->size());
+        img_data->unref();
+        return result;
 
     }
 
