@@ -2065,6 +2065,58 @@
 
 (defc skia_save_image membraneskialib Integer/TYPE [skia-resource format quality path])
 
+(defn encode-image
+  "Encodes an image of elem. Returns a byte array on success. nil otherwise
+
+  `elem`: the graphical element to draw
+  `size`: the width and height of the image. If size is nil, the bounds and origin of elem will be used.
+  `image-format`: The image format to use. Should be one of
+   :membrane.skia/image-format-jpeg
+   :membrane.skia/image-format-png
+   :membrane.skia/image-format-webp
+  if `image-format` is nil, then :membrane.skia/image-format-png will be used.
+  `quality`: specifies the image quality to use for lossy image formats like jpeg. defaults to 100
+  `clear?`: Specifies if the canvas should be cleared before drawing. defaults to true.
+
+  "
+  ([elem]
+   (encode-image elem nil))
+  ([elem [w h :as size]]
+   (encode-image elem size nil 100 true))
+  ([elem [w h :as size] image-format quality clear?]
+   (let [size (if size
+                size
+                (let [[w h] (bounds elem)
+                      [ox oy] (origin elem)]
+                  [(+ w ox)
+                   (+ h oy)]))
+         _ (assert (and (pos? (first size))
+                        (pos? (second size)))
+                   "Size must be two positive numbers [w h]")
+         image-format (if image-format
+                        image-format
+                        :membrane.skia/image-format-png)
+         image-format-native (if-let [fmt (get image-formats image-format)]
+                               fmt
+                               (throw
+                                (IllegalArgumentException.
+                                 (str "Image format must be one of " (keys image-formats)))))]
+     (with-cpu-skia-resource skia-resource size
+       (binding [*skia-resource* skia-resource
+                 *image-cache* (atom {})
+                 *already-drawing* true]
+         (when clear?
+           (Skia/skia_clear skia-resource))
+         (draw elem))
+       (let [skdata (Skia/skia_encode_image skia-resource
+                                            image-format-native
+                                            quality)
+             size (Skia/skia_SkData_size skdata)
+             buf (byte-array size)]
+         (.read (Skia/skia_SkData_data skdata) 0 buf 0 size)
+         (Skia/skia_SkData_unref skdata)
+         buf)))))
+
 
 
 (defn save-image
