@@ -587,23 +587,16 @@ extern "C" {
 
     SkImage* skia_load_image(const char* path){
         sk_sp<SkImage> image = SkImages::DeferredFromEncodedData(SkData::MakeFromFileName(path));
-        if ( image ) {
-            image->ref();
-        }
-
-        return image.get();
-
+        return image.release();
     }
+
     SkImage* skia_load_image_from_memory(const unsigned char *const buffer,int buffer_length){
 
         sk_sp<SkData> data = SkData::MakeWithCopy(buffer, buffer_length);
 
         sk_sp<SkImage> image = SkImages::DeferredFromEncodedData(data);
-        if ( image ) {
-            image->ref();
-        }
 
-        return image.get();
+        return image.release();
     }
 
     void skia_draw_image(SkiaResource* resource, SkImage* image){
@@ -749,11 +742,9 @@ extern "C" {
 
     SkImage* skia_offscreen_image(SkiaResource* resource){
         sk_sp<SkImage> imgP(resource->surface->makeImageSnapshot());
-        SkImage* img = imgP.get();
-        img->ref();
 
         delete resource;
-        return img;
+        return imgP.release();
 
     }
 
