@@ -988,15 +988,21 @@
 (def cache-evict cache/evict)
 (def cache-miss cache/miss)
 
+(def ^:private nil-sentinel (Object.))
 #?(:clj
    (defn ^:private hm-lookup
      "If the specified key is not already associated with a value (or is mapped to null), attempts to compute its value using the given mapping function and enters it into this map unless null."
      ([^java.util.Map hm key compute]
-      (.computeIfAbsent hm key
-                        (reify Function
-                          (apply [_f _k]
-                            (compute)))))))
-
+      (let [result (.computeIfAbsent hm key
+                                     (reify Function
+                                       (apply [_f _k]
+                                         (let [result (compute)]
+                                           (if (nil? result)
+                                             nil-sentinel
+                                             result)))))]
+        (if (identical? nil-sentinel result)
+          nil
+          result)))))
 
 #?(:clj
    (defn ^:private memo1 [f]
