@@ -8,13 +8,16 @@ cd "$DIR"
 
 export SDKROOT="/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk"
 
+skia_root="./libs/skia"
+
 clang++ \
-    -I ./libs/skia.bak \
-    -I ./libs/skia.bak/include/gpu \
-    -I ./libs/skia.bak/include/gpu/gl \
-    -I ./libs/skia.bak/include/core \
-    -I ./libs/skia.bak/include/utils \
-    -I ./libs/skia.bak/include/private \
+    -I "$skia_root" \
+    -I "$skia_root"/include/gpu \
+    -I "$skia_root"/include/gpu/gl \
+    -I "$skia_root"/include/core \
+    -I "$skia_root"/include/utils \
+    -I "$skia_root"/include/private \
+    -I "$skia_root"/include/codec \
     -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk \
     -DTARGET_OS_IOS=1 \
     -DSK_METAL=1 \
@@ -23,6 +26,7 @@ clang++ \
     -c \
     -std=c++17 \
     -arch arm64 \
+    -x objective-c++ \
     -o libmembraneiosskia.o \
     skia.cpp
 

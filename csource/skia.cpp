@@ -1,17 +1,5 @@
 #include "skia.h"
 
-
-#if defined(__APPLE__)
-#include <OpenGL/gl.h>
-#else
-
-#include <GL/gl.h>
-
-
-#endif
-
-
-
 #include "modules/skparagraph/include/Paragraph.h"
 #include "modules/skparagraph/include/ParagraphBuilder.h"
 
@@ -159,6 +147,8 @@ extern "C" {
 
     void skia_reshape(SkiaResource* resource, int frameBufferWidth, int frameBufferHeight, float xscale, float yscale){
 
+        #ifndef TARGET_OS_IOS
+
         if ( resource->surface){
             resource->surface.reset();
             resource->grContext.reset();
@@ -193,6 +183,8 @@ extern "C" {
         
         gpuCanvas->scale(xscale, yscale);
 	resource->surface = gpuSurface;
+
+        #endif
     }
 
     void skia_clear(SkiaResource* resource){
@@ -1437,11 +1429,13 @@ extern "C" {
 @end
 
 void skia_osx_run_on_main_thread_sync(void(*callback)(void)){
+    #ifndef TARGET_OS_IOS
     @autoreleasepool {
         SkialibCallbackWrapper *cbwrapper = [[SkialibCallbackWrapper alloc] init];
         cbwrapper.callback = callback;
 	[cbwrapper performSelectorOnMainThread:@selector(runCallback) withObject:nil waitUntilDone:YES];
     }
+    #endif
 }
 #endif
 }
