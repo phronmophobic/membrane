@@ -59,7 +59,6 @@
   `(let [body# (quote ~body)
          [old# new#] (swap-vals! defs conj body#)]
      (when (not (contains? old# body#))
-       (println "reevaluating!!")
        ~body)))
 
 (defmacro building-graalvm-image? []
