@@ -338,6 +338,20 @@ extern "C" {
         return bufResource;
     }
 
+    SkiaResource* skia_direct_buffer(void* buf, SkColorType colorType, int width, int height, int rowBytes ) {
+
+    
+        SkImageInfo info = SkImageInfo::Make(width, height, colorType, kUnpremul_SkAlphaType);
+
+        sk_sp<SkSurface> surface =
+            SkSurfaces::WrapPixels(info, buf, rowBytes);
+
+        SkiaResource* bufResource = new SkiaResource(NULL, surface);
+
+        return bufResource;
+    }
+
+
     void skia_browser_draw(SkiaResource* resource, const void* buffer, int width, int height){
 
         SkImageInfo info = SkImageInfo::Make(width, height, kBGRA_8888_SkColorType, kUnpremul_SkAlphaType);
