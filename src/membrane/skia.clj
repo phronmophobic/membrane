@@ -49,12 +49,25 @@
            com.phronemophobic.membrane.Skia)
   (:gen-class))
 
+
+(defmacro defprotocolonce [name & args]
+  `(let [v# (def ~name)]
+     (when-not (.hasRoot v#)
+       (defprotocol ~name ~@args))))
+(defonce defs (atom #{}))
+(defmacro ^:private defonce* [body]
+  `(let [body# (quote ~body)
+         [old# new#] (swap-vals! defs conj body#)]
+     (when (not (contains? old# body#))
+       (println "reevaluating!!")
+       ~body)))
+
 (defmacro building-graalvm-image? []
-   (try
-     (import 'org.graalvm.nativeimage.ImageInfo)
-     `(org.graalvm.nativeimage.ImageInfo/inImageBuildtimeCode)
-     (catch ClassNotFoundException e
-       false)))
+  (try
+    (import 'org.graalvm.nativeimage.ImageInfo)
+    `(org.graalvm.nativeimage.ImageInfo/inImageBuildtimeCode)
+    (catch ClassNotFoundException e
+      false)))
 
 (defn ^:private memo1 [f]
   (let [cache* (ThreadLocal/withInitial
@@ -80,7 +93,7 @@
                  1e6))
      ret#))
 
-(def ^:private cleaner (delay (Cleaner/create)))
+(defonce ^:private cleaner (delay (Cleaner/create)))
 (def ^:private void Void/TYPE)
 (def ^:private main-class-loader @clojure.lang.Compiler/LOADER)
 
@@ -117,7 +130,7 @@
                       (catch java.lang.UnsatisfiedLinkError e
                         nil))))
 
-(def ffi-buf*
+(defonce ffi-buf*
   (ThreadLocal/withInitial
    (reify
      Supplier
@@ -129,9 +142,9 @@
   `(.size (ffi-buf)))
 
 
-(def ^:dynamic *paint* {})
+(defonce ^:dynamic *paint* {})
 
-(defprotocol IDraw
+(defprotocolonce IDraw
   :extend-via-metadata true
   (draw [this]))
 
@@ -358,11 +371,11 @@
       (throw (Exception. "Unable to create pty.")))
     pty))
 
-(def ^:dynamic *image-cache* (atom {}))
-(def ^:dynamic *font-cache* (atom {}))
-(def ^:dynamic *draw-cache* nil)
-(def ^:dynamic *skia-resource* nil)
-(def ^:dynamic *window* nil)
+(defonce ^:dynamic *image-cache* (atom {}))
+(defonce ^:dynamic *font-cache* (atom {}))
+(defonce ^:dynamic *draw-cache* nil)
+(defonce ^:dynamic *skia-resource* nil)
+(defonce ^:dynamic *window* nil)
 
 (def DEFAULT-COLOR [0.13 0.15 0.16 1])
 (declare render-text)
@@ -422,7 +435,8 @@
 (defn- skia-set-stroke-width [skia-resource width]
   (Skia/skia_set_stroke_width skia-resource (float width)))
 
-(extend-type membrane.ui.WithStrokeWidth
+(defonce*
+  (extend-type membrane.ui.WithStrokeWidth
     IDraw
     (draw [this]
       (let [stroke-width (:stroke-width this)]
@@ -430,18 +444,19 @@
           (push-paint
            (skia-set-stroke-width *skia-resource* stroke-width)
            (doseq [drawable (:drawables this)]
-             (draw drawable)))))))
+             (draw drawable))))))))
 
 
-(extend-type membrane.ui.WithStyle
-  IDraw
-  (draw [this]
-    (let [style (:style this)]
-      (binding [*paint* (assoc *paint* ::style style)]
-       (push-paint
-        (skia-set-style *skia-resource* style)
-        (doseq [drawable (:drawables this)]
-          (draw drawable)))))))
+(defonce*
+  (extend-type membrane.ui.WithStyle
+    IDraw
+    (draw [this]
+      (let [style (:style this)]
+        (binding [*paint* (assoc *paint* ::style style)]
+          (push-paint
+           (skia-set-style *skia-resource* style)
+           (doseq [drawable (:drawables this)]
+             (draw drawable))))))))
 
 
 (defc skia_set_color membraneskialib Void/TYPE [skia-resource r g b a])
@@ -543,32 +558,34 @@
        (Skia/skia_render_line *skia-resource* font-ptr buf size (float 0) (float 0))))))
 
 
-(defrecord LabelRaw [text font]
+(defonce*
+  (defrecord LabelRaw [text font]
     IBounds
     (-bounds [_]
-        (let [[minx miny maxx maxy] (text-bounds (get-font font)
-                                                 text)
-              maxx (max 0 maxx)
-              maxy (max 0 maxy)]
-          [maxx maxy]))
+      (let [[minx miny maxx maxy] (text-bounds (get-font font)
+                                               text)
+            maxx (max 0 maxx)
+            maxy (max 0 maxy)]
+        [maxx maxy]))
 
     IDraw
-  (draw [this]
-      (label-draw this)))
+    (draw [this]
+      (label-draw this))))
 
 (declare ->Cached rectangle)
-(extend-type membrane.ui.Label
-  IBounds
-  (-bounds [this]
-    (let [[minx miny maxx maxy] (text-bounds (get-font (:font this))
-                                             (:text this))
-          maxx (max 0 maxx)
-          maxy (max 0 maxy)]
-      [maxx maxy]))
-  IDraw
-  (draw [this]
-    (draw (->Cached (LabelRaw. (:text this)
-                               (:font this))))))
+(defonce*
+  (extend-type membrane.ui.Label
+    IBounds
+    (-bounds [this]
+      (let [[minx miny maxx maxy] (text-bounds (get-font (:font this))
+                                               (:text this))
+            maxx (max 0 maxx)
+            maxy (max 0 maxy)]
+        [maxx maxy]))
+    IDraw
+    (draw [this]
+                  (draw (->Cached (LabelRaw. (:text this)
+                                             (:font this)))))))
 
 
 (def kAlpha_8_SkColorType
@@ -644,46 +661,49 @@
 
 (defc skia_draw_pixmap membraneskialib void [resource color-type alpha-type buffer width height row-bytes])
 
-(defrecord Pixmap [id buf width height color-type alpha-type row-bytes]
-  ui/IOrigin
+(defonce*
+  (defrecord Pixmap [id buf width height color-type alpha-type row-bytes]
+    ui/IOrigin
     (-origin [_]
-        [0 0])
+      [0 0])
 
     IDraw
     (draw [this]
       (skia_draw_pixmap *skia-resource* color-type alpha-type buf width height row-bytes))
 
     ui/IBounds
-  (-bounds [_]
-    [width height]))
+    (-bounds [_]
+      [width height])))
 
 (defn ^:private pixmap
   "Element for drawing raw pixel data. pixmap is a fairly low level level primitive."
   [id buf width height color-type alpha-type row-bytes]
   (->Pixmap id buf (int width) (int height) (int color-type) (int alpha-type) (int row-bytes)))
 
-(defprotocol ImageFactory
+(defprotocolonce ImageFactory
   "gets or creates an opengl image texture given some various types"
   :extend-via-metadata true
   (get-image-texture [x]))
 
-(extend-type String
-  ImageFactory
-  (get-image-texture [image-path]
-    (if-let [image (get @*image-cache* image-path)]
-      image
-      (if (.exists (clojure.java.io/file image-path))
-        (let [image (skia-load-image image-path)]
-          (swap! *image-cache* assoc image-path image)
-          image)
-        (do
-          (println image-path " does not exist!")
-          nil)))))
+(defonce*
+  (extend-type String
+    ImageFactory
+    (get-image-texture [image-path]
+      (if-let [image (get @*image-cache* image-path)]
+        image
+        (if (.exists (clojure.java.io/file image-path))
+          (let [image (skia-load-image image-path)]
+            (swap! *image-cache* assoc image-path image)
+            image)
+          (do
+            (println image-path " does not exist!")
+            nil))))))
 
-(extend-type Pointer
-  ImageFactory
-  (get-image-texture [image-pointer]
-    image-pointer))
+(defonce*
+  (extend-type Pointer
+    ImageFactory
+    (get-image-texture [image-pointer]
+      image-pointer)))
 
 (defn- slurp-bytes
   "Slurp the bytes from a slurpable thing"
@@ -692,25 +712,27 @@
     (clojure.java.io/copy (clojure.java.io/input-stream x) out)
     (.toByteArray out)))
 
-(extend-type java.net.URL
-  ImageFactory
-  (get-image-texture [image-url]
-    (if-let [image (get @*image-cache* image-url)]
-      image
-      (let [bytes (slurp-bytes image-url)
-            image (skia-load-image-from-memory bytes)]
-        (swap! *image-cache* assoc image-url image)
-        image))))
+(defonce*
+  (extend-type java.net.URL
+    ImageFactory
+    (get-image-texture [image-url]
+      (if-let [image (get @*image-cache* image-url)]
+        image
+        (let [bytes (slurp-bytes image-url)
+              image (skia-load-image-from-memory bytes)]
+          (swap! *image-cache* assoc image-url image)
+          image)))))
 
-(extend (Class/forName "[B")
-  ImageFactory
-  {:get-image-texture
-   (fn [^bytes bytes]
-     (if-let [image (get @*image-cache* bytes)]
-       image
-       (let [image (skia-load-image-from-memory bytes)]
-         (swap! *image-cache* assoc bytes image)
-         image)))})
+(defonce*
+  (extend (Class/forName "[B")
+    ImageFactory
+    {:get-image-texture
+     (fn [^bytes bytes]
+       (if-let [image (get @*image-cache* bytes)]
+         image
+         (let [image (skia-load-image-from-memory bytes)]
+           (swap! *image-cache* assoc bytes image)
+           image)))}))
 
 (defn- image-draw [{:keys [image-path size opacity] :as image}]
   (when-let [image-texture (get-image-texture image-path)]
@@ -721,59 +743,63 @@
        (Skia/skia_draw_image_rect *skia-resource* image-texture (float w) (float h))))))
 
 
-(extend-type membrane.ui.Image
-  IDraw
-  (draw [this]
-    (image-draw this)))
+(defonce*
+  (extend-type membrane.ui.Image
+    IDraw
+    (draw [this]
+      (image-draw this))))
 
 
 
 
-(extend-type membrane.ui.Translate
-  IDraw
-  (draw [this]
-    (save-canvas
-     (Skia/skia_translate *skia-resource* (float (:x this)) (float (:y this)))
-     (draw (:drawable this)))))
+(defonce*
+  (extend-type membrane.ui.Translate
+    IDraw
+    (draw [this]
+      (save-canvas
+       (Skia/skia_translate *skia-resource* (float (:x this)) (float (:y this)))
+       (draw (:drawable this))))))
 
 
-(extend-type membrane.ui.Rotate
-  IDraw
-  (draw [this]
-    (save-canvas
-     (Skia/skia_rotate *skia-resource* (float (:degrees this)))
-     (draw (:drawable this)))))
+(defonce*
+  (extend-type membrane.ui.Rotate
+    IDraw
+    (draw [this]
+      (save-canvas
+       (Skia/skia_rotate *skia-resource* (float (:degrees this)))
+       (draw (:drawable this))))))
 
 
-(defrecord Transform [matrix drawable]
-  IOrigin
-  (-origin [this]
-    [0 0])
+(defonce*
+  (defrecord Transform [matrix drawable]
+    IOrigin
+    (-origin [this]
+      [0 0])
 
-  ui/IMakeNode
-  (make-node [this childs]
-    (assert (= (count childs) 1))
-    (Transform. matrix (first childs)))
+    ui/IMakeNode
+    (make-node [this childs]
+      (assert (= (count childs) 1))
+      (Transform. matrix (first childs)))
 
-  IChildren
-  (-children [this]
-    [drawable])
+    IChildren
+    (-children [this]
+      [drawable])
 
-  IBounds
-  (-bounds [this]
-    [0 0])
+    IBounds
+    (-bounds [this]
+      [0 0])
 
-  IDraw
-  (draw [this]
-    (save-canvas
-     (Skia/skia_transform *skia-resource*
-                          (float (nth matrix 0))
-                          (float (nth matrix 1))
-                          (float (nth matrix 2))
-                          (float (nth matrix 3))
-                          (float (nth matrix 4))
-                          (float (nth matrix 5)))
-     (draw (:drawable this)))))
+    IDraw
+    (draw [this]
+      (save-canvas
+        (Skia/skia_transform *skia-resource*
+                             (float (nth matrix 0))
+                             (float (nth matrix 1))
+                             (float (nth matrix 2))
+                             (float (nth matrix 3))
+                             (float (nth matrix 4))
+                             (float (nth matrix 5)))
+        (draw (:drawable this))))))
 (defn transform [matrix drawable]
   (Transform. matrix drawable))
 
@@ -941,18 +967,19 @@
            (Skia/skia_next_line *skia-resource* font-ptr)
            (recur (next lines) (- selection-start line-count 1) (- selection-end line-count 1))))))))
 
-(extend-type membrane.ui.TextSelection
-  IBounds
-  (-bounds [this]
-    (let [[minx miny maxx maxy] (text-bounds (get-font (:font this))
-                                             (:text this))
-          maxx (max 0 maxx)
-          maxy (max 0 maxy)]
-      [maxx maxy]))
+(defonce*
+  (extend-type membrane.ui.TextSelection
+    IBounds
+    (-bounds [this]
+      (let [[minx miny maxx maxy] (text-bounds (get-font (:font this))
+                                               (:text this))
+            maxx (max 0 maxx)
+            maxy (max 0 maxy)]
+        [maxx maxy]))
 
-  IDraw
-  (draw [this]
-    (text-selection-draw this)))
+    IDraw
+    (draw [this]
+      (text-selection-draw this))))
 
 (defc skia_render_cursor membraneskialib Void/TYPE [skia-resource font-ptr text text-length cursor])
 (defn- text-cursor-draw [{:keys [text font cursor]
@@ -977,44 +1004,47 @@
 
            (recur (next lines) (- cursor line-count 1))))))))
 
-(extend-type membrane.ui.TextCursor
-  IBounds
-  (-bounds [this]
-    (let [[minx miny maxx maxy] (text-bounds (get-font (:font this))
-                                             (:text this))
-          maxx (max 0 maxx)
-          maxy (max 0 maxy)]
-      [maxx maxy]))
+(defonce*
+  (extend-type membrane.ui.TextCursor
+    IBounds
+    (-bounds [this]
+      (let [[minx miny maxx maxy] (text-bounds (get-font (:font this))
+                                               (:text this))
+            maxx (max 0 maxx)
+            maxy (max 0 maxy)]
+        [maxx maxy]))
 
-  IDraw
-  (draw [this]
-    (text-cursor-draw this)))
+    IDraw
+    (draw [this]
+      (text-cursor-draw this))))
 
 (defc skia_draw_path membraneskialib Void/TYPE [skia-resource points points-length])
-(extend-type membrane.ui.Path
-  IDraw
-  (draw [this]
-    (let [points (:points this)
-          buf (ffi-buf)]
-      (loop [i 0
-             points (seq points)]
-        (when points
-          (let [pt (first points)]
-            (.setFloat ^Memory buf i (first pt))
-            (.setFloat ^Memory buf (+ i 4) (second pt))
-            (recur (+ i 8)
-                   (next points)))))
-      (push-paint
-       (Skia/skia_draw_path *skia-resource* buf (* 2 (count points)))))))
+(defonce*
+  (extend-type membrane.ui.Path
+    IDraw
+    (draw [this]
+      (let [points (:points this)
+            buf (ffi-buf)]
+        (loop [i 0
+               points (seq points)]
+          (when points
+            (let [pt (first points)]
+              (.setFloat ^Memory buf i (first pt))
+              (.setFloat ^Memory buf (+ i 4) (second pt))
+              (recur (+ i 8)
+                     (next points)))))
+        (push-paint
+         (Skia/skia_draw_path *skia-resource* buf (* 2 (count points))))))))
 
 (defc skia_draw_rounded_rect membraneskialib Void/TYPE [skia-resource w h radius])
-(extend-type membrane.ui.RoundedRectangle
-  IDraw
-  (draw [this]
-    (Skia/skia_draw_rounded_rect *skia-resource*
-                                 (float (:width this))
-                                 (float (:height this))
-                                 (float (:border-radius this)))))
+(defonce*
+  (extend-type membrane.ui.RoundedRectangle
+    IDraw
+    (draw [this]
+      (Skia/skia_draw_rounded_rect *skia-resource*
+                                   (float (:width this))
+                                   (float (:height this))
+                                   (float (:border-radius this))))))
 
 
 ;; works, but not sure about API
@@ -1042,40 +1072,43 @@
 ;;    (float bottom-rad)))
 
 
-(extend-type membrane.ui.WithColor
-  IDraw
-  (draw [this]
-    (let [color (:color this)]
-      (binding [*paint* (assoc *paint* ::color color)]
-        (push-paint
-          (skia-set-color *skia-resource* color)
-          (doseq [drawable (:drawables this)]
-            (draw drawable)))))))
+(defonce*
+  (extend-type membrane.ui.WithColor
+    IDraw
+    (draw [this]
+      (let [color (:color this)]
+        (binding [*paint* (assoc *paint* ::color color)]
+          (push-paint
+           (skia-set-color *skia-resource* color)
+           (doseq [drawable (:drawables this)]
+             (draw drawable))))))))
 
 
 (defc skia_set_scale membraneskialib Void/TYPE [skia-resource sx sy])
-(extend-type membrane.ui.Scale
-  IDraw
-  (draw [this]
-    (let [[sx sy] (:scalars this)]
-      (save-canvas
-       (Skia/skia_set_scale *skia-resource* (float sx) (float sy))
-       (doseq [drawable (:drawables this)]
-         (draw drawable))))))
+(defonce*
+  (extend-type membrane.ui.Scale
+    IDraw
+    (draw [this]
+      (let [[sx sy] (:scalars this)]
+        (save-canvas
+         (Skia/skia_set_scale *skia-resource* (float sx) (float sy))
+         (doseq [drawable (:drawables this)]
+           (draw drawable)))))))
 
 
-(extend-type membrane.ui.Arc
-  IDraw
-  (draw [this]
-    #_(let [arc-length (- (:rad-end this) (:rad-start this))]
-      (draw-line-strip
-       (doseq [i (range (inc (:steps this)))
-               :let [pct (/ (float i) (:steps this))
-                     rad (- (+ (:rad-start this)
-                               (* arc-length pct)))
-                     x (* (:radius this) (Math/cos rad))
-                     y (* (:radius this) (Math/sin rad))]]
-         (vertex x y))))))
+(defonce*
+  (extend-type membrane.ui.Arc
+    IDraw
+    (draw [this]
+      #_(let [arc-length (- (:rad-end this) (:rad-start this))]
+          (draw-line-strip
+           (doseq [i (range (inc (:steps this)))
+                   :let [pct (/ (float i) (:steps this))
+                         rad (- (+ (:rad-start this)
+                                   (* arc-length pct)))
+                         x (* (:radius this) (Math/cos rad))
+                         y (* (:radius this) (Math/sin rad))]]
+             (vertex x y)))))))
 
 (defmacro ^:private add-cleaner [type p]
   (let [delete-sym (symbol (str "skia_" type "_delete"))]
@@ -1085,6 +1118,8 @@
                   (fn []
                     (~delete-sym (Pointer. ptr#))))
        p#)))
+
+
 
 (defc skia_SkImage_delete membraneskialib Void/TYPE [stream])
 (defn- skia-SkImage-delete [stream]
@@ -1142,32 +1177,35 @@
   (assert (instance? Pointer svg))
   (skia_SkSVGDOM_set_container_size svg (float width) (float height)))
 
-(defprotocol SVGFactory
+(defprotocolonce SVGFactory
   "gets or creates an SVGDOM given some various types"
   :extend-via-metadata true
   (get-svg-dom [x]))
 
-(extend-protocol SVGFactory
-  String
-  (get-svg-dom [svg-str]
-    (let [bs (.getBytes svg-str "utf-8")
-          stream (skia-SkStream-make-from-bytes bs)
-          svg* (skia-SkSVGDOM-make stream)]
-      svg*))
+(defonce*
+  (extend-protocol SVGFactory
+    String
+    (get-svg-dom [svg-str]
+      (let [bs (.getBytes svg-str "utf-8")
+            stream (skia-SkStream-make-from-bytes bs)
+            svg* (skia-SkSVGDOM-make stream)]
+        svg*))
 
-  java.io.File
-  (get-svg-dom [fname]
-    (let [stream (skia-SkStream-make-from-path (.getAbsolutePath fname))
-          svg* (skia-SkSVGDOM-make stream)]
-      svg*)))
+    java.io.File
+    (get-svg-dom [fname]
+      (let [stream (skia-SkStream-make-from-path (.getAbsolutePath fname))
+            svg* (skia-SkSVGDOM-make stream)]
+        svg*))))
 
-(extend (Class/forName "[B")
-  SVGFactory
-  {:get-svg-dom
-   (fn [^bytes bs]
-     (let [stream (skia-SkStream-make-from-bytes bs)
-           svg* (skia-SkSVGDOM-make stream)]
-       svg*))})
+(defonce*
+  (extend (Class/forName "[B")
+    SVGFactory
+    {:get-svg-dom
+     (fn [^bytes bs]
+       (let [stream (skia-SkStream-make-from-bytes bs)
+             svg* (skia-SkSVGDOM-make stream)]
+         svg*))}))
+
 
 (defn- load-svg [svg container-size]
   (if-let [svg* (get @*image-cache* [svg container-size])]
@@ -1181,32 +1219,33 @@
       (swap! *image-cache* assoc [svg container-size] svg*)
       svg*)))
 
-(defrecord SVG [svg container-size]
-  IOrigin
-  (-origin [this]
-    [0 0])
+(defonce*
+  (defrecord SVG [svg container-size]
+    IOrigin
+    (-origin [this]
+      [0 0])
 
-  IBounds
-  (-bounds [this]
-    (if container-size
-      container-size
-      (skia-SkSVGDOM-instrinsic-size (load-svg svg container-size))))
-  
-  IDraw
-  (draw [this]
-    (let [svg* (load-svg svg container-size)
-          [w h] (skia-SkSVGDOM-instrinsic-size svg*)]
-      (if (and container-size
-               (pos? w)
-               (pos? h))
-        (let [[cw ch] container-size 
-              sx (/ cw w)
-              sy (/ ch h)]
-          (save-canvas
-            (Skia/skia_set_scale *skia-resource* (float sx) (float sy))
-            (skia-SkSVGDOM-render svg* *skia-resource*)))
-        ;; else
-        (skia-SkSVGDOM-render svg* *skia-resource*)))))
+    IBounds
+    (-bounds [this]
+      (if container-size
+        container-size
+        (skia-SkSVGDOM-instrinsic-size (load-svg svg container-size))))
+    
+    IDraw
+    (draw [this]
+      (let [svg* (load-svg svg container-size)
+            [w h] (skia-SkSVGDOM-instrinsic-size svg*)]
+        (if (and container-size
+                 (pos? w)
+                 (pos? h))
+          (let [[cw ch] container-size 
+                sx (/ cw w)
+                sy (/ ch h)]
+            (save-canvas
+              (Skia/skia_set_scale *skia-resource* (float sx) (float sy))
+              (skia-SkSVGDOM-render svg* *skia-resource*)))
+          ;; else
+          (skia-SkSVGDOM-render svg* *skia-resource*))))))
 
 (defn svg
   "Displays an svg element.
@@ -1218,9 +1257,9 @@
 
   The ui/bounds of SVG elements are always . "
   ([svg]
-   (SVG. svg nil))
+   (->SVG svg nil))
   ([svg container-size]
-   (SVG. svg container-size)))
+   (->SVG svg container-size)))
 
 (comment
   (run
@@ -1240,10 +1279,11 @@
      (Skia/skia_clip_rect *skia-resource* (float ox) (float oy) (float w) (float h))
      (draw (:drawable scissor-view)))))
 
-(extend-type membrane.ui.ScissorView
-  IDraw
-  (draw [this]
-      (scissor-draw this)))
+(defonce*
+  (extend-type membrane.ui.ScissorView
+    IDraw
+    (draw [this]
+      (scissor-draw this))))
 
 
 (defn- scrollview-draw [scrollview]
@@ -1253,10 +1293,11 @@
                   (let [[mx my] (:offset scrollview)]
                     (translate mx my (:drawable scrollview))))))
 
-(extend-type membrane.ui.ScrollView
-  IDraw
-  (draw [this]
-      (scrollview-draw this)))
+(defonce*
+  (extend-type membrane.ui.ScrollView
+    IDraw
+    (draw [this]
+      (scrollview-draw this))))
 
 
 (defn- wrap-text [text n]
@@ -1281,31 +1322,32 @@
 
 (declare vertical-layout horizontal-layout)
 
-(deftype DispatchCallback [f]
-  com.sun.jna.CallbackProxy
-  (getParameterTypes [_]
-    (into-array Class  []))
-  (getReturnType [_]
-    void)
-  (callback ^void [_ args]
-    (.setContextClassLoader (Thread/currentThread) main-class-loader)
+(defonce*
+  (deftype DispatchCallback [f]
+    com.sun.jna.CallbackProxy
+    (getParameterTypes [_]
+      (into-array Class  []))
+    (getReturnType [_]
+      void)
+    (callback ^void [_ args]
+      (.setContextClassLoader (Thread/currentThread) main-class-loader)
 
-    (import 'com.sun.jna.Native)
-    ;; https://java-native-access.github.io/jna/4.2.1/com/sun/jna/Native.html#detach-boolean-
-    ;; for some other info search https://java-native-access.github.io/jna/4.2.1/ for CallbackThreadInitializer
+      (import 'com.sun.jna.Native)
+      ;; https://java-native-access.github.io/jna/4.2.1/com/sun/jna/Native.html#detach-boolean-
+      ;; for some other info search https://java-native-access.github.io/jna/4.2.1/ for CallbackThreadInitializer
 
-    ;; turning off detach here might give a performance benefit,
-    ;; but more importantly, it prevents jna from spamming stdout
-    ;; with "JNA: could not detach thread"
-    (com.sun.jna.Native/detach false)
-    (f)
-    ;; need turn detach back on so that
-    ;; we don't prevent the jvm exiting
-    ;; now that we're done
-    (try
-      (com.sun.jna.Native/detach true)
-      (catch IllegalStateException e
-        nil))))
+      ;; turning off detach here might give a performance benefit,
+      ;; but more importantly, it prevents jna from spamming stdout
+      ;; with "JNA: could not detach thread"
+      (com.sun.jna.Native/detach false)
+      (f)
+      ;; need turn detach back on so that
+      ;; we don't prevent the jvm exiting
+      ;; now that we're done
+      (try
+        (com.sun.jna.Native/detach true)
+        (catch IllegalStateException e
+          nil)))))
 
 
 (defonce main-thread-serializer
@@ -1408,12 +1450,8 @@
     ))
 
 
-(def messages (atom []))
+
 (declare run-helper)
-
-
-
-
 (defn- getpid []
   (jna/invoke Integer/TYPE c/getpid))
 
@@ -1576,30 +1614,32 @@
          (Skia/skia_translate *skia-resource* (float (- padding)) (float (- padding)))
          (Skia/skia_draw_image_rect *skia-resource* img (float img-width) (float img-height)))))))
 
-(defrecord Cached [drawable]
+(defonce*
+  (defrecord Cached [drawable]
     IOrigin
     (-origin [_]
-        (origin drawable))
+      (origin drawable))
 
     IBounds
     (-bounds [_]
-        (bounds drawable))
+      (bounds drawable))
 
-  IChildren
-  (-children [this]
+    IChildren
+    (-children [this]
       [drawable])
 
-  IDraw
-  (draw [this]
-    (cached-draw drawable)
-
-    )
-  )
-
-(extend-type membrane.ui.Cached
     IDraw
     (draw [this]
-      (cached-draw (:drawable this))))
+      (cached-draw drawable)
+
+      )
+    ))
+
+(defonce*
+  (extend-type membrane.ui.Cached
+    IDraw
+    (draw [this]
+      (cached-draw (:drawable this)))))
 
 (defn- get-framebuffer-size [window-handle]
   (let [pix-width (IntByReference.)
@@ -1616,7 +1656,7 @@
     [(.getValue xscale)
      (.getValue yscale)]))
 
-(defprotocol IWindow
+(defprotocolonce IWindow
   (init! [_])
   (reshape! [_ width height])
   (should-close? [_])
@@ -1653,35 +1693,37 @@
 (def GLFW_CONNECTED (int 0x00040001))
 (def GLFW_DISCONNECTED (int 0x00040002))
 
-(deftype Joystickcallback [window handler]
-  com.sun.jna.CallbackProxy
-  (getParameterTypes [_]
-    (into-array Class  [Integer/TYPE Integer/TYPE]))
-  (getReturnType [_]
-    void)
-  (callback ^void [_ args]
-    (handler window
-             ;; joystick id
-             (aget args 0)
-             ;; event. either GLFW_CONNECTED or GLFW_DISCONNECTED
-             (aget args 1))
-    nil))
+(defonce*
+  (deftype Joystickcallback [window handler]
+    com.sun.jna.CallbackProxy
+    (getParameterTypes [_]
+      (into-array Class  [Integer/TYPE Integer/TYPE]))
+    (getReturnType [_]
+      void)
+    (callback ^void [_ args]
+      (handler window
+               ;; joystick id
+               (aget args 0)
+               ;; event. either GLFW_CONNECTED or GLFW_DISCONNECTED
+               (aget args 1))
+      nil)))
 
-(deftype WindowCloseCallback [window handler]
-  com.sun.jna.CallbackProxy
-  (getParameterTypes [_]
-    (into-array Class  [Pointer]))
-  (getReturnType [_]
-    void)
-  (callback ^void [_ args]
-    (try
-      (binding [*image-cache* (:image-cache window)
-                *font-cache* (:font-cache window)
-                *draw-cache* (:draw-cache window)]
-        (handler window (aget args 0)))
-      (catch Exception e
-        ((or (:error-callback window) println) e)))
-    nil))
+(defonce*
+  (deftype WindowCloseCallback [window handler]
+    com.sun.jna.CallbackProxy
+    (getParameterTypes [_]
+      (into-array Class  [Pointer]))
+    (getReturnType [_]
+      void)
+    (callback ^void [_ args]
+      (try
+        (binding [*image-cache* (:image-cache window)
+                  *font-cache* (:font-cache window)
+                  *draw-cache* (:draw-cache window)]
+          (handler window (aget args 0)))
+        (catch Exception e
+          ((or (:error-callback window) println) e)))
+      nil)))
 
 (defn- make-window-close-callback [window handler]
   (->WindowCloseCallback window handler))
@@ -1693,21 +1735,22 @@
   ([window window-handle width height]
    (reshape! window width height)))
 
-(deftype ReshapeCallback [window handler]
-  com.sun.jna.CallbackProxy
-  (getParameterTypes [_]
-    (into-array Class  [Pointer Integer/TYPE Integer/TYPE]))
-  (getReturnType [_]
-    void)
-  (callback ^void [_ args]
-    (try
-      (binding [*image-cache* (:image-cache window)
-                *font-cache* (:font-cache window)
-                *draw-cache* (:draw-cache window)]
-        (handler window (aget args 0) (aget args 1) (aget args 2) ))
-      (catch Exception e
-        ((or (:error-callback window) println) e)))
-    nil))
+(defonce*
+  (deftype ReshapeCallback [window handler]
+    com.sun.jna.CallbackProxy
+    (getParameterTypes [_]
+      (into-array Class  [Pointer Integer/TYPE Integer/TYPE]))
+    (getReturnType [_]
+      void)
+    (callback ^void [_ args]
+      (try
+        (binding [*image-cache* (:image-cache window)
+                  *font-cache* (:font-cache window)
+                  *draw-cache* (:draw-cache window)]
+          (handler window (aget args 0) (aget args 1) (aget args 2) ))
+        (catch Exception e
+          ((or (:error-callback window) println) e)))
+      nil)))
 
 (defn- make-reshape-callback [window handler]
   (->ReshapeCallback window handler))
@@ -1721,21 +1764,22 @@
 
     (repaint! window)))
 
-(deftype MouseEnterCallback [window handler]
-  com.sun.jna.CallbackProxy
-  (getParameterTypes [_]
-    (into-array Class  [Pointer Integer/TYPE]))
-  (getReturnType [_]
-    void)
-  (callback ^void [_ args]
-    (try
-      (binding [*image-cache* (:image-cache window)
-                *font-cache* (:font-cache window)
-                *draw-cache* (:draw-cache window)]
-        (handler window (aget args 0) (aget args 1)))
-      (catch Exception e
-        ((or (:error-callback window) println) e)))
-    nil))
+(defonce*
+  (deftype MouseEnterCallback [window handler]
+    com.sun.jna.CallbackProxy
+    (getParameterTypes [_]
+      (into-array Class  [Pointer Integer/TYPE]))
+    (getReturnType [_]
+      void)
+    (callback ^void [_ args]
+      (try
+        (binding [*image-cache* (:image-cache window)
+                  *font-cache* (:font-cache window)
+                  *draw-cache* (:draw-cache window)]
+          (handler window (aget args 0) (aget args 1)))
+        (catch Exception e
+          ((or (:error-callback window) println) e)))
+      nil)))
 (defn- make-mouse-enter-callback [window handler]
   (MouseEnterCallback. window handler))
 
@@ -1748,21 +1792,22 @@
 
     (repaint! window)))
 
-(deftype WindowFocusCallback [window handler]
-  com.sun.jna.CallbackProxy
-  (getParameterTypes [_]
-    (into-array Class  [Pointer Integer/TYPE]))
-  (getReturnType [_]
-    void)
-  (callback ^void [_ args]
-    (try
-      (binding [*image-cache* (:image-cache window)
-                *font-cache* (:font-cache window)
-                *draw-cache* (:draw-cache window)]
-        (handler window (aget args 0) (aget args 1)))
-      (catch Exception e
-        ((or (:error-callback window) println) e)))
-    nil))
+(defonce*
+  (deftype WindowFocusCallback [window handler]
+    com.sun.jna.CallbackProxy
+    (getParameterTypes [_]
+      (into-array Class  [Pointer Integer/TYPE]))
+    (getReturnType [_]
+      void)
+    (callback ^void [_ args]
+      (try
+        (binding [*image-cache* (:image-cache window)
+                  *font-cache* (:font-cache window)
+                  *draw-cache* (:draw-cache window)]
+          (handler window (aget args 0) (aget args 1)))
+        (catch Exception e
+          ((or (:error-callback window) println) e)))
+      nil)))
 
 
 
@@ -1774,21 +1819,22 @@
 
   (repaint! window))
 
-(deftype MouseButtonCallback [window handler]
-  com.sun.jna.CallbackProxy
-  (getParameterTypes [_]
-    (into-array Class  [Pointer Integer/TYPE Integer/TYPE Integer/TYPE]))
-  (getReturnType [_]
-    void)
-  (callback ^void [_ args]
-    (try
-      (binding [*image-cache* (:image-cache window)
-                *font-cache* (:font-cache window)
-                *draw-cache* (:draw-cache window)]
-        (handler window (aget args 0) (aget args 1) (aget args 2) (aget args 3)))
-      (catch Exception e
-        ((or (:error-callback window) println) e)))
-    nil))
+(defonce*
+  (deftype MouseButtonCallback [window handler]
+    com.sun.jna.CallbackProxy
+    (getParameterTypes [_]
+      (into-array Class  [Pointer Integer/TYPE Integer/TYPE Integer/TYPE]))
+    (getReturnType [_]
+      void)
+    (callback ^void [_ args]
+      (try
+        (binding [*image-cache* (:image-cache window)
+                  *font-cache* (:font-cache window)
+                  *draw-cache* (:draw-cache window)]
+          (handler window (aget args 0) (aget args 1) (aget args 2) (aget args 3)))
+        (catch Exception e
+          ((or (:error-callback window) println) e)))
+      nil)))
 
 (defn- make-mouse-button-callback [window handler]
   (MouseButtonCallback. window handler))
@@ -1802,22 +1848,23 @@
 
   (repaint! window))
 
-(deftype ScrollCallback [window handler]
-  com.sun.jna.CallbackProxy
-  (getParameterTypes [_]
-    (into-array Class  [Pointer Double/TYPE Double/TYPE]))
-  (getReturnType [_]
-    void)
-  (callback ^void [_ args]
-    (try
-      (binding [*image-cache* (:image-cache window)
-                *font-cache* (:font-cache window)
-                *draw-cache* (:draw-cache window)]
-        (handler window (aget args 0) (aget args 1) (aget args 2)))
-      (catch Exception e
-        ((or (:error-callback window) println) e)))
+(defonce*
+  (deftype ScrollCallback [window handler]
+    com.sun.jna.CallbackProxy
+    (getParameterTypes [_]
+      (into-array Class  [Pointer Double/TYPE Double/TYPE]))
+    (getReturnType [_]
+      void)
+    (callback ^void [_ args]
+      (try
+        (binding [*image-cache* (:image-cache window)
+                  *font-cache* (:font-cache window)
+                  *draw-cache* (:draw-cache window)]
+          (handler window (aget args 0) (aget args 1) (aget args 2)))
+        (catch Exception e
+          ((or (:error-callback window) println) e)))
 
-    nil))
+      nil)))
 
 (defn- make-scroll-callback [window handler]
   (ScrollCallback. window handler))
@@ -1826,21 +1873,22 @@
 (defn- -window-refresh-callback [window window-handle]
   (repaint! window))
 
-(deftype WindowRefreshCallback [window handler]
-  com.sun.jna.CallbackProxy
-  (getParameterTypes [_]
-    (into-array Class  [Pointer]))
-  (getReturnType [_]
-    void)
-  (callback ^void [_ args]
-    (try
-      (binding [*image-cache* (:image-cache window)
-                *font-cache* (:font-cache window)
-                *draw-cache* (:draw-cache window)]
-        (handler window (aget args 0)))
-      (catch Exception e
-        ((or (:error-callback window) println) e)))
-    nil))
+(defonce*
+  (deftype WindowRefreshCallback [window handler]
+    com.sun.jna.CallbackProxy
+    (getParameterTypes [_]
+      (into-array Class  [Pointer]))
+    (getReturnType [_]
+      void)
+    (callback ^void [_ args]
+      (try
+        (binding [*image-cache* (:image-cache window)
+                  *font-cache* (:font-cache window)
+                  *draw-cache* (:draw-cache window)]
+          (handler window (aget args 0)))
+        (catch Exception e
+          ((or (:error-callback window) println) e)))
+      nil)))
 
 (defn- make-window-refresh-callback [window handler]
   (WindowRefreshCallback. window handler))
@@ -1854,24 +1902,25 @@
 
   (repaint! window))
 
-(deftype DropCallback [window handler]
-  com.sun.jna.CallbackProxy
-  (getParameterTypes [_]
-    (into-array Class  [Pointer Integer Pointer]))
-  (getReturnType [_]
-    void)
-  (callback ^void [_ args]
-    (try
-      (binding [*image-cache* (:image-cache window)
-                *font-cache* (:font-cache window)
-                *draw-cache* (:draw-cache window)]
-        (let [num-paths (aget args 1)
-              string-pointers (aget args 2)
-              paths (.getStringArray ^Pointer string-pointers  0 num-paths "utf-8")]
-          (handler window (aget args 0) paths)))
-      (catch Exception e
-        ((or (:error-callback window) println) e)))
-    nil))
+(defonce*
+  (deftype DropCallback [window handler]
+    com.sun.jna.CallbackProxy
+    (getParameterTypes [_]
+      (into-array Class  [Pointer Integer Pointer]))
+    (getReturnType [_]
+      void)
+    (callback ^void [_ args]
+      (try
+        (binding [*image-cache* (:image-cache window)
+                  *font-cache* (:font-cache window)
+                  *draw-cache* (:draw-cache window)]
+          (let [num-paths (aget args 1)
+                string-pointers (aget args 2)
+                paths (.getStringArray ^Pointer string-pointers  0 num-paths "utf-8")]
+            (handler window (aget args 0) paths)))
+        (catch Exception e
+          ((or (:error-callback window) println) e)))
+      nil)))
 
 (defn- make-drop-callback [window handler]
   (DropCallback. window handler))
@@ -1892,22 +1941,23 @@
 
   )
 
-(deftype CursorPosCallback [window handler]
-  com.sun.jna.CallbackProxy
-  (getParameterTypes [_]
-    (into-array Class  [Pointer Double/TYPE Double/TYPE]))
-  (getReturnType [_]
-    void)
-  (callback ^void [_ args]
+(defonce*
+  (deftype CursorPosCallback [window handler]
+    com.sun.jna.CallbackProxy
+    (getParameterTypes [_]
+      (into-array Class  [Pointer Double/TYPE Double/TYPE]))
+    (getReturnType [_]
+      void)
+    (callback ^void [_ args]
 
-    (try
+      (try
         (binding [*image-cache* (:image-cache window)
                   *font-cache* (:font-cache window)
                   *draw-cache* (:draw-cache window)]
           (handler window (aget args 0) (aget args 1) (aget args 2)))
         (catch Exception e
           ((or (:error-callback window) println) e)))
-    nil))
+      nil)))
 
 (defn- make-cursor-pos-callback [window handler]
   (CursorPosCallback. window handler))
@@ -1958,21 +2008,22 @@
   ;; (repaint! window)
   nil)
 
-(deftype KeyCallback [window handler]
-  com.sun.jna.CallbackProxy
-  (getParameterTypes [_]
-    (into-array Class  [Pointer Integer/TYPE Integer/TYPE Integer/TYPE Integer/TYPE ]))
-  (getReturnType [_]
-    void)
-  (callback ^void [_ args]
-    (try
-      (binding [*image-cache* (:image-cache window)
-                *font-cache* (:font-cache window)
-                *draw-cache* (:draw-cache window)]
-        (handler window (aget args 0) (aget args 1) (aget args 2) (aget args 3) (aget args 4)))
-      (catch Exception e
-        ((or (:error-callback window) println) e)))
-    nil))
+(defonce*
+  (deftype KeyCallback [window handler]
+    com.sun.jna.CallbackProxy
+    (getParameterTypes [_]
+      (into-array Class  [Pointer Integer/TYPE Integer/TYPE Integer/TYPE Integer/TYPE ]))
+    (getReturnType [_]
+      void)
+    (callback ^void [_ args]
+      (try
+        (binding [*image-cache* (:image-cache window)
+                  *font-cache* (:font-cache window)
+                  *draw-cache* (:draw-cache window)]
+          (handler window (aget args 0) (aget args 1) (aget args 2) (aget args 3) (aget args 4)))
+        (catch Exception e
+          ((or (:error-callback window) println) e)))
+      nil)))
 
 (defn- make-key-callback [window handler]
   (KeyCallback. window handler))
@@ -1993,26 +2044,26 @@
   ;;(repaint! window)
   )
 
-(deftype CharacterCallback [window handler]
-  com.sun.jna.CallbackProxy
-  (getParameterTypes [_]
-    (into-array Class  [Pointer Integer/TYPE]))
-  (getReturnType [_]
-    void)
-  (callback ^void [_ args]
-    (try
-      (binding [*image-cache* (:image-cache window)
-                *font-cache* (:font-cache window)
-                *draw-cache* (:draw-cache window)]
-        (handler window (aget args 0) (aget args 1) ))
-      (catch Exception e
-        ((or (:error-callback window) println) e)))
-    nil))
+(defonce*
+  (deftype CharacterCallback [window handler]
+    com.sun.jna.CallbackProxy
+    (getParameterTypes [_]
+      (into-array Class  [Pointer Integer/TYPE]))
+    (getReturnType [_]
+      void)
+    (callback ^void [_ args]
+      (try
+        (binding [*image-cache* (:image-cache window)
+                  *font-cache* (:font-cache window)
+                  *draw-cache* (:draw-cache window)]
+          (handler window (aget args 0) (aget args 1) ))
+        (catch Exception e
+          ((or (:error-callback window) println) e)))
+      nil)))
 
 (defn- make-character-callback [window handler]
   (CharacterCallback. window handler))
 
-(def quit? (atom false))
 (defc skia_init membraneskialib com.sun.jna.Pointer [])
 (defc skia_init_cpu membraneskialib Pointer [width height])
 (defc skia_reshape membraneskialib Void/TYPE [skia-resource fb-width fb-height xscale yscale])
@@ -2229,177 +2280,178 @@
                        quality
                        path)))))
 
-(defrecord GlfwSkiaWindow [view-fn window handlers callbacks ui mouse-position skia-resource image-cache font-cache draw-cache window-content-scale window-start-width window-start-height window-start-x window-start-y window-title window-size error-callback]
-  IWindow
-  (init! [this]
-    (let [window-width (int (or window-start-width 787))
-          window-height (int (or window-start-height 1000))
-          window-x (int (or window-start-x 0))
-          window-y (int (or window-start-y 0))
+(defonce*
+  (defrecord GlfwSkiaWindow [view-fn window handlers callbacks ui mouse-position skia-resource image-cache font-cache draw-cache window-content-scale window-start-width window-start-height window-start-x window-start-y window-title window-size error-callback]
+    IWindow
+    (init! [this]
+      (let [window-width (int (or window-start-width 787))
+            window-height (int (or window-start-height 1000))
+            window-x (int (or window-start-x 0))
+            window-y (int (or window-start-y 0))
 
-          window-title (if window-title
-                         (do
-                           (assert (string? window-title) "If window title is provided, it must be a string")
-                           window-title)
-                         "Membrane")
-          window (glfw-call Pointer
-                            glfwCreateWindow
-                            window-width
-                            window-height
-                            window-title
-                            com.sun.jna.Pointer/NULL
-                            com.sun.jna.Pointer/NULL)
-          this
-          (assoc this
-                 :window window
-                 :image-cache (atom {})
-                 :font-cache (atom {})
-                 :draw-cache (java.util.WeakHashMap.)
-                 :ui (atom nil)
-                 :mouse-position (atom [0 0])
-                 :window-content-scale (atom [1 1])
-                 :window-size (atom nil)
-                 :skia-resource (Skia/skia_init))
-          drop-callback (make-drop-callback this (get handlers :drop -drop-callback))
-          key-callback (make-key-callback this (get handlers :key -key-callback))
-          character-callback (make-character-callback this (get handlers :char -character-callback))
-          mouse-button-callback (make-mouse-button-callback this (get handlers :mouse-button -mouse-button-callback))
-          reshape-callback (make-reshape-callback this (get handlers :reshape -reshape))
-          scroll-callback (make-scroll-callback this (get handlers :scroll -scroll-callback))
-          window-refresh-callback (make-window-refresh-callback this (get handlers :refresh -window-refresh-callback))
-          cursor-pos-callback (make-cursor-pos-callback this (get handlers :cursor -cursor-pos-callback))
-          window-close-callback (make-window-close-callback this (get handlers :window-close -window-close-callback))
-          ;; mouse-enter-callback (make-mouse-enter-callback this (get handlers :mouse-enter -mouse-enter-callback))
-          ]
+            window-title (if window-title
+                           (do
+                             (assert (string? window-title) "If window title is provided, it must be a string")
+                             window-title)
+                           "Membrane")
+            window (glfw-call Pointer
+                       glfwCreateWindow
+                     window-width
+                     window-height
+                     window-title
+                     com.sun.jna.Pointer/NULL
+                     com.sun.jna.Pointer/NULL)
+            this
+            (assoc this
+                   :window window
+                   :image-cache (atom {})
+                   :font-cache (atom {})
+                   :draw-cache (java.util.WeakHashMap.)
+                   :ui (atom nil)
+                   :mouse-position (atom [0 0])
+                   :window-content-scale (atom [1 1])
+                   :window-size (atom nil)
+                   :skia-resource (Skia/skia_init))
+            drop-callback (make-drop-callback this (get handlers :drop -drop-callback))
+            key-callback (make-key-callback this (get handlers :key -key-callback))
+            character-callback (make-character-callback this (get handlers :char -character-callback))
+            mouse-button-callback (make-mouse-button-callback this (get handlers :mouse-button -mouse-button-callback))
+            reshape-callback (make-reshape-callback this (get handlers :reshape -reshape))
+            scroll-callback (make-scroll-callback this (get handlers :scroll -scroll-callback))
+            window-refresh-callback (make-window-refresh-callback this (get handlers :refresh -window-refresh-callback))
+            cursor-pos-callback (make-cursor-pos-callback this (get handlers :cursor -cursor-pos-callback))
+            window-close-callback (make-window-close-callback this (get handlers :window-close -window-close-callback))
+            ;; mouse-enter-callback (make-mouse-enter-callback this (get handlers :mouse-enter -mouse-enter-callback))
+            ]
 
-      (let [m (Memory. 8)
-            error (glfw-call Integer/TYPE glfwGetError m)]
-        (when (not (zero? error))
-          (let [s (.getPointer m 0)]
-            (println "error description: " (.getString s 0) ))))
+        (let [m (Memory. 8)
+              error (glfw-call Integer/TYPE glfwGetError m)]
+          (when (not (zero? error))
+            (let [s (.getPointer m 0)]
+              (println "error description: " (.getString s 0) ))))
 
+        (glfw-call Void/TYPE glfwMakeContextCurrent window)
+
+        (glPixelStorei GL_UNPACK_ALIGNMENT, (int 1)) ;
+
+        ;; Setting swap interval to 1 is probably the right thing, but currently, the way it blocks
+        ;; the event thread messes everything up.
+        ;; (glfw-call void glfwSwapInterval 1)
+
+        (glfw-call Pointer glfwSetDropCallback window, drop-callback)
+        (glfw-call Pointer glfwSetCursorPosCallback window, cursor-pos-callback)
+        (glfw-call Pointer glfwSetKeyCallback window key-callback)
+        (glfw-call Pointer glfwSetCharCallback window character-callback)
+        (glfw-call Pointer glfwSetMouseButtonCallback window mouse-button-callback)
+        (glfw-call Pointer glfwSetFramebufferSizeCallback window reshape-callback)
+        (glfw-call Pointer glfwSetScrollCallback window scroll-callback)
+        (glfw-call Pointer glfwSetWindowRefreshCallback window window-refresh-callback)
+        (glfw-call Pointer glfwSetWindowCloseCallback window window-close-callback)
+        ;; (glfw-call Pointer glfwSetCursorEnterCallback window mouse-enter-callback)
+
+        ;; When this input mode is enabled, any callback that receives modifier
+        ;; bits will have the GLFW_MOD_CAPS_LOCK bit set if Caps Lock was on when the event occurred
+        ;; and the GLFW_MOD_NUM_LOCK bit set if Num Lock was on.
+        (glfw-call void glfwSetInputMode window GLFW_LOCK_KEY_MODS (int 1))
+
+        (glfw-call void glfwSetWindowPos window window-x window-y)
+
+        ;; reshape must be called before glfw show window
+        ;; so that we have the right size buffers set up
+        (reshape! this window-width window-height)
+        (glfw-call void glfwShowWindow window)
+
+        (doto (assoc this
+                     ;; need to hang on to callbacks so they don't get garbage collected!
+                     :callbacks
+                     [key-callback
+                      drop-callback
+                      character-callback
+                      mouse-button-callback
+                      reshape-callback
+                      scroll-callback
+                      window-refresh-callback
+                      cursor-pos-callback
+                      window-close-callback
+                      ;; mouse-enter-callback
+                      ]))))
+
+    (reshape! [_ width height]
       (glfw-call Void/TYPE glfwMakeContextCurrent window)
+      
+      (glViewport (int 0) (int 0) width height)
+      (glClearStencil (int 0))
+      (glClear (bit-or GL_COLOR_BUFFER_BIT
+                       GL_STENCIL_BUFFER_BIT))
 
-      (glPixelStorei GL_UNPACK_ALIGNMENT, (int 1)) ;
+      ;; there's some issue with caching when drawing text that's offscreen
+      ;; when using gpu renderer in skia.cpp.
+      ;; currently using cpu renderer which fixes the issue.
+      ;; it's unclear which method should be preferred or what the
+      ;; performance implications are.
+      ;;
+      ;; simply resetting cache on reshape also fixes the issue,
+      ;; but causes the window to be drawn black while a window
+      ;; is being resized.
+      ;; (reset! draw-cache {})
 
-      ;; Setting swap interval to 1 is probably the right thing, but currently, the way it blocks
-      ;; the event thread messes everything up.
-      ;; (glfw-call void glfwSwapInterval 1)
+      (let [[xscale yscale :as content-scale] (get-window-content-scale-size window)
+            [fb-width fb-height] (get-framebuffer-size window)]
+        (reset! window-content-scale content-scale)
+        (reset! window-size [(int (/ fb-width xscale))
+                             (int (/ fb-height yscale))])
+        ;; force repaint
+        (reset! ui nil)
+        (Skia/skia_reshape skia-resource fb-width fb-height xscale yscale))
 
-      (glfw-call Pointer glfwSetDropCallback window, drop-callback)
-      (glfw-call Pointer glfwSetCursorPosCallback window, cursor-pos-callback)
-      (glfw-call Pointer glfwSetKeyCallback window key-callback)
-      (glfw-call Pointer glfwSetCharCallback window character-callback)
-      (glfw-call Pointer glfwSetMouseButtonCallback window mouse-button-callback)
-      (glfw-call Pointer glfwSetFramebufferSizeCallback window reshape-callback)
-      (glfw-call Pointer glfwSetScrollCallback window scroll-callback)
-      (glfw-call Pointer glfwSetWindowRefreshCallback window window-refresh-callback)
-      (glfw-call Pointer glfwSetWindowCloseCallback window window-close-callback)
-      ;; (glfw-call Pointer glfwSetCursorEnterCallback window mouse-enter-callback)
-
-      ;; When this input mode is enabled, any callback that receives modifier
-      ;; bits will have the GLFW_MOD_CAPS_LOCK bit set if Caps Lock was on when the event occurred
-      ;; and the GLFW_MOD_NUM_LOCK bit set if Num Lock was on.
-      (glfw-call void glfwSetInputMode window GLFW_LOCK_KEY_MODS (int 1))
-
-      (glfw-call void glfwSetWindowPos window window-x window-y)
-
-      ;; reshape must be called before glfw show window
-      ;; so that we have the right size buffers set up
-      (reshape! this window-width window-height)
-      (glfw-call void glfwShowWindow window)
-
-      (doto (assoc this
-                   ;; need to hang on to callbacks so they don't get garbage collected!
-                   :callbacks
-                   [key-callback
-                    drop-callback
-                    character-callback
-                    mouse-button-callback
-                    reshape-callback
-                    scroll-callback
-                    window-refresh-callback
-                    cursor-pos-callback
-                    window-close-callback
-                    ;; mouse-enter-callback
-                    ]))))
-
-  (reshape! [_ width height]
-    (glfw-call Void/TYPE glfwMakeContextCurrent window)
+      nil)
     
-    (glViewport (int 0) (int 0) width height)
-    (glClearStencil (int 0))
-    (glClear (bit-or GL_COLOR_BUFFER_BIT
-                     GL_STENCIL_BUFFER_BIT))
-
-    ;; there's some issue with caching when drawing text that's offscreen
-    ;; when using gpu renderer in skia.cpp.
-    ;; currently using cpu renderer which fixes the issue.
-    ;; it's unclear which method should be preferred or what the
-    ;; performance implications are.
-    ;;
-    ;; simply resetting cache on reshape also fixes the issue,
-    ;; but causes the window to be drawn black while a window
-    ;; is being resized.
-    ;; (reset! draw-cache {})
-
-    (let [[xscale yscale :as content-scale] (get-window-content-scale-size window)
-          [fb-width fb-height] (get-framebuffer-size window)]
-      (reset! window-content-scale content-scale)
-      (reset! window-size [(int (/ fb-width xscale))
-                           (int (/ fb-height yscale))])
-      ;; force repaint
-      (reset! ui nil)
-      (Skia/skia_reshape skia-resource fb-width fb-height xscale yscale))
-
-    nil)
-  
-  (should-close? [_]
-    (when window
-      (glfw-call Boolean/TYPE glfwWindowShouldClose window)))
-  (cleanup! [this]
-    (.clear ^java.util.Map (:draw-cache this))
-    (Skia/skia_cleanup skia-resource)
-    (glfw-call void glfwDestroyWindow window)
-    (assoc this
-           :window nil
-           :callbacks nil
-           :mouse-position nil
-           :image-cache nil
-           :font-cache nil
-           :draw-cache nil
-           :ui nil
-           :window-content-scale nil
-           :skia-resource nil))
+    (should-close? [_]
+      (when window
+        (glfw-call Boolean/TYPE glfwWindowShouldClose window)))
+    (cleanup! [this]
+      (.clear ^java.util.Map (:draw-cache this))
+      (Skia/skia_cleanup skia-resource)
+      (glfw-call void glfwDestroyWindow window)
+      (assoc this
+             :window nil
+             :callbacks nil
+             :mouse-position nil
+             :image-cache nil
+             :font-cache nil
+             :draw-cache nil
+             :ui nil
+             :window-content-scale nil
+             :skia-resource nil))
 
 
-  (repaint! [this]
-    (binding [*image-cache* image-cache
-              *font-cache* font-cache
-              *window* this
-              *draw-cache* draw-cache
-              *skia-resource* skia-resource]
-      (let [container-info {:container-size @window-size
-                            :content-scale @window-content-scale
-                            :container this}
-            [last-view view] (reset-vals! ui
-                                          (view-fn container-info))]
+    (repaint! [this]
+      (binding [*image-cache* image-cache
+                *font-cache* font-cache
+                *window* this
+                *draw-cache* draw-cache
+                *skia-resource* skia-resource]
+        (let [container-info {:container-size @window-size
+                              :content-scale @window-content-scale
+                              :container this}
+              [last-view view] (reset-vals! ui
+                                            (view-fn container-info))]
 
-        ;; TODO: should try to implement
-        ;; Yes, that's fine.  Another common approach is to record the entire scene normally as an SkPicture, and just play it back into each tile, clipped and translated as appropriate.
-        ;; This approach works best if you use SkRTreeFactory when calling beginRecording()... that'll build an R-tree to help us skip issuing draws that fall outside each tile.
+          ;; TODO: should try to implement
+          ;; Yes, that's fine.  Another common approach is to record the entire scene normally as an SkPicture, and just play it back into each tile, clipped and translated as appropriate.
+          ;; This approach works best if you use SkRTreeFactory when calling beginRecording()... that'll build an R-tree to help us skip issuing draws that fall outside each tile.
 
-        (when (not= view last-view)
-          (glfw-call Void/TYPE glfwMakeContextCurrent window)
+          (when (not= view last-view)
+            (glfw-call Void/TYPE glfwMakeContextCurrent window)
 
-          (Skia/skia_clear skia-resource)
-          (draw view)
-          (Skia/skia_flush_and_submit skia-resource)
+            (Skia/skia_clear skia-resource)
+            (draw view)
+            (Skia/skia_flush_and_submit skia-resource)
 
-          (glfw-call Void/TYPE glfwSwapBuffers window)
+            (glfw-call Void/TYPE glfwSwapBuffers window)
 
-          (when-let [on-present (::on-present this)]
-            (on-present view)))))))
+            (when-let [on-present (::on-present this)]
+              (on-present view))))))))
 
 (defonce window-chan (chan 1))
 
@@ -2585,7 +2637,7 @@
         (finally
           (cleanup))))))
 
-(def toolkit
+(defonce toolkit
   (reify
     tk/IToolkit
 

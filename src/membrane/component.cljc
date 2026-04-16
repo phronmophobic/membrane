@@ -1019,6 +1019,11 @@
    :cljs (defn memo1 [f]
            (memoize f)))
 
+(defn fn->Function [f]
+  (reify Function
+    (apply [_ _]
+      (f))))
+
 (def has-key-press-memo (memo1 #(when % (ui/has-key-press %))))
 (def has-key-event-memo (memo1 #(when % (ui/has-key-event %))))
 (def has-mouse-move-global-memo (memo1 #(when % (ui/has-mouse-move-global %))))
@@ -1150,9 +1155,12 @@
                         key# [~ui-name-kw elem#]]
                     ;; duplicate hm-lookup code so we can keep it private
                     (.computeIfAbsent cache# key#
-                                      (reify Function
-                                        (apply [_f# _k#]
-                                          (~render-fn-name elem#)))))))
+                                      ;; don't reify inline here
+                                      ;; it doesn't work in some versions of
+                                      ;; babashka code
+                                      (fn->Function
+                                       (fn []
+                                         (~render-fn-name elem#)))))))
 
              (defrecord ~component-name []
                membrane.ui/IOrigin
