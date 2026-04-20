@@ -190,20 +190,12 @@
   (-bubble [elem intents]
     nil))
 
-
-
 (defn -default-mouse-move-global [elem offset]
   (let [[ox oy] (origin elem)
         [sx sy] offset
         child-offset [(- sx ox)
                       (- sy oy)]]
-    (let [intents
-          (reduce into
-                  []
-                  (for [child (children elem)]
-                    (-mouse-move-global child child-offset)))]
-      (-bubble elem intents))))
-
+    (-bubble elem (into [] (mapcat #(-mouse-move-global % child-offset)) (children elem)))))
 
 (declare bounds)
 
