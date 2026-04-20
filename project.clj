@@ -1,4 +1,4 @@
-(defproject com.phronemophobic/membrane "0.11.1-beta"
+(defproject com.phronemophobic/membrane "0.11.111-beta"
   :description "A platform agnostic library for creating user interfaces"
   :url "https://github.com/phronmophobic/membrane"
   :license {:name "Apache License, Version 2.0"
@@ -21,8 +21,9 @@
                  ;; [com.oracle/appbundler "1.0ea-local"]
                  ;; [org.apache.ant/ant "1.10.5"]
 
+                 ;; For babaskha pod work
+                 [nrepl/bencode "1.1.0"]
                  ]
-
   :aot [
         ]
 
@@ -56,7 +57,9 @@
   :repositories {"sonatype-oss-public" "https://oss.sonatype.org/content/groups/public/"
                  "space-maven" "https://packages.jetbrains.team/maven/p/skija/maven"}
   :profiles
-  {:dev {:dependencies
+  {
+   :clojure-1.10.3 {:dependencies [[org.clojure/clojure "1.10.3"]]}
+   :dev {:dependencies
          [
           [cider/piggieback "0.4.0"]
 
@@ -101,7 +104,13 @@
                              [org.lwjgl/lwjgl-opengl "3.3.0" :classifier "natives-macos"]
                              [org.lwjgl/lwjgl-opengl "3.3.0" :classifier "natives-macos-arm64"]
                              [org.lwjgl/lwjgl-opengl "3.3.0" :classifier "natives-linux"]
-                             ]}}
+                             ]}
+   :uberjar {:dependencies [[com.github.clj-easy/graal-build-time "0.1.0"]]
+             :jvm-opts ["-Dclojure.compiler.direct-linking=true"
+                        "-Dclojure.spec.skip-macros=true"]
+             :main pod.tddpirate.membrane
+             :aot [pod.tddpirate.membrane]}
+   }
 
   :deploy-repositories [["releases" :clojars]
                         ["snapshots" :clojars]]
