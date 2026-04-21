@@ -28,6 +28,15 @@
 #include "include/gpu/ganesh/SkSurfaceGanesh.h"
 
 
+
+#if TARGET_OS_IOS
+// nothing
+#elif defined(__APPLE__)
+#include <OpenGL/gl.h>
+#else
+#include <GL/gl.h>
+#endif
+
 // FONT STUFF //
 // https://github.com/kyamagu/skia-python/commit/fa88b2febb5462844ef4d2e5c27e132d0f4594d2
 
@@ -147,7 +156,7 @@ extern "C" {
 
     void skia_reshape(SkiaResource* resource, int frameBufferWidth, int frameBufferHeight, float xscale, float yscale){
 
-        #ifndef TARGET_OS_IOS
+        #if !TARGET_OS_IOS
 
         if ( resource->surface){
             resource->surface.reset();
@@ -1443,7 +1452,8 @@ extern "C" {
 @end
 
 void skia_osx_run_on_main_thread_sync(void(*callback)(void)){
-    #ifndef TARGET_OS_IOS
+    #if !TARGET_OS_IOS
+
     @autoreleasepool {
         SkialibCallbackWrapper *cbwrapper = [[SkialibCallbackWrapper alloc] init];
         cbwrapper.callback = callback;
