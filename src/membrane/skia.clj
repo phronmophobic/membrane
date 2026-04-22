@@ -674,7 +674,7 @@
     (-bounds [_]
       [width height])))
 
-(defn ^:private pixmap
+(defn pixmap
   "Element for drawing raw pixel data. pixmap is a fairly low level level primitive."
   [id buf width height color-type alpha-type row-bytes]
   (->Pixmap id buf (int width) (int height) (int color-type) (int alpha-type) (int row-bytes)))
