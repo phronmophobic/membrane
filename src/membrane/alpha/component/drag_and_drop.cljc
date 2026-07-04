@@ -49,6 +49,13 @@
 (defn on-drop [handler body]
   (OnDrop. handler body))
 
+(defn wrap-on-drop [handler body]
+  (OnDrop.
+   (fn [pos obj]
+     (handler (fn [pos obj]
+                (-drop body pos obj))
+              pos obj))
+   body))
 
 (defrecord OnDropMove [on-drop-move elem]
   ui/IOrigin
