@@ -3437,7 +3437,7 @@
        )))
 
 
-(defn ^:private stretch-elems* [size get-stretch measure-size elems]
+(defn ^:private stretch-elems* [size set-size get-stretch measure-size elems]
   (let [fixed-size-total (transduce
                           (comp (remove get-stretch)
                                 (map measure-size))
@@ -3454,11 +3454,9 @@
         elems (into []
                     (map (fn [elem]
                            (if-let [stretch (get-stretch elem)]
-                             (let [width (*
-                                          stretch-size
-                                          (/ stretch stretch-total))]
-                               (assoc elem
-                                      :flex-layout.stretch/width width))
+                             (let [calculated-size (* stretch-size
+                                                      (/ stretch stretch-total))]
+                               (set-size elem calculated-size))
                              elem)))
                     elems)]
     elems))
@@ -3482,6 +3480,7 @@
         ;; not used
         ;;wrap (get layout :flex/wrap :flex.wrap/nowrap)
         {:keys [get-size
+                set-size
                 get-cross-size
                 measure-size
                 measure-cross-size
@@ -3493,12 +3492,13 @@
         ;;[ui-size get-size ui-cross-size get-cross-size get-gap make-spacer main-layout align ->alignment]
         (if (= direction :row)
           {:get-size :width
+           :set-size #(assoc %1 :membrane.ui/width %2)
            :get-cross-size :height
            :measure-size width
            :measure-cross-size height
            :make-spacer #(spacer % 0)
            :main-layout horizontal-layout
-           :get-stretch :flex.grow/width
+           :get-stretch :membrane.ui/stretch-width
            :align align-row
            :->alignment {:start :top
                          :end :bottom
@@ -3506,12 +3506,13 @@
                          :stretch :stretch}}
           ;; :direction :column
           {:get-size :height
+           :set-size #(assoc %1 :membrane.ui/height %2)
            :get-cross-size :width
            :measure-size height
            :measure-cross-size width
            :make-spacer #(spacer 0 %)
            :main-layout vertical-layout
-           :get-stretch :flex.grow/height
+           :get-stretch :membrane.ui/stretch-height
            :align align-column
            :->alignment {:start :left
                          :end :right
@@ -3538,7 +3539,7 @@
 
             stretchy? (some get-stretch elems)
             elems (if stretchy?
-                    (stretch-elems* size get-stretch measure-size elems)
+                    (stretch-elems* size set-size get-stretch measure-size elems)
                     elems)
 
             elems (if-let [alignment (:align layout)]
