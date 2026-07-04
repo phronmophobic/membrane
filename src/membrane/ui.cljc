@@ -2230,46 +2230,52 @@
   ([alignment row]
    (align-row alignment nil row ))
   ([alignment row-height row]
-   (if (= alignment :top)
-     row
-     (let [h (or row-height (height row))]
-       (case alignment
-         :bottom
-         (into []
-               (map (fn [elem]
-                      (translate 0 (- h (height elem))
-                                 elem)))
-               row)
-         :center
-         (into []
-               (map (fn [elem]
-                      (translate 0 (/ (- h (height elem))
-                                      2)
-                                 elem)))
-               row))))))
+   (let [h (or row-height (height row))]
+     (case alignment
+       
+       :top row
+       :stretch (into []
+                      (map #(assoc % ::height h))
+                      row)
+       
+       :bottom
+       (into []
+             (map (fn [elem]
+                    (translate 0 (- h (height elem))
+                               elem)))
+             row)
+       :center
+       (into []
+             (map (fn [elem]
+                    (translate 0 (/ (- h (height elem))
+                                    2)
+                               elem)))
+             row)))))
 
 (defn align-column
   ([alignment col]
    (align-column alignment nil col))
   ([alignment col-width col]
-   (if (= alignment :left)
-     col
-     (let [w (or col-width (width col))]
-       (case alignment
-         :right
-         (into []
-               (map (fn [elem]
-                      (translate (- w (width elem)) 0
-                                 elem)))
-               col)
-         :center
-         (into []
-               (map (fn [elem]
-                      (translate (/ (- w (width elem))
-                                    2)
-                                 0
-                                 elem)))
-               col))))))
+   (let [w (or col-width (width col))]
+     (case alignment
+       :left col
+       :stretch (into []
+                      (map #(assoc % ::width w))
+                      col)
+       :right
+       (into []
+             (map (fn [elem]
+                    (translate (- w (width elem)) 0
+                               elem)))
+             col)
+       :center
+       (into []
+             (map (fn [elem]
+                    (translate (/ (- w (width elem))
+                                  2)
+                               0
+                               elem)))
+             col)))))
 
 (defn- align-test []
   (align-column :right
@@ -3496,7 +3502,8 @@
            :align align-row
            :->alignment {:start :top
                          :end :bottom
-                         :center :center}}
+                         :center :center
+                         :stretch :stretch}}
           ;; :direction :column
           {:get-size :height
            :get-cross-size :width
@@ -3508,7 +3515,8 @@
            :align align-column
            :->alignment {:start :left
                          :end :right
-                         :center :center}})
+                         :center :center
+                         :stretch :stretch}})
 
         size (get-size layout)
         fixed-size? (some? size)]
