@@ -3526,15 +3526,13 @@
             gap (:gap layout)
             justification (get layout :justify-content
                                :start)
-            elems (if gap
-                    (do
-                      (assert (not (#{:space-around
-                                      :space-between
-                                      :space-evenly} justification))
-                              (str :gap " doesn't make sense with " justification))
-                      (into []
-                            (interpose (make-spacer gap))
-                            elems))
+            elems (if (and gap
+                           (not (#{:space-around
+                                   :space-between
+                                   :space-evenly} justification)))
+                    (into []
+                          (interpose (make-spacer gap))
+                          elems)
                     elems)
 
             stretchy? (some get-stretch elems)
