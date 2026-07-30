@@ -1507,7 +1507,12 @@ The role of `dispatch!` is to allow effects to define themselves in terms of oth
             handler (get effects type)]
         (if handler
           (apply handler dispatch! (next args))
-          (println "no handler for " type))))))
+          (do
+            (tap> (into ["no handler for type"
+                         type]
+                        args))
+            nil)
+          #_(println "no handler for " type))))))
 
 (defn default-handler [atm]
   (fn dispatch!
