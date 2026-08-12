@@ -1231,7 +1231,33 @@
 
                membrane.ui/IChildren
                (~'-children [this#]
-                [(~render-cached-fn-name this#)]))
+                [(~render-cached-fn-name this#)])
+               
+               ;; Only if ::ui/width is in keys
+               ;; Not sure if this is the best approach, but will try it for now.
+               ~@(let [has-width? (or (some #{'membrane.ui/width} (:keys ui-arg-map))
+                                      (some #{'width} (:membrane.ui/keys ui-arg-map))
+                                      (some #{:membrane.ui/width} (vals ui-arg-map)))]
+                   (when has-width?
+                     ['membrane.ui/ISetWidth
+                      '(-set-width 
+                        [this width]
+                        (assoc this :membrane.ui/width width))]))
+               ~@(let [has-height? (or (some #{'membrane.ui/height} (:keys ui-arg-map))
+                                       (some #{'height} (:membrane.ui/keys ui-arg-map))
+                                       (some #{:membrane.ui/height} (vals ui-arg-map)))]
+                   (when has-height?
+                     ['membrane.ui/ISetHeight
+                      '(-set-height 
+                        [this height]
+                        (assoc this :membrane.ui/height height))]))
+  
+               membrane.ui/IStretchWidth
+               (~'-stretch-width [this#]
+                 (:membrane.ui/stretch-width this#))
+               membrane.ui/IStretchHeight
+               (~'-stretch-height [this#]
+                 (:membrane.ui/stretch-height this#)))
 
              (alter-meta! (var ~ui-name) (fn [old-meta#]
                                            (merge old-meta# (quote ~ui-name-meta))))

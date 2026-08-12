@@ -1043,6 +1043,13 @@
   (-origin [this]
     [0 0])
 
+  ui/ISetWidth
+  (-set-width [this width]
+    (assoc this :width width))
+  ui/IStretchWidth
+  (-stretch-width [this]
+    (::ui/stretch-width this))
+
   ui/IBounds
   (-bounds [this]
     (let [para (make-paragraph paragraph width paragraph-style)

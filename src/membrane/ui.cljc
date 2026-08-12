@@ -321,6 +321,38 @@
          (fn [this]
            (draw (children this)))))
 
+(defprotocol IStretchWidth
+  :extend-via-metadata true
+  (-stretch-width [elem]))
+(defprotocol IStretchHeight
+  :extend-via-metadata true
+  (-stretch-height [elem]))
+
+(extend-type #?(:clj Object
+                :cljs default)
+  IStretchWidth (-stretch-width [elem])
+  IStretchHeight (-stretch-height [elem]))
+
+(extend-type nil
+  IStretchWidth (-stretch-width [elem])
+  IStretchHeight (-stretch-height [elem]))
+
+(defprotocol ISetWidth
+  :extend-via-metadata true
+  (-set-width [elem width]))
+(defprotocol ISetHeight
+  :extend-via-metadata true
+  (-set-height [elem height]))
+
+(defn stretch-width [elem]
+  (-stretch-width elem))
+(defn stretch-height [elem]
+  (-stretch-height elem))
+(defn set-width [elem width]
+  (-set-width elem width))
+(defn set-height [elem height]
+  (-set-height elem height))
+
 (defprotocol IBounds
   :extend-via-metadata true
   (-bounds [elem]
@@ -583,7 +615,20 @@
     IBounds
   (-bounds [_]
     size)
-)
+  
+  ISetWidth
+  (-set-width [this width]
+    (assoc-in this [:size 0] width))
+  ISetHeight
+  (-set-height [this height]
+    (assoc-in this [:size 1] height))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (::stretch-width this))
+  IStretchHeight
+  (-stretch-height [this]
+    (::stretch-height this)))
 
 
 
@@ -756,7 +801,21 @@
         [0 0])
     IBounds
     (-bounds [this]
-        [x y]))
+        [x y])
+  
+  ISetWidth
+  (-set-width [this width]
+    (assoc this :x width))
+  ISetHeight
+  (-set-height [this height]
+    (assoc this :y height))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (::stretch-width this))
+  IStretchHeight
+  (-stretch-height [this]
+    (::stretch-height this)))
 
 (swap! default-draw-impls
        assoc Spacer (fn [draw]
@@ -1066,7 +1125,21 @@
         [0 0])
   IBounds
   (-bounds [this]
-      [width height]))
+      [width height])
+  
+  ISetWidth
+  (-set-width [this width]
+    (assoc this :width width))
+  ISetHeight
+  (-set-height [this height]
+    (assoc this :height height))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (::stretch-width this))
+  IStretchHeight
+  (-stretch-height [this]
+    (::stretch-height this)))
 
 (swap! default-draw-impls
        assoc Rectangle
@@ -1090,12 +1163,26 @@
       (Rectangle. width height))))
 
 (defrecord RoundedRectangle [width height border-radius]
-    IOrigin
-    (-origin [_]
-        [0 0])
+  IOrigin
+  (-origin [_]
+    [0 0])
   IBounds
   (-bounds [this]
-      [width height]))
+    [width height])
+  
+  ISetWidth
+  (-set-width [this width]
+    (assoc this :width width))
+  ISetHeight
+  (-set-height [this height]
+    (assoc this :height height))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (::stretch-width this))
+  IStretchHeight
+  (-stretch-height [this]
+    (::stretch-height this)))
 
 (defn rounded-rectangle
   "Graphical elem that draws a rounded rectangle."
@@ -1128,7 +1215,21 @@
 
   IBounds
   (-bounds [this]
-    (child-bounds drawable)))
+    (child-bounds drawable))
+
+  ISetWidth
+  (-set-width [this width]
+    (assoc this :drawable (-set-width drawable width)))
+  ISetHeight
+  (-set-height [this height]
+    (assoc this :drawable (-set-height drawable height)))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (-stretch-width drawable))
+  IStretchHeight
+  (-stretch-height [this]
+    (-stretch-height drawable)))
 
 (swap! default-draw-impls
        assoc Bordered
@@ -1198,7 +1299,21 @@
 
   IBounds
   (-bounds [this]
-    (child-bounds drawable)))
+    (child-bounds drawable))
+  
+  ISetWidth
+  (-set-width [this width]
+    (assoc this :drawable (-set-width drawable width)))
+  ISetHeight
+  (-set-height [this height]
+    (assoc this :drawable (-set-height drawable height)))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (-stretch-width drawable))
+  IStretchHeight
+  (-stretch-height [this]
+    (-stretch-height drawable)))
 
 (swap! default-draw-impls
        assoc FillBordered
@@ -1368,7 +1483,29 @@
   IMouseEvent
   (-mouse-event [this pos button mouse-down? mods]
     (when (and mouse-down? on-click (within-bounds? this pos))
-      (on-click))))
+      (on-click)))
+  
+  ISetWidth
+  (-set-width [this width]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set width"
+                      {:elem this})))
+    (assoc this :drawables [(-set-width (first drawables) width)]))
+  ISetHeight
+  (-set-height [this height]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set height"
+                      {:elem this})))
+    (assoc this :drawables [(-set-height (first drawables) height)]))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (when (= 1 (count drawables))
+      (-stretch-width (first drawables))))
+  IStretchHeight
+  (-stretch-height [this]
+    (when (= 1 (count drawables))
+      (-stretch-height (first drawables)))))
 
 (swap! default-draw-impls
        assoc OnClick
@@ -1423,7 +1560,29 @@
         (let [intents
               (some #(seq (-mouse-event % local-pos button mouse-down? mods))
                     (reverse (children this)))]
-          intents)))))
+          intents))))
+  
+  ISetWidth
+  (-set-width [this width]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set width"
+                      {:elem this})))
+    (assoc this :drawables [(-set-width (first drawables) width)]))
+  ISetHeight
+  (-set-height [this height]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set height"
+                      {:elem this})))
+    (assoc this :drawables [(-set-height (first drawables) height)]))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (when (= 1 (count drawables))
+      (-stretch-width (first drawables))))
+  IStretchHeight
+  (-stretch-height [this]
+    (when (= 1 (count drawables))
+      (-stretch-height (first drawables)))))
 
 (swap! default-draw-impls
        assoc OnMouseDown
@@ -1474,7 +1633,29 @@
         (let [intents
               (some #(seq (-mouse-event % local-pos button mouse-down? mods))
                     (reverse (children this)))]
-          intents)))))
+          intents))))
+  
+  ISetWidth
+  (-set-width [this width]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set width"
+                      {:elem this})))
+    (assoc this :drawables [(-set-width (first drawables) width)]))
+  ISetHeight
+  (-set-height [this height]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set height"
+                      {:elem this})))
+    (assoc this :drawables [(-set-height (first drawables) height)]))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (when (= 1 (count drawables))
+      (-stretch-width (first drawables))))
+  IStretchHeight
+  (-stretch-height [this]
+    (when (= 1 (count drawables))
+      (-stretch-height (first drawables)))))
 
 (swap! default-draw-impls
        assoc OnMouseDownRaw
@@ -1527,7 +1708,29 @@
           intents))
       (when on-mouse-up
         (when-let [local-pos (within-bounds? this pos)]
-          (on-mouse-up local-pos))))))
+          (on-mouse-up local-pos)))))
+  
+  ISetWidth
+  (-set-width [this width]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set width"
+                      {:elem this})))
+    (assoc this :drawables [(-set-width (first drawables) width)]))
+  ISetHeight
+  (-set-height [this height]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set height"
+                      {:elem this})))
+    (assoc this :drawables [(-set-height (first drawables) height)]))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (when (= 1 (count drawables))
+      (-stretch-width (first drawables))))
+  IStretchHeight
+  (-stretch-height [this]
+    (when (= 1 (count drawables))
+      (-stretch-height (first drawables)))))
 
 (swap! default-draw-impls
        assoc OnMouseUp
@@ -1576,7 +1779,29 @@
                     (reverse (children this)))]
           intents))
       (when on-mouse-up-raw
-        (on-mouse-up-raw pos)))))
+        (on-mouse-up-raw pos))))
+  
+  ISetWidth
+  (-set-width [this width]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set width"
+                      {:elem this})))
+    (assoc this :drawables [(-set-width (first drawables) width)]))
+  ISetHeight
+  (-set-height [this height]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set height"
+                      {:elem this})))
+    (assoc this :drawables [(-set-height (first drawables) height)]))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (when (= 1 (count drawables))
+      (-stretch-width (first drawables))))
+  IStretchHeight
+  (-stretch-height [this]
+    (when (= 1 (count drawables))
+      (-stretch-height (first drawables)))))
 
 (swap! default-draw-impls
        assoc OnMouseUpRaw
@@ -1621,7 +1846,29 @@
   (-mouse-move [this [mx my :as pos]]
     (when on-mouse-move
       (when-let [pos (within-bounds? this pos)]
-        (on-mouse-move pos)))))
+        (on-mouse-move pos))))
+  
+  ISetWidth
+  (-set-width [this width]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set width"
+                      {:elem this})))
+    (assoc this :drawables [(-set-width (first drawables) width)]))
+  ISetHeight
+  (-set-height [this height]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set height"
+                      {:elem this})))
+    (assoc this :drawables [(-set-height (first drawables) height)]))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (when (= 1 (count drawables))
+      (-stretch-width (first drawables))))
+  IStretchHeight
+  (-stretch-height [this]
+    (when (= 1 (count drawables))
+      (-stretch-height (first drawables)))))
 
 (swap! default-draw-impls
        assoc OnMouseMove
@@ -1636,6 +1883,50 @@
   on-mouse-move down should take 1 argument [mx my] of the mouse position in local coordinates and return a sequence of intents."
   [on-mouse-move & drawables]
   (OnMouseMove. on-mouse-move drawables))
+
+(defrecord OnMouseMoveElem [on-mouse-move elem]
+  IOrigin
+  (-origin [_]
+    [0 0])
+
+  IBounds
+  (-bounds [this]
+    (child-bounds elem))
+
+  IMakeNode
+  (make-node [this childs]
+    (assert (= (count childs) 1))
+    (assoc this :elem (first childs)))
+
+  IChildren
+  (-children [this]
+    [elem])
+
+  IMouseMove
+  (-mouse-move [this [mx my :as pos]]
+    (when on-mouse-move
+      (when-let [pos (within-bounds? this pos)]
+        (on-mouse-move elem pos))))
+  
+  ISetWidth
+  (-set-width [this width]
+    (assoc this :elem (-set-width elem width)))
+  ISetHeight
+  (-set-height [this height]
+    (assoc this :elem (-set-height elem height)))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (-stretch-width elem))
+  IStretchHeight
+  (-stretch-height [this]
+    (-stretch-height elem)))
+
+(swap! default-draw-impls
+       assoc OnMouseMoveElem
+       (fn [draw]
+         (fn [this]
+           (draw (:elem this)))))
 
 (defrecord OnMouseMoveRaw [on-mouse-move-raw drawables]
   IOrigin
@@ -1664,7 +1955,29 @@
   IMouseMove
   (-mouse-move [this [mx my :as pos]]
     (when on-mouse-move-raw
-      (on-mouse-move-raw pos))))
+      (on-mouse-move-raw pos)))
+  
+  ISetWidth
+  (-set-width [this width]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set width"
+                      {:elem this})))
+    (assoc this :drawables [(-set-width (first drawables) width)]))
+  ISetHeight
+  (-set-height [this height]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set height"
+                      {:elem this})))
+    (assoc this :drawables [(-set-height (first drawables) height)]))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (when (= 1 (count drawables))
+      (-stretch-width (first drawables))))
+  IStretchHeight
+  (-stretch-height [this]
+    (when (= 1 (count drawables))
+      (-stretch-height (first drawables)))))
 
 (swap! default-draw-impls
        assoc OnMouseMoveRaw
@@ -1712,7 +2025,29 @@
   IMouseMoveGlobal
   (-mouse-move-global [this pos]
     (when on-mouse-move-global
-      (on-mouse-move-global pos))))
+      (on-mouse-move-global pos)))
+  
+  ISetWidth
+  (-set-width [this width]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set width"
+                      {:elem this})))
+    (assoc this :drawables [(-set-width (first drawables) width)]))
+  ISetHeight
+  (-set-height [this height]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set height"
+                      {:elem this})))
+    (assoc this :drawables [(-set-height (first drawables) height)]))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (when (= 1 (count drawables))
+      (-stretch-width (first drawables))))
+  IStretchHeight
+  (-stretch-height [this]
+    (when (= 1 (count drawables))
+      (-stretch-height (first drawables)))))
 
 (swap! default-draw-impls
        assoc OnMouseMoveGlobal
@@ -1727,6 +2062,53 @@
   on-mouse-move-global down should take 1 argument [mx my] of the mouse position in global coordinates and return a sequence of intents."
   [on-mouse-move-global & drawables]
   (OnMouseMoveGlobal. on-mouse-move-global drawables))
+
+(defrecord OnMouseMoveGlobalElem [on-mouse-move-global elem]
+  IOrigin
+  (-origin [_]
+    [0 0])
+
+  IBounds
+  (-bounds [this]
+    (child-bounds elem))
+
+  IMakeNode
+  (make-node [this childs]
+    (assert (= 1 (count childs)))
+    (assoc this :elem (first childs)))
+
+  IChildren
+  (-children [this]
+    [elem])
+
+  IHasMouseMoveGlobal
+  (has-mouse-move-global [this]
+    true)
+
+  IMouseMoveGlobal
+  (-mouse-move-global [this pos]
+    (when on-mouse-move-global
+      (on-mouse-move-global elem pos)))
+  
+  ISetWidth
+  (-set-width [this width]
+    (assoc this :elem (-set-width elem width)))
+  ISetHeight
+  (-set-height [this height]
+    (assoc this :elem (-set-height elem height)))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (-stretch-width elem))
+  IStretchHeight
+  (-stretch-height [this]
+    (-stretch-height elem)))
+
+(swap! default-draw-impls
+       assoc OnMouseMoveGlobalElem
+       (fn [draw]
+         (fn [this]
+           (draw (:elem this)))))
 
 (defrecord OnMouseEnterGlobal [on-mouse-enter-global drawables]
   IOrigin
@@ -1755,7 +2137,29 @@
   IMouseEnterGlobal
   (-mouse-enter-global [this enter?]
     (when on-mouse-enter-global
-      (on-mouse-enter-global enter?))))
+      (on-mouse-enter-global enter?)))
+  
+  ISetWidth
+  (-set-width [this width]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set width"
+                      {:elem this})))
+    (assoc this :drawables [(-set-width (first drawables) width)]))
+  ISetHeight
+  (-set-height [this height]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set height"
+                      {:elem this})))
+    (assoc this :drawables [(-set-height (first drawables) height)]))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (when (= 1 (count drawables))
+      (-stretch-width (first drawables))))
+  IStretchHeight
+  (-stretch-height [this]
+    (when (= 1 (count drawables))
+      (-stretch-height (first drawables)))))
 
 (swap! default-draw-impls
        assoc OnMouseEnterGlobal
@@ -1804,7 +2208,29 @@
     (-mouse-event [this pos button mouse-down? mods]
       (when on-mouse-event
         (when-let [local-pos (within-bounds? this pos)]
-          (on-mouse-event local-pos button mouse-down? mods)))))
+          (on-mouse-event local-pos button mouse-down? mods))))
+  
+  ISetWidth
+  (-set-width [this width]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set width"
+                      {:elem this})))
+    (assoc this :drawables [(-set-width (first drawables) width)]))
+  ISetHeight
+  (-set-height [this height]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set height"
+                      {:elem this})))
+    (assoc this :drawables [(-set-height (first drawables) height)]))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (when (= 1 (count drawables))
+      (-stretch-width (first drawables))))
+  IStretchHeight
+  (-stretch-height [this]
+    (when (= 1 (count drawables))
+      (-stretch-height (first drawables)))))
 
 (swap! default-draw-impls
        assoc OnMouseEvent
@@ -1819,6 +2245,51 @@
   on-mouse-event should take 4 arguments [pos button mouse-down? mods] and return a sequence of intents."
   [on-mouse-event & drawables]
   (OnMouseEvent. on-mouse-event drawables))
+
+(defrecord OnMouseEventElem [on-mouse-event elem]
+    IOrigin
+    (-origin [_]
+        [0 0])
+
+    IBounds
+    (-bounds [this]
+      (child-bounds elem))
+
+    IMakeNode
+    (make-node [this childs]
+      (assert (= (count childs) 1))
+      (OnMouseEventElem. on-mouse-event (first childs)))
+
+
+    IChildren
+    (-children [this]
+      [elem])
+
+    IMouseEvent
+    (-mouse-event [this pos button mouse-down? mods]
+      (when on-mouse-event
+        (when-let [local-pos (within-bounds? this pos)]
+          (on-mouse-event elem local-pos button mouse-down? mods))))
+  
+  ISetWidth
+  (-set-width [this width]
+    (assoc this :elem (-set-width elem width)))
+  ISetHeight
+  (-set-height [this height]
+    (assoc this :elem (-set-height elem height)))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (-stretch-width elem))
+  IStretchHeight
+  (-stretch-height [this]
+    (-stretch-height elem)))
+
+(swap! default-draw-impls
+       assoc OnMouseEventElem
+       (fn [draw]
+         (fn [this]
+           (draw (:elem this)))))
 
 
 (defrecord OnDrop [on-drop drawables]
@@ -1850,7 +2321,29 @@
     (-drop [this paths pos]
       (when on-drop
         (when-let [pos (within-bounds? this pos)]
-          (on-drop paths pos)))))
+          (on-drop paths pos))))
+  
+  ISetWidth
+  (-set-width [this width]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set width"
+                      {:elem this})))
+    (assoc this :drawables [(-set-width (first drawables) width)]))
+  ISetHeight
+  (-set-height [this height]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set height"
+                      {:elem this})))
+    (assoc this :drawables [(-set-height (first drawables) height)]))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (when (= 1 (count drawables))
+      (-stretch-width (first drawables))))
+  IStretchHeight
+  (-stretch-height [this]
+    (when (= 1 (count drawables))
+      (-stretch-height (first drawables)))))
 
 (swap! default-draw-impls
        assoc OnDrop
@@ -1898,7 +2391,29 @@
 
   IChildren
   (-children [this]
-      drawables))
+      drawables)
+
+  ISetWidth
+  (-set-width [this width]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set width"
+                      {:elem this})))
+    (assoc this :drawables [(-set-width (first drawables) width)]))
+  ISetHeight
+  (-set-height [this height]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set height"
+                      {:elem this})))
+    (assoc this :drawables [(-set-height (first drawables) height)]))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (when (= 1 (count drawables))
+      (-stretch-width (first drawables))))
+  IStretchHeight
+  (-stretch-height [this]
+    (when (= 1 (count drawables))
+      (-stretch-height (first drawables)))))
 
 (swap! default-draw-impls
        assoc OnKeyPress
@@ -1913,6 +2428,53 @@
   on-key-press should take 1 argument key and return a sequence of intents."
   [on-key-press & drawables]
   (OnKeyPress. on-key-press drawables))
+
+(defrecord OnKeyPressElem [on-key-press elem]
+    IOrigin
+    (-origin [_]
+      [0 0])
+
+  IBounds
+  (-bounds [this]
+    (child-bounds elem))
+
+  IHasKeyPress
+  (has-key-press [this]
+    (boolean on-key-press))
+
+  IKeyPress
+  (-key-press [this key]
+    (when on-key-press
+      (on-key-press elem key)))
+
+    IMakeNode
+    (make-node [this childs]
+      (assert (= (count childs) 1))
+      (assoc this :elem (first childs) ))
+
+  IChildren
+  (-children [this]
+    [elem])
+
+  ISetWidth
+  (-set-width [this width]
+    (assoc this :elem (-set-width elem width)))
+  ISetHeight
+  (-set-height [this height]
+    (assoc this :elem (-set-height elem height)))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (-stretch-width elem))
+  IStretchHeight
+  (-stretch-height [this]
+    (-stretch-height elem)))
+
+(swap! default-draw-impls
+       assoc OnKeyPressElem
+       (fn [draw]
+         (fn [this]
+           (draw (:elem this)))))
 
 (defrecord OnKeyEvent [on-key-event drawables]
     IOrigin
@@ -1946,7 +2508,29 @@
 
   IChildren
   (-children [this]
-      drawables))
+      drawables)
+  ISetWidth
+  (-set-width [this width]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set width"
+                      {:elem this})))
+    (assoc this :drawables [(-set-width (first drawables) width)]))
+  ISetHeight
+  (-set-height [this height]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set height"
+                      {:elem this})))
+    (assoc this :drawables [(-set-height (first drawables) height)]))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (when (= 1 (count drawables))
+      (-stretch-width (first drawables))))
+  IStretchHeight
+  (-stretch-height [this]
+    (when (= 1 (count drawables))
+      (-stretch-height (first drawables)))))
+
 
 (swap! default-draw-impls
        assoc OnKeyEvent
@@ -1961,6 +2545,54 @@
   on-key-event should take 4 arguments key, scancode, action, mods and return a sequence of intents."
   [on-key-event & drawables]
   (OnKeyEvent. on-key-event drawables))
+
+(defrecord OnKeyEventElem [on-key-event elem]
+    IOrigin
+    (-origin [_]
+        [0 0])
+
+
+  IBounds
+  (-bounds [this]
+    (child-bounds elem))
+
+  IHasKeyEvent
+  (has-key-event [this]
+      (boolean on-key-event))
+
+  IKeyEvent
+  (-key-event [this key scancode action mods]
+      (when on-key-event
+        (on-key-event elem key scancode action mods)))
+
+    IMakeNode
+    (make-node [this childs]
+      (assert (= (count childs) 1))
+      (OnKeyEventElem. on-mouse-event (first childs)))
+
+
+  IChildren
+  (-children [this]
+    [elem])
+  ISetWidth
+  (-set-width [this width]
+    (assoc this :elem (-set-width elem width)))
+  ISetHeight
+  (-set-height [this height]
+    (assoc this :elem (-set-height elem height)))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (-stretch-width elem))
+  IStretchHeight
+  (-stretch-height [this]
+    (-stretch-height elem)))
+
+(swap! default-draw-impls
+       assoc OnKeyEventElem
+       (fn [draw]
+         (fn [this]
+           (draw (:elem this)))))
 
 (defrecord OnBubble [on-bubble drawables]
     IOrigin
@@ -1990,7 +2622,29 @@
 
    IBubble
    (-bubble [this intents]
-       (on-bubble intents)))
+       (on-bubble intents))
+  
+  ISetWidth
+  (-set-width [this width]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set width"
+                      {:elem this})))
+    (assoc this :drawables [(-set-width (first drawables) width)]))
+  ISetHeight
+  (-set-height [this height]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set height"
+                      {:elem this})))
+    (assoc this :drawables [(-set-height (first drawables) height)]))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (when (= 1 (count drawables))
+      (-stretch-width (first drawables))))
+  IStretchHeight
+  (-stretch-height [this]
+    (when (= 1 (count drawables))
+      (-stretch-height (first drawables)))))
 
 (swap! default-draw-impls
        assoc OnBubble
@@ -2035,7 +2689,29 @@
     IClipboardPaste
     (-clipboard-paste [this s]
         (when on-clipboard-paste
-          (on-clipboard-paste s))))
+          (on-clipboard-paste s)))
+  
+  ISetWidth
+  (-set-width [this width]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set width"
+                      {:elem this})))
+    (assoc this :drawables [(-set-width (first drawables) width)]))
+  ISetHeight
+  (-set-height [this height]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set height"
+                      {:elem this})))
+    (assoc this :drawables [(-set-height (first drawables) height)]))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (when (= 1 (count drawables))
+      (-stretch-width (first drawables))))
+  IStretchHeight
+  (-stretch-height [this]
+    (when (= 1 (count drawables))
+      (-stretch-height (first drawables)))))
 
 (swap! default-draw-impls
        assoc OnClipboardPaste
@@ -2079,7 +2755,29 @@
   IClipboardCopy
   (-clipboard-copy [this]
       (when on-clipboard-copy
-        (on-clipboard-copy))))
+        (on-clipboard-copy)))
+  
+  ISetWidth
+  (-set-width [this width]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set width"
+                      {:elem this})))
+    (assoc this :drawables [(-set-width (first drawables) width)]))
+  ISetHeight
+  (-set-height [this height]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set height"
+                      {:elem this})))
+    (assoc this :drawables [(-set-height (first drawables) height)]))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (when (= 1 (count drawables))
+      (-stretch-width (first drawables))))
+  IStretchHeight
+  (-stretch-height [this]
+    (when (= 1 (count drawables))
+      (-stretch-height (first drawables)))))
 
 (swap! default-draw-impls
        assoc OnClipboardCopy
@@ -2125,7 +2823,29 @@
   IClipboardCut
   (-clipboard-cut [this]
       (when on-clipboard-cut
-        (on-clipboard-cut))))
+        (on-clipboard-cut)))
+  
+  ISetWidth
+  (-set-width [this width]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set width"
+                      {:elem this})))
+    (assoc this :drawables [(-set-width (first drawables) width)]))
+  ISetHeight
+  (-set-height [this height]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set height"
+                      {:elem this})))
+    (assoc this :drawables [(-set-height (first drawables) height)]))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (when (= 1 (count drawables))
+      (-stretch-width (first drawables))))
+  IStretchHeight
+  (-stretch-height [this]
+    (when (= 1 (count drawables))
+      (-stretch-height (first drawables)))))
 
 (swap! default-draw-impls
        assoc OnClipboardCut
@@ -2235,7 +2955,10 @@
        
        :top row
        :stretch (into []
-                      (map #(assoc % ::height h))
+                      (map (fn [elem]
+                             (if (stretch-height elem)
+                               (set-height elem h)
+                               elem)))
                       row)
        
        :bottom
@@ -2260,7 +2983,10 @@
      (case alignment
        :left col
        :stretch (into []
-                      (map #(assoc % ::width w))
+                      (map (fn [elem]
+                             (if (stretch-width elem)
+                               (set-width elem w)
+                               elem)))
                       col)
        :right
        (into []
@@ -2467,7 +3193,29 @@
 
   IChildren
   (-children [this]
-      drawables))
+      drawables)
+  
+  ISetWidth
+  (-set-width [this width]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set width"
+                      {:elem this})))
+    (assoc this :drawables [(-set-width (first drawables) width)]))
+  ISetHeight
+  (-set-height [this height]
+    (when-not (= 1 (count drawables))
+      (throw (ex-info "Can't set height"
+                      {:elem this})))
+    (assoc this :drawables [(-set-height (first drawables) height)]))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (when (= 1 (count drawables))
+      (-stretch-width (first drawables))))
+  IStretchHeight
+  (-stretch-height [this]
+    (when (= 1 (count drawables))
+      (-stretch-height (first drawables)))))
 
 (swap! default-draw-impls
        assoc OnScroll
@@ -2484,6 +3232,51 @@
   [on-scroll & drawables]
   (OnScroll. on-scroll drawables))
 
+(defrecord OnScrollElem [on-scroll elem]
+  IOrigin
+  (-origin [_]
+    [0 0])
+  
+  IBounds
+  (-bounds [this]
+    (child-bounds elem))
+  
+  IScroll
+  (-scroll [this [offset-x offset-y :as offset] mpos]
+    (when on-scroll
+      (when-let [mpos (within-bounds? this mpos)]
+        (on-scroll elem offset mpos))))
+  
+  IMakeNode
+  (make-node [this childs]
+    (assert (= (count childs) 1))      
+    (assoc this :elem (first childs)))
+  
+  
+  IChildren
+  (-children [this]
+    [elem])
+  
+  ISetWidth
+  (-set-width [this width]
+    (assoc this :elem (-set-width elem width)))
+  ISetHeight
+  (-set-height [this height]
+    (assoc this :elem (-set-height elem height)))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (-stretch-width elem))
+  IStretchHeight
+  (-stretch-height [this]
+    (-stretch-height elem)))
+
+(swap! default-draw-impls
+       assoc OnScrollElem
+       (fn [draw]
+         (fn [this]
+           (draw (:elem this)))))
+
 
 (defrecord ScissorView [offset bounds drawable]
     IOrigin
@@ -2498,7 +3291,21 @@
         [drawable])
     IBounds
     (-bounds [this]
-      bounds))
+      bounds)
+  
+  ISetWidth
+  (-set-width [this width]
+    (assoc this :drawable (-set-width drawable width)))
+  ISetHeight
+  (-set-height [this height]
+    (assoc this :drawable (-set-height drawable height)))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (-stretch-width drawable))
+  IStretchHeight
+  (-stretch-height [this]
+    (-stretch-height drawable)))
 
 (defn scissor-view
   "Graphical elem to only draw drawable within bounds with an offset.
@@ -2555,7 +3362,21 @@
 
   IChildren
   (-children [this]
-      [drawable]))
+      [drawable])
+  
+  ISetWidth
+  (-set-width [this width]
+    (assoc this :drawable (-set-width drawable width)))
+  ISetHeight
+  (-set-height [this height]
+    (assoc this :drawable (-set-height drawable height)))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (-stretch-width drawable))
+  IStretchHeight
+  (-stretch-height [this]
+    (-stretch-height drawable)))
 
 (defn scrollview
   "Graphical elem that will draw drawable offset by offset and clip its drawings to bounds. "
@@ -2601,7 +3422,21 @@
         (= event-type other-event-type))
 
   (-handle-event [this event-type event-args]
-      (apply handler event-args)))
+      (apply handler event-args))
+  
+  ISetWidth
+  (-set-width [this width]
+    (assoc this :drawable (-set-width drawable width)))
+  ISetHeight
+  (-set-height [this height]
+    (assoc this :drawable (-set-height drawable height)))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (-stretch-width drawable))
+  IStretchHeight
+  (-stretch-height [this]
+    (-stretch-height drawable)))
 
 (swap! default-draw-impls
        assoc EventHandler
@@ -2817,7 +3652,21 @@
   (-handle-event [this event-type event-args]
     (let [handler (get handlers event-type)]
       (assert handler)
-      (apply handler event-args))))
+      (apply handler event-args)))
+  
+  ISetWidth
+  (-set-width [this width]
+    (assoc this :drawable (-set-width body width)))
+  ISetHeight
+  (-set-height [this height]
+    (assoc this :drawable (-set-height body height)))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (-stretch-width body))
+  IStretchHeight
+  (-stretch-height [this]
+    (-stretch-height body)))
 
 (defn ^:private multi-on
   [handlers body]
@@ -2952,7 +3801,21 @@
   (-handle-event [this event-type event-args]
     (let [handler (get handlers event-type)]
       (assert handler)
-      (apply handler event-args))))
+      (apply handler event-args)))
+  
+  ISetWidth
+  (-set-width [this width]
+    (assoc this :drawable (-set-width body width)))
+  ISetHeight
+  (-set-height [this height]
+    (assoc this :drawable (-set-height body height)))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (-stretch-width body))
+  IStretchHeight
+  (-stretch-height [this]
+    (-stretch-height body)))
 
 (defn raw-on [handlers body]
   (OnEventRaw. handlers body))
@@ -3054,68 +3917,68 @@
         (recur (next evs)
                (case event-type
                  :mouse-down
-                 (on-mouse-event
-                  (fn [mpos button mouse-down? mods]
+                 (->OnMouseEventElem
+                  (fn [elem mpos button mouse-down? mods]
                     (if mouse-down?
                       (handler (fn [pos]
-                                 (mouse-event body pos button mouse-down? mods))
+                                 (mouse-event elem pos button mouse-down? mods))
                                mpos)
-                      (mouse-event body mpos button mouse-down? mods)))
+                      (mouse-event elem mpos button mouse-down? mods)))
                   body)
 
                  :mouse-event
-                 (on-mouse-event
-                  (fn [mpos button mouse-down? mods]
+                 (->OnMouseEventElem
+                  (fn [elem mpos button mouse-down? mods]
                     (handler (fn [mpos button mouse-down? mods]
-                               (mouse-event body mpos button mouse-down? mods))
+                               (mouse-event elem mpos button mouse-down? mods))
                              mpos button mouse-down? mods))
                   body)
 
                  :key-event
-                 (on-key-event
-                  (fn [key scancode action mods]
+                 (->OnKeyEventElem
+                  (fn [elem key scancode action mods]
                     (handler (fn [key scancode action mods]
-                               (key-event body key scancode action mods))
+                               (key-event elem key scancode action mods))
                              key scancode action mods))
                   body)
 
                  :key-press
-                 (on-key-press
-                  (fn [key]
+                 (->OnKeyPressElem
+                  (fn [elem key]
                     (handler (fn [key]
-                               (key-press body key))
+                               (key-press elem key))
                              key))
                   body)
 
                  :mouse-up
-                 (on-mouse-event
-                  (fn [mpos button mouse-down? mods]
+                 (->OnMouseEventElem
+                  (fn [elem mpos button mouse-down? mods]
                     (if (not mouse-down?)
                       (handler (fn [pos]
-                                 (mouse-event body pos button mouse-down? mods))
+                                 (mouse-event elem pos button mouse-down? mods))
                                mpos)
-                      (mouse-event body mpos button mouse-down? mods)))
+                      (mouse-event elem mpos button mouse-down? mods)))
                   body)
 
                  :mouse-move
-                 (on-mouse-move
-                  (fn [pos]
-                    (handler (fn [pos] (mouse-move body pos))
+                 (->OnMouseMoveElem
+                  (fn [elem pos]
+                    (handler (fn [pos] (mouse-move elem pos))
                              pos))
                   body)
 
                  :mouse-move-global
-                 (on-mouse-move-global
-                  (fn [pos]
-                    (handler (fn [pos] (mouse-move-global body pos))
+                 (->OnMouseMoveGlobalElem
+                  (fn [elem pos]
+                    (handler (fn [pos] (mouse-move-global elem pos))
                              pos))
                   body)
 
                  :scroll
-                 (on-scroll
-                  (fn [offset pos]
+                 (->OnScrollElem
+                  (fn [elem offset pos]
                     (handler (fn [offset pos]
-                               (scroll body offset pos))
+                               (scroll elem offset pos))
                              offset
                              pos))
                   body)
@@ -3126,52 +3989,66 @@
       body)))
 
 (defrecord NoEvents [drawable]
-    IBounds
-    (-bounds [this]
-      (child-bounds drawable))
-
+  IBounds
+  (-bounds [this]
+    (child-bounds drawable))
+  
   IOrigin
   (-origin [_]
-      [0 0])
-
+    [0 0])
+  
   IMakeNode
   (make-node [this childs]
     (assert (= (count childs) 1))
     (NoEvents. (first childs)))
-
+  
   IChildren
-    (-children [this]
-        [drawable])
-
-    IBubble
-    (-bubble [this events]
-        nil)
-
-    IHandleEvent
-    (-can-handle? [this other-event-type]
-        false)
-
-    (-handle-event [this event-type event-args]
-        nil)
-
-    IClipboardCopy
-    (-clipboard-copy [_] nil)
-    IClipboardCut
-    (-clipboard-cut [_] nil)
-    IClipboardPaste
-    (-clipboard-paste [_ s] nil)
-    IKeyPress
-    (-key-press [this key] nil)
-    IKeyType
-    (-key-type [this key] nil)
-    IMouseMove
-    (-mouse-move [this pos] nil)
-    IMouseMoveGlobal
-    (-mouse-move-global [this pos] nil)
-    IMouseWheel
-    (-mouse-wheel [this pos] nil)
-    IScroll
-    (-scroll [this pos mpos] nil))
+  (-children [this]
+    [drawable])
+  
+  IBubble
+  (-bubble [this events]
+    nil)
+  
+  IHandleEvent
+  (-can-handle? [this other-event-type]
+    false)
+  
+  (-handle-event [this event-type event-args]
+    nil)
+  
+  IClipboardCopy
+  (-clipboard-copy [_] nil)
+  IClipboardCut
+  (-clipboard-cut [_] nil)
+  IClipboardPaste
+  (-clipboard-paste [_ s] nil)
+  IKeyPress
+  (-key-press [this key] nil)
+  IKeyType
+  (-key-type [this key] nil)
+  IMouseMove
+  (-mouse-move [this pos] nil)
+  IMouseMoveGlobal
+  (-mouse-move-global [this pos] nil)
+  IMouseWheel
+  (-mouse-wheel [this pos] nil)
+  IScroll
+  (-scroll [this pos mpos] nil)
+  
+  ISetWidth
+  (-set-width [this width]
+    (assoc this :drawable (-set-width drawable width)))
+  ISetHeight
+  (-set-height [this height]
+    (assoc this :drawable (-set-height drawable height)))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (-stretch-width drawable))
+  IStretchHeight
+  (-stretch-height [this]
+    (-stretch-height drawable)))
 
 (swap! default-draw-impls
        assoc NoEvents
@@ -3203,31 +4080,45 @@
         body)))
 
 (defrecord NoKeyEvent [drawable]
-    IOrigin
-    (-origin [_]
-        [0 0])
-
-    IBounds
-    (-bounds [this]
-      (child-bounds drawable))
-
-    IMakeNode
-    (make-node [this childs]
-      (assert (= (count childs) 1))
-      (NoKeyEvent. (first childs)))
-
-
-    IChildren
-    (-children [this]
-        [drawable])
-
-    IKeyEvent
-    (-key-event [this key scancode action mods]
-      nil)
-
-    IHasKeyEvent
-    (has-key-event [this]
-        false))
+  IOrigin
+  (-origin [_]
+    [0 0])
+  
+  IBounds
+  (-bounds [this]
+    (child-bounds drawable))
+  
+  IMakeNode
+  (make-node [this childs]
+    (assert (= (count childs) 1))
+    (NoKeyEvent. (first childs)))
+  
+  
+  IChildren
+  (-children [this]
+    [drawable])
+  
+  IKeyEvent
+  (-key-event [this key scancode action mods]
+    nil)
+  
+  IHasKeyEvent
+  (has-key-event [this]
+    false)
+  
+  ISetWidth
+  (-set-width [this width]
+    (assoc this :drawable (-set-width drawable width)))
+  ISetHeight
+  (-set-height [this height]
+    (assoc this :drawable (-set-height drawable height)))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (-stretch-width drawable))
+  IStretchHeight
+  (-stretch-height [this]
+    (-stretch-height drawable)))
 
 (swap! default-draw-impls
        assoc NoKeyEvent
@@ -3244,30 +4135,44 @@
      (NoKeyEvent. ~body)))
 
 (defrecord NoKeyPress [drawable]
-    IOrigin
-    (-origin [_]
-        [0 0])
-
-    IBounds
-    (-bounds [this]
-      (child-bounds drawable))
-
-    IMakeNode
-    (make-node [this childs]
-      (assert (= (count childs) 1))
-      (NoKeyPress. (first childs)))
-
-    IChildren
-    (-children [this]
-        [drawable])
-
-    IKeyPress
-    (-key-press [this info]
-      nil)
-
-    IHasKeyPress
-    (has-key-press [this]
-        false))
+  IOrigin
+  (-origin [_]
+    [0 0])
+  
+  IBounds
+  (-bounds [this]
+    (child-bounds drawable))
+  
+  IMakeNode
+  (make-node [this childs]
+    (assert (= (count childs) 1))
+    (NoKeyPress. (first childs)))
+  
+  IChildren
+  (-children [this]
+    [drawable])
+  
+  IKeyPress
+  (-key-press [this info]
+    nil)
+  
+  IHasKeyPress
+  (has-key-press [this]
+    false)
+  
+  ISetWidth
+  (-set-width [this width]
+    (assoc this :drawable (-set-width drawable width)))
+  ISetHeight
+  (-set-height [this height]
+    (assoc this :drawable (-set-height drawable height)))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (-stretch-width drawable))
+  IStretchHeight
+  (-stretch-height [this]
+    (-stretch-height drawable)))
 
 (swap! default-draw-impls
        assoc NoKeyPress
@@ -3309,7 +4214,21 @@
 
   IChildren
   (-children [this]
-      [drawable]))
+      [drawable])
+  
+  ISetWidth
+  (-set-width [this width]
+    (assoc this :drawable (-set-width drawable width)))
+  ISetHeight
+  (-set-height [this height]
+    (assoc this :drawable (-set-height drawable height)))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (-stretch-width drawable))
+  IStretchHeight
+  (-stretch-height [this]
+    (-stretch-height drawable)))
 
 (swap! default-draw-impls
        assoc TryDraw
@@ -3344,7 +4263,21 @@
 
   IChildren
   (-children [this]
-      [drawable]))
+      [drawable])
+  
+  ISetWidth
+  (-set-width [this width]
+    (assoc this :drawable (-set-width drawable width)))
+  ISetHeight
+  (-set-height [this height]
+    (assoc this :drawable (-set-height drawable height)))
+  
+  IStretchWidth
+  (-stretch-width [this]
+    (-stretch-width drawable))
+  IStretchHeight
+  (-stretch-height [this]
+    (-stretch-height drawable)))
 
 
 (def index-for-position* (atom nil))
@@ -3492,13 +4425,13 @@
         ;;[ui-size get-size ui-cross-size get-cross-size get-gap make-spacer main-layout align ->alignment]
         (if (= direction :row)
           {:get-size :width
-           :set-size #(assoc %1 :membrane.ui/width %2)
+           :set-size set-width
            :get-cross-size :height
            :measure-size width
            :measure-cross-size height
            :make-spacer #(spacer % 0)
            :main-layout horizontal-layout
-           :get-stretch :membrane.ui/stretch-width
+           :get-stretch stretch-width
            :align align-row
            :->alignment {:start :top
                          :end :bottom
@@ -3506,13 +4439,13 @@
                          :stretch :stretch}}
           ;; :direction :column
           {:get-size :height
-           :set-size #(assoc %1 :membrane.ui/height %2)
+           :set-size set-height
            :get-cross-size :width
            :measure-size height
            :measure-cross-size width
            :make-spacer #(spacer 0 %)
            :main-layout vertical-layout
-           :get-stretch :membrane.ui/stretch-height
+           :get-stretch stretch-height
            :align align-column
            :->alignment {:start :left
                          :end :right
@@ -3593,15 +4526,17 @@
             ;; but gaps do.
             gap (:gap layout)
             elems (if gap
-                    (interpose (make-spacer gap)
-                               elems)
+                    (into []
+                          (interpose (make-spacer gap))
+                          elems)
                     elems)
-            elems (apply main-layout elems)
+            
             elems (if-let [alignment (:align layout)]
                     (align (->alignment alignment)
                            (get-cross-size layout)
                            elems)
                     elems)
+            elems (apply main-layout elems)
 
             [natural-width natural-height] (bounds elems)
             elems (fixed-bounds

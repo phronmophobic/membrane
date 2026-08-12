@@ -913,14 +913,16 @@
                                                  :max-width 300
                                                  :integer? true})))
 
-(defui flex-layout [{:keys [elems layout pad] :as this}]
-  (let [layout (if-let [width (::ui/width this)]
+(defui flex-layout [{:keys [elems layout pad] :as this
+                     ::ui/keys [width height]}]
+  
+  (let [layout (if width
                  (assoc layout :width width)
                  layout)
-        layout (if-let [height (::ui/height this)]
+        layout (if height
                  (assoc layout :height height)
                  layout)
-        
+
         layout (if (and pad 
                         (:width layout)
                         (:height layout))
@@ -931,7 +933,6 @@
                        (update :width f)
                        (update :height f)))
                  layout)
-
         body (ui/flex-layout
               elems
               layout)
